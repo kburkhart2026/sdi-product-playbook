@@ -689,7 +689,7 @@ body.view-mode .emb-ph{pointer-events:none;cursor:default;}
   .vid-change-bar,.block-tag,.wysiwyg-bar,.btool-tag,.btool-copy,.bdel,.bdrag,
   .cost-add,.cost-clear,.cost-foot-bar,.cost-rowdrag,
   .tbl-rowops,
-  .ap-btn[onclick],.locked-banner,.claude-panel,.link-pop,#tbl-fmt-pop,.export-menu{display:none!important;}
+  .ap-btn[onclick],.locked-banner,.claude-panel,.link-pop,#tbl-fmt-pop,.export-menu,#databackup-modal,#shortcuts-modal{display:none!important;}
   body,#prog-view,.app,.main,.content-area{overflow:visible!important;height:auto!important;}
   .content-area{padding:0!important;}
   .content-inner{max-width:100%!important;padding:0!important;}
@@ -927,7 +927,7 @@ body.view-mode .wysiwyg-bar{display:none!important;}
 .cp-api-save{border-radius:3px;}
 
 /* ===== PM SPACE (Monday-style boards) ===== */
-#pm-view,#pm-dash-view{height:100vh;overflow-y:auto;background:#f4f5f7;}
+#pm-view,#pm-dash-view,#margin-view{height:100vh;overflow-y:auto;background:#f4f5f7;}
 .pm-shell{max-width:1280px;margin:0 auto;padding:0 24px 60px;}
 .pm-head{display:flex;align-items:center;gap:14px;padding:18px 0 14px;border-bottom:3px solid var(--acc);margin-bottom:18px;flex-wrap:wrap;}
 .pm-back{cursor:pointer;font-size:13px;color:var(--mut);font-weight:600;white-space:nowrap;}
@@ -1037,6 +1037,91 @@ body.view-mode .wysiwyg-bar{display:none!important;}
 .sortable-ghost{opacity:0.35;}
 .pm-kcard{cursor:grab;}
 @media (max-width:900px){.pm-dash-grid,.pm-kpis{grid-template-columns:1fr 1fr;}.pm-kanban{grid-template-columns:repeat(6,220px);}}
+
+/* ===== MARGIN CALCULATOR (full tool) ===== */
+.topbar .margin-calc-btn{background:transparent;border:1px solid rgba(255,255,255,0.4);color:#fff;}
+.topbar .margin-calc-btn:hover{background:rgba(255,255,255,0.14);}
+.margin-calc-btn{border:none;background:var(--acc);color:#fff;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;padding:7px 12px;border-radius:4px;cursor:pointer;font-family:inherit;white-space:nowrap;}
+.margin-calc-btn:hover{background:var(--acc-dark);}
+.mg2-header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px;}
+.mg2-title{font-family:var(--font-cond);text-transform:uppercase;letter-spacing:0.03em;font-weight:800;font-size:16px;color:var(--ink);}
+.mg2-title .sub{display:block;font-family:var(--font-body);text-transform:none;letter-spacing:0;font-weight:400;font-size:11.5px;color:var(--mut);margin-top:3px;}
+.mg2-actions{display:flex;gap:8px;}
+.mg2-btn{font-family:var(--font-cond);text-transform:uppercase;letter-spacing:0.04em;font-weight:700;font-size:11.5px;border:1px solid var(--bdr);background:#fff;color:var(--txt);padding:7px 12px;border-radius:4px;cursor:pointer;white-space:nowrap;}
+.mg2-btn:hover{background:#FDF4F5;border-color:var(--acc);color:var(--acc);}
+.mg2-panel{background:#fff;border:1px solid var(--bdr);border-radius:8px;padding:18px 20px;margin-bottom:16px;}
+.mg2-panel-title{font-family:var(--font-cond);text-transform:uppercase;letter-spacing:0.04em;font-size:12.5px;font-weight:700;color:var(--mut);margin-bottom:14px;}
+.mg2-chart-row{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+.mg2-chart-label{width:170px;flex-shrink:0;font-size:12.5px;font-weight:600;color:var(--txt);text-align:right;font-family:var(--font-cond);letter-spacing:0.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;}
+.mg2-chart-track{flex:1;height:22px;background:var(--cbg);border-radius:4px;overflow:hidden;}
+.mg2-chart-fill{height:100%;border-radius:4px;}
+.mg2-chart-pct{width:52px;flex-shrink:0;font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums;}
+table.mg2-table{width:100%;border-collapse:collapse;font-size:13px;}
+table.mg2-table th{text-align:left;font-family:var(--font-cond);text-transform:uppercase;letter-spacing:0.03em;font-size:10.5px;color:var(--mut);font-weight:700;padding:6px 10px;border-bottom:1px solid var(--bdr);}
+table.mg2-table td{padding:9px 10px;border-bottom:1px solid var(--bdr);font-variant-numeric:tabular-nums;}
+table.mg2-table td.num{text-align:right;}
+table.mg2-table tr.clickable{cursor:pointer;}
+table.mg2-table tr.clickable:hover{background:#FDF4F5;}
+.mg2-badge{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:999px;font-family:var(--font-cond);letter-spacing:0.02em;text-transform:uppercase;white-space:nowrap;}
+.mg2-scenario-card{border:1px solid var(--bdr);border-radius:8px;overflow:hidden;margin-bottom:14px;}
+.mg2-scenario-card.primary{border-color:#E9C46A;}
+.mg2-scn-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 15px;background:#FDF4F5;border-bottom:1px solid var(--bdr);flex-wrap:wrap;}
+.mg2-scn-name{font-family:var(--font-cond);text-transform:uppercase;letter-spacing:0.04em;font-weight:700;font-size:13.5px;color:var(--acc);border:none;background:transparent;outline:none;}
+.mg2-scn-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+.mg2-pill-btn{font-family:var(--font-cond);text-transform:uppercase;font-size:10px;font-weight:700;letter-spacing:0.03em;border:1px solid var(--bdr);background:#fff;color:var(--txt);padding:5px 9px;border-radius:4px;cursor:pointer;white-space:nowrap;}
+.mg2-pill-btn:hover{border-color:var(--acc);color:var(--acc);}
+.mg2-pill-btn.primary{background:var(--acc);border-color:var(--acc);color:#fff;}
+.mg2-pill-btn.primary:hover{background:var(--acc-dark);color:#fff;}
+.mg2-scn-body{display:grid;grid-template-columns:1.1fr 1fr;gap:0;}
+@media(max-width:760px){.mg2-scn-body{grid-template-columns:1fr;}}
+.mg2-scn-assumptions{padding:14px 16px;border-right:1px solid var(--bdr);}
+@media(max-width:760px){.mg2-scn-assumptions{border-right:none;border-bottom:1px solid var(--bdr);}}
+.mg2-scn-results{padding:14px 16px;background:#fafafa;}
+.mg2-col-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--mut);margin-bottom:9px;font-family:var(--font-cond);}
+.mg2-membership-row.excluded{opacity:0.55;}
+.mg2-membership-row.excluded select{color:var(--mut);background:var(--cbg);}
+.mg2-divider-row td{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;color:var(--mut);background:var(--cbg);padding:6px 10px;border-bottom:1px solid var(--bdr);}
+.mg2-course-row{display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:13px;}
+.mg2-cost-item-row{display:flex;gap:8px;margin-bottom:6px;align-items:center;}
+.mg2-cost-item-row input[type=text]{flex:2;}
+.mg2-cost-item-row input[type=number]{flex:1;}
+.mg2-field-input{font-family:inherit;font-size:13px;padding:6px 8px;border:1px solid var(--bdr);border-radius:5px;width:100%;box-sizing:border-box;}
+.mg2-field{display:flex;flex-direction:column;gap:4px;}
+.mg2-field label{font-size:10.5px;color:var(--mut);text-transform:uppercase;letter-spacing:0.05em;font-family:var(--font-cond);}
+.mg2-field-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px;}
+@media(max-width:760px){.mg2-field-grid{grid-template-columns:1fr 1fr;}}
+.mg2-accordion-header{cursor:pointer;user-select:none;}
+.mg2-chevron{display:inline-block;font-size:10px;color:var(--mut);transition:transform 0.15s ease;margin-right:6px;}
+.mg2-chevron.open{transform:rotate(90deg);}
+.mg2-dlg-select{width:100%;padding:8px 10px;border:1px solid var(--bdr);border-radius:5px;font-size:13px;color:var(--txt);background:#fff;}
+.mg2-dlg-field{margin-bottom:12px;}
+.mg2-dlg-field label{display:block;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--mut);margin-bottom:5px;font-family:var(--font-cond);}
+.mg2-dlg-preview{background:var(--cbg);border:1px solid var(--bdr);border-radius:6px;padding:10px 12px;margin:14px 0;display:flex;justify-content:space-between;font-size:12px;}
+.mg2-dlg-preview .stat b{display:block;font-size:15px;font-variant-numeric:tabular-nums;color:var(--ink);}
+/* ---- saved-scenario block, embedded in a section ---- */
+.block-margin-scenario{background:#fff;border:1px solid var(--bdr);border-radius:8px;overflow:hidden;}
+.mscn-head{padding:12px 16px;background:#FDF4F5;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.mscn-head-left{display:flex;align-items:center;gap:10px;}
+.mscn-title{font-family:var(--font-cond);text-transform:uppercase;letter-spacing:0.03em;font-weight:800;font-size:13px;color:var(--acc);}
+.mscn-meta{font-size:11px;color:var(--mut);}
+.mscn-courses{padding:12px 16px;border-bottom:1px solid var(--bdr);}
+.mscn-course-row{display:flex;justify-content:space-between;font-size:12px;padding:3px 0;color:var(--txt);}
+.mscn-course-row .cost{font-variant-numeric:tabular-nums;color:var(--mut);}
+.mscn-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:0;background:#fafafa;}
+.mscn-stat{padding:12px 14px;border-right:1px solid var(--bdr);}
+.mscn-stat:last-child{border-right:none;}
+.mscn-stat .lbl{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--mut);margin-bottom:3px;font-family:var(--font-cond);}
+.mscn-stat .val{font-size:17px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;}
+.mscn-foot{display:flex;justify-content:flex-end;gap:8px;padding:9px 16px;border-top:1px solid var(--bdr);background:#fff;}
+.mscn-btn{font-size:11px;font-weight:700;font-family:var(--font-cond);text-transform:uppercase;letter-spacing:0.03em;border:1px solid var(--bdr);background:#fff;color:var(--mut);padding:6px 10px;border-radius:4px;cursor:pointer;}
+.mscn-btn:hover{border-color:var(--acc);color:var(--acc);}
+.mscn-missing{padding:16px;font-size:12.5px;color:#b91c1c;}
+.mg2-good{color:#15803d;} .mg2-warn{color:#b45309;} .mg2-bad{color:#b91c1c;}
+.mg2-margin{font-size:24px;line-height:1;font-weight:700;font-variant-numeric:tabular-nums;}
+.mg2-big{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:8px 0 4px;padding:10px 12px;border-radius:6px;background:#fff;border:1px solid var(--bdr);}
+.mg2-big .lbl{font-family:var(--font-cond);text-transform:uppercase;letter-spacing:0.04em;font-weight:700;font-size:12.5px;}
+.mg2-dirty-badge{color:#92400E;background:#FEF3C7;}
+.mg2-primary-badge{color:#92400E;background:#FFF6DC;}
 </style>
 </head>
 <body>
@@ -1114,9 +1199,15 @@ body.view-mode .wysiwyg-bar{display:none!important;}
             <button class="tb-icon-btn" id="undo-btn" onclick="undo()" title="Undo (Cmd+Z)" disabled>↩</button>
             <button class="tb-icon-btn" id="redo-btn" onclick="redo()" title="Redo (Cmd+Shift+Z)" disabled>↪</button>
             <button class="tb-icon-btn" id="lock-btn" onclick="toggleLock()" title="Lock section">🔓</button>
-            <button class="tb-icon-btn" onclick="showShortcutsModal()" title="Keyboard shortcuts">?</button>
-            <button class="pm-board-btn" onclick="openPM()">📋 PM Board</button>
-            <button class="claude-toggle" onclick="togglePanel()">✦ Ask Claude</button>
+            <div class="export-wrap" id="tools-wrap">
+              <button class="pm-board-btn" id="tools-btn" onclick="toggleToolsMenu(event)">🧰 Tools ▾</button>
+              <div class="export-menu" id="tools-menu">
+                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); showShortcutsModal();">❓ Keyboard Shortcuts</div>
+                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); openPM();">📋 PM Board</div>
+                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); openMarginCalc();">💲 Margin Calculator</div>
+                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); togglePanel();">✦ Ask Claude</div>
+              </div>
+            </div>
           </div>
           <button class="tb-more" id="tb-more" onclick="toggleTbExtra(event)" title="More tools">⋯</button>
           <button class="status-badge" id="status-btn" onclick="cycleStatus()">In Progress</button>
@@ -1131,19 +1222,9 @@ body.view-mode .wysiwyg-bar{display:none!important;}
               <div class="export-opt" onclick="exportProgramWord()">📚 Full program as Word (.docx)</div>
               <div class="export-opt" onclick="exportProgramPPTX()">📽 Full program as PowerPoint (.pptx)</div>
               <div class="export-opt" onclick="exportProgramHTML()">🌐 Full program as web page (.html)</div>
-              <div style="border-top:1px solid var(--bdr);"></div>
-              <div class="export-opt" onclick="exportBackup()">💾 Backup all data (.json)</div>
-              <div class="export-opt" onclick="toggleAutoBackup()" id="auto-bk-opt">⏱ Auto-backup: On</div>
-              <div class="export-opt" onclick="triggerRestore()">⤴ Restore from backup…</div>
-              <div class="export-opt" onclick="loadBundledSnapshot()">📦 Load bundled snapshot…</div>
-              <div class="export-opt" onclick="recoverPrevVersion()">↺ Recover previous version…</div>
-              <div class="export-opt" onclick="showVersionHistory()">🕓 Version history…</div>
-              <div style="border-top:1px solid var(--bdr);"></div>
-              <div class="export-opt" onclick="connectGithubEditor()">🐙 Connect to GitHub…</div>
-              <div class="export-opt" onclick="pushLocalContentToGithub()">⬆🐙 Push local content to GitHub</div>
-              <div class="backup-meta" id="backup-meta"></div>
             </div>
           </div>
+          <button class="tb-icon-btn" id="databackup-btn" onclick="showDataBackupModal()" title="Data &amp; Backup">⚙</button>
           <div class="mode-toggle">
             <button class="mode-btn active" onclick="setMode('edit')">Edit</button>
             <button class="mode-btn" onclick="setMode('view')">View</button>
@@ -1220,6 +1301,21 @@ body.view-mode .wysiwyg-bar{display:none!important;}
   </div>
 </div>
 
+<!-- ========== MARGIN CALCULATOR (full tool) ========== -->
+<div id="margin-view" style="display:none">
+  <div class="pm-shell">
+    <div class="pm-head">
+      <div class="pm-back" onclick="marginBack()">&#8592; Back</div>
+      <div>
+        <div class="pm-title">Margin Calculator</div>
+        <div class="pm-sub">Shared course library &rarr; program scenarios &rarr; margin comparison</div>
+      </div>
+    </div>
+    <div id="margin-body"></div>
+  </div>
+</div>
+<input type="file" id="margin-import-file-input" accept="application/json,.json" style="display:none" onchange="marginHandleImportFile(this)">
+
 <div id="pm-status-menu" style="display:none"></div>
 
 <!-- ========== CLAUDE PANEL ========== -->
@@ -1241,7 +1337,7 @@ body.view-mode .wysiwyg-bar{display:none!important;}
   <div class="pk-item" onclick="addBlock('callout')"><div class="pk-ico">💡</div><div><div class="pk-lbl">Callout</div><div class="pk-desc">Highlight a key insight</div></div></div>
   <div class="pk-item" onclick="addBlock('table')"><div class="pk-ico">📊</div><div><div class="pk-lbl">Table</div><div class="pk-desc">Grid, comparison, matrix</div></div></div>
   <div class="pk-item" onclick="addBlock('costtable')"><div class="pk-ico">🧮</div><div><div class="pk-lbl">Cost / COGS Table</div><div class="pk-desc">Auto-calculates totals &amp; program sum</div></div></div>
-  <div class="pk-item" onclick="addBlock('margin')"><div class="pk-ico">📈</div><div><div class="pk-lbl">Margin Calculator</div><div class="pk-desc">Tuition, ERF &amp; COGS → live margin %</div></div></div>
+  <div class="pk-item" onclick="document.getElementById('block-picker').classList.remove('show'); openMarginCalc(curProgId);"><div class="pk-ico">📈</div><div><div class="pk-lbl">Margin Calculator</div><div class="pk-desc">Course library, scenarios &amp; margin comparison</div></div></div>
   <div class="pk-item" onclick="addBlock('swot')"><div class="pk-ico">🧭</div><div><div class="pk-lbl">SWOT Analysis</div><div class="pk-desc">Strengths, weaknesses, opportunities, threats</div></div></div>
   <div class="pk-item" onclick="addBlock('timeline')"><div class="pk-ico">📅</div><div><div class="pk-lbl">Timeline</div><div class="pk-desc">Milestones and key dates</div></div></div>
   <div class="pk-item" onclick="addBlock('decision')"><div class="pk-ico">🗂️</div><div><div class="pk-lbl">Decision Log</div><div class="pk-desc">Track decisions and rationale</div></div></div>
@@ -1290,6 +1386,27 @@ body.view-mode .wysiwyg-bar{display:none!important;}
       <tr><td>?</td><td>Show this help</td></tr>
     </table>
     <button onclick="closeShortcutsModal()" style="margin-top:16px;padding:7px 16px;border:1px solid #e5e7eb;border-radius:6px;background:#fff;cursor:pointer;font-size:13px;">Close</button>
+  </div>
+</div>
+
+<!-- ========== DATA & BACKUP MODAL ========== -->
+<div id="databackup-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9999;align-items:center;justify-content:center;" onclick="closeDataBackupModal()">
+  <div style="background:#fff;border-radius:12px;padding:28px 32px;min-width:360px;max-width:90vw;box-shadow:0 20px 60px rgba(0,0,0,0.2);" onclick="event.stopPropagation()">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <h3 style="margin:0;font-size:16px;">Data &amp; Backup</h3>
+      <button onclick="closeDataBackupModal()" style="border:none;background:none;cursor:pointer;font-size:20px;color:#9ca3af;line-height:1;">&times;</button>
+    </div>
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--mut);margin-bottom:8px;">Backup &amp; Restore</div>
+    <div class="export-opt" onclick="closeDataBackupModal(); exportBackup();">💾 Backup all data (.json)</div>
+    <div class="export-opt" onclick="toggleAutoBackup()" id="auto-bk-opt">⏱ Auto-backup: On</div>
+    <div class="export-opt" onclick="closeDataBackupModal(); triggerRestore();">⤴ Restore from backup…</div>
+    <div class="export-opt" onclick="closeDataBackupModal(); loadBundledSnapshot();">📦 Load bundled snapshot…</div>
+    <div class="export-opt" onclick="closeDataBackupModal(); recoverPrevVersion();">↺ Recover previous version…</div>
+    <div class="export-opt" onclick="closeDataBackupModal(); showVersionHistory();">🕓 Version history…</div>
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--mut);margin:16px 0 8px;">GitHub Hosting</div>
+    <div class="export-opt" onclick="closeDataBackupModal(); connectGithubEditor();">🐙 Connect to GitHub…</div>
+    <div class="export-opt" onclick="closeDataBackupModal(); pushLocalContentToGithub();">⬆🐙 Push local content to GitHub</div>
+    <div class="backup-meta" id="backup-meta"></div>
   </div>
 </div>
 
@@ -1368,8 +1485,8 @@ body.view-mode .wysiwyg-bar{display:none!important;}
 //    itself already restricts server-side.
 // STEP 1: fill in your content repo's owner/name below (not secret -- just
 // which repo, safe to leave in this public file).
-const GITHUB_OWNER = ''; // <-- your GitHub username or org
-const GITHUB_CONTENT_REPO = ''; // <-- e.g. 'sdi-product-space-content'
+const GITHUB_OWNER = 'kburkhart2026';
+const GITHUB_CONTENT_REPO = 'sdi-product-playbook-content';
 const GITHUB_BRANCH = 'main';
 const GITHUB_CONTENT_PATH = 'sdi-space.json';
 const GITHUB_EDITOR_KEY = 'sdi_github_editor_pat'; // localStorage key, this browser only
@@ -1506,7 +1623,7 @@ async function loadFromGithub(){
 async function pushLocalContentToGithub(){
   if(githubMode() !== 'editor'){ await appAlert('Connect an editor GitHub token first (Export ▾ → Connect to GitHub).'); return; }
   saveCurrentBlocks();
-  const state = { programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, v:2, ts: Date.now() };
+  const state = { programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, v:2, ts: Date.now() };
   const ok = await githubCommitFile(GITHUB_CONTENT_PATH, state, 'Push local content');
   if(ok) await appAlert('Current content pushed to GitHub ✓');
   else await appAlert('Push failed. Check that your editor token is still valid and scoped to '+(GITHUB_CONTENT_REPO||'the content repo')+'.');
@@ -1626,6 +1743,7 @@ const DEFAULT_CONTENT = {
 // ==================== STATE ====================
 let programs = [];
 let pmStore = {}; // PM Space: progId -> {tasks:[], collapsed:{}}
+let marginStore = { courses: [], scenariosByProgram: {} }; // shared course library + progId -> [scenario,...]
 let curProgId = null;
 let curPhase = 'strategy';
 let curSection = 's-market';
@@ -1888,6 +2006,7 @@ function applyState(s){
   sectionUpdated = s.sectionUpdated || {};
   blockTags = s.blockTags || {};
   pmStore = s.pmStore || (function(){ try{ return JSON.parse(localStorage.getItem('sdi_pm_mirror')||'{}'); }catch(e){ return {}; } })();
+  marginStore = s.marginStore || { courses: [], scenariosByProgram: {} };
   // Per-program tabs migration: any program without its own phases inherits a copy
   // of the old shared structure (or the defaults)
   const shared = (s.phases && s.phases.length) ? s.phases : DEFAULT_PHASES;
@@ -1919,7 +2038,7 @@ function persistLocalNow(){
   if(window.__skipPersist) return; // guard during restore/reload
   saveCurrentBlocks();
   try{
-    const state = { programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, v:2, ts: Date.now() };
+    const state = { programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, v:2, ts: Date.now() };
     const {lean,assets}=dehydrateState(state);
     let ok=false;
     try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(lean)); ok=true; }catch(e){ console.warn('local mirror failed:',e); }
@@ -2007,7 +2126,7 @@ function showMissingAssetBanner(missingIds){
 async function persist(){
   saveCurrentBlocks();
   pushUndo();
-  const state = { programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, v:2, ts: Date.now() };
+  const state = { programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, v:2, ts: Date.now() };
   const ind = document.getElementById('save-ind');
 
   // Always keep a local backup (IndexedDB primary, localStorage mirror)
@@ -2840,6 +2959,15 @@ function makeBlock(data){
       </div>`;
       setTimeout(()=>{ const mb=wrap.querySelector('.block-margin'); syncLinkedMargins(mb&&mb.closest('.blocks-container')); recalcMargin(mb); },0);
       break;}
+    case 'marginScenario':{
+      const p=programs.find(x=>x.id===data.progId);
+      const list=marginScenariosFor(data.progId);
+      const scenario=list.find(s=>s.id===data.scenarioId);
+      if(!p || !scenario){ wrap.innerHTML=ctrl+'<div class="block-margin-scenario"><div class="mscn-missing">This scenario could not be found.</div></div>'; break; }
+      const pm=programMargin(p);
+      const t=marginScenarioTotals(p, scenario);
+      wrap.innerHTML=ctrl+marginScenarioBlockInnerHtml(p, pm, scenario, t, data.savedAt||new Date().toISOString());
+      break;}
     case 'divider':
       wrap.innerHTML=ctrl+`<hr class="block-divider">`;
       break;
@@ -3619,7 +3747,7 @@ function showPicker(e){
 }
 function addBlock(type){
   document.getElementById('block-picker').classList.remove('show');
-  const map={text:{t:'text'},callout:{t:'callout',icon:'💡',txt:''},table:{t:'table'},timeline:{t:'timeline',lbl:'Timeline',items:[{m:'Milestone',d:'Date'}]},decision:{t:'decision',items:[{dec:'',date:'',by:'',rat:'',status:'Open'}]},approval:{t:'approval',items:[{name:'Approval required',desc:'',status:'Pending'}]},image:{t:'image'},video:{t:'video'},file:{t:'file'},embed:{t:'embed'},costtable:{t:'costtable'},margin:{t:'margin'},swot:{t:'swot'},divider:{t:'divider'},overview:{t:'overview'}};
+  const map={text:{t:'text'},callout:{t:'callout',icon:'💡',txt:''},table:{t:'table'},timeline:{t:'timeline',lbl:'Timeline',items:[{m:'Milestone',d:'Date'}]},decision:{t:'decision',items:[{dec:'',date:'',by:'',rat:'',status:'Open'}]},approval:{t:'approval',items:[{name:'Approval required',desc:'',status:'Pending'}]},image:{t:'image'},video:{t:'video'},file:{t:'file'},embed:{t:'embed'},costtable:{t:'costtable'},swot:{t:'swot'},divider:{t:'divider'},overview:{t:'overview'}};
   if(type==='drawing'){ initDrawCanvas(); openDrawModal(null,null); return; }
   const el=makeBlock(map[type]||{t:'text'});
   document.getElementById('blocks-root').appendChild(el);
@@ -3633,6 +3761,8 @@ document.addEventListener('click',e=>{
   if(!p.contains(e.target)&&!e.target.closest('.add-block-btn')) p.classList.remove('show');
   const em=document.getElementById('export-menu');
   if(em&&!em.contains(e.target)&&!e.target.closest('.export-btn')) em.classList.remove('show');
+  const tm=document.getElementById('tools-menu');
+  if(tm&&!tm.contains(e.target)&&!e.target.closest('#tools-btn')) tm.classList.remove('show');
 });
 document.addEventListener('input',scheduleSave);
 
@@ -3657,7 +3787,13 @@ function cycleStatus(){
 // ==================== EXPORT ====================
 function toggleExport(e){
   e.stopPropagation();
+  const tm=document.getElementById('tools-menu'); if(tm) tm.classList.remove('show');
   document.getElementById('export-menu').classList.toggle('show');
+}
+function toggleToolsMenu(e){
+  e.stopPropagation();
+  const em=document.getElementById('export-menu'); if(em) em.classList.remove('show');
+  document.getElementById('tools-menu').classList.toggle('show');
 }
 function exportPDF(){
   document.getElementById('export-menu').classList.remove('show');
@@ -5079,6 +5215,8 @@ function navigateSection(dir){
 }
 function showShortcutsModal(){ document.getElementById('shortcuts-modal').style.display='flex'; }
 function closeShortcutsModal(){ const m=document.getElementById('shortcuts-modal'); if(m) m.style.display='none'; }
+function showDataBackupModal(){ document.getElementById('databackup-modal').style.display='flex'; }
+function closeDataBackupModal(){ const m=document.getElementById('databackup-modal'); if(m) m.style.display='none'; }
 
 // ==================== OVERVIEW BLOCK ====================
 function refreshOverviewBlock(el){
@@ -5611,7 +5749,7 @@ function buildBackupJSON(){
   // stale, and reading it would export old work while looking successful.
   try{
     saveCurrentBlocks();
-    space={ programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, v:2, ts: Date.now() };
+    space={ programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, v:2, ts: Date.now() };
   }catch(e){ space=null; }
   if(!space){ try{ space=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null'); }catch(e){} }
   try{ tmpls=JSON.parse(localStorage.getItem('sdi_templates')||'[]'); }catch(e){}
@@ -5868,10 +6006,20 @@ async function mergeBundledSnapshot(banner){
     Object.entries(snap[key]||{}).forEach(([k,v])=>{ if(dst[k]===undefined) dst[k]=v; });
   });
   Object.entries(snap.pmStore||{}).forEach(([k,v])=>{ if(pmStore[k]===undefined) pmStore[k]=v; });
+  // 5. margin calculator: gap-fill courses by id, gap-fill scenarios per program by id -- never overwrite an existing one
+  if(snap.marginStore){
+    const curIds = new Set((marginStore.courses||[]).map(c=>c.id));
+    (snap.marginStore.courses||[]).forEach(c=>{ if(!curIds.has(c.id)){ marginStore.courses.push(c); curIds.add(c.id); } });
+    Object.entries(snap.marginStore.scenariosByProgram||{}).forEach(([pid,scenarios])=>{
+      if(!marginStore.scenariosByProgram[pid]){ marginStore.scenariosByProgram[pid]=scenarios; return; }
+      const existingIds = new Set(marginStore.scenariosByProgram[pid].map(s=>s.id));
+      scenarios.forEach(s=>{ if(!existingIds.has(s.id)) marginStore.scenariosByProgram[pid].push(s); });
+    });
+  }
 
   try{
     await saveSpace({ programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks,
-      sectionComments, sectionUpdated, blockTags, pmStore, v:2, ts: Date.now() });
+      sectionComments, sectionUpdated, blockTags, pmStore, marginStore, v:2, ts: Date.now() });
   }catch(err){ await appAlert('Restore failed while writing to browser storage: '+err.message); return; }
   window.__skipPersist=true;
   await appAlert('Restored '+addedBlocks+' section(s), '+addedSecs+' new section entr(ies) and '+addedProgs+
@@ -6049,6 +6197,23 @@ function upgradeBlocks(root){
   });
   syncLinkedMargins(root);
   recalcAllMargin(root);
+  // The simple flat margin block (no course library, no named scenario) is no longer
+  // creatable from the block picker -- the Margin Calculator replaces it. Existing ones
+  // (6 known real sections as of this writing) are left running on the exact same
+  // recalcMargin/syncLinkedMargins/toggleCogsLink code as before -- nothing about their
+  // values or editability changes. This just tags them so future code can tell a legacy
+  // manual block apart from a real saved marginScenario card.
+  root.querySelectorAll('.block-margin').forEach(m=>{
+    if(!m.dataset.marginLegacy) m.dataset.marginLegacy='1';
+  });
+  // Margin-scenario cards (saved snapshots from the Margin Calculator) -- nothing to heal
+  // yet, but keep a self-heal slot here matching the pattern above for future schema changes.
+  root.querySelectorAll('.block-margin-scenario').forEach(m=>{
+    if(!m.querySelector('.mscn-foot')){
+      const pid=m.dataset.marginProgram||'', sid=m.dataset.marginScenario||'';
+      m.insertAdjacentHTML('beforeend', '<div class="mscn-foot"><button class="mscn-btn" onclick="refreshMarginScenario(this)">\u{1F504} Refresh</button><button class="mscn-btn" onclick="openMarginCalc(\''+pid+'\',\''+sid+'\')">↗ Open in Calculator</button></div>');
+    }
+  });
 }
 
 // ==================== TABLE: MOVE ROWS / COLUMNS ====================
@@ -6692,7 +6857,7 @@ const SAFE_ONCLICK_FNS = new Set(['addApItem','addCostRow','addDlRow','addMilest
   'addTblCol','addTblRow','annotateImage','changeEmbed','changeImage','clearCostTable',
   'copyBlockToProgram','cycleApStatus','cycleDlStatus','delBlock','delCostRow','delTblCol',
   'delTblRow','editFileLink','importTblFile','moveTblCol','moveTblRow','openTblFmt','pickTag',
-  'setEmbedHeight','tableToCSV','tblRowOp','toggleCogsLink']);
+  'setEmbedHeight','tableToCSV','tblRowOp','toggleCogsLink','refreshMarginScenario','openMarginCalc']);
 const SAFE_ONCLICK_ARG='(?:\'[^\'<>]*\'|"[^"<>]*"|-?\\d+(?:\\.\\d+)?|this|event)';
 const SAFE_ONCLICK_CALL_RE=new RegExp('^([A-Za-z_]\\w*)\\((?:'+SAFE_ONCLICK_ARG+'(?:,\\s*'+SAFE_ONCLICK_ARG+')*)?\\)$');
 const SAFE_ONCLICK_TOGGLE_RE=/^this\.closest\('[^'<>]*'\)\.classList\.toggle\('[^'<>]*'\)$/;
@@ -7636,6 +7801,668 @@ function renderPMDash(){
   document.getElementById('pm-dash-body').innerHTML=html;
 }
 
+// ==================== MARGIN CALCULATOR (full tool) ====================
+// Course library + per-program scenarios. Programs are this app's own `programs[]` --
+// there is no second program list to keep in sync. `marginStore` (declared in STATE
+// above) holds the shared course library and each program's saved scenarios.
+let marginView = 'dashboard'; // 'dashboard' | 'library' | 'program'
+let marginCurProgId = null;
+let marginOrigin = 'hub'; // 'hub' | 'prog' | 'dash' -- where Back returns to when leaving the tool entirely
+let marginDrafts = {}; // scenarioId -> in-progress edited clone, committed by marginSaveScenario()
+let marginLibExpanded = { SUT:true, SFT:true, Geneds:true };
+
+function marginUid(prefix){ return prefix+'-'+Date.now()+'-'+Math.random().toString(36).slice(2,6); }
+function marginPct(n){ return ((Number(n)||0)*100).toFixed(1)+'%'; }
+function marginMarginClass(pct){ return pct>=90?'mg2-good':pct>=80?'mg2-warn':'mg2-bad'; }
+function marginAutoSchool(name){ return /firearm|gunsmith|asft|cftg|\baft\b|ballist|handgun/i.test(String(name||'')) ? 'SFT' : 'SUT'; }
+
+function programMargin(p){
+  if(!p.margin) p.margin = { tuitionRate:390, erf:700, maxTerms:2, coreCourseIds:[], electiveCourseIds:[], includesGeneds:false, school:marginAutoSchool(p.name) };
+  if(!p.margin.school) p.margin.school = marginAutoSchool(p.name); // heal configs saved before `school` existed
+  return p.margin;
+}
+function marginCourse(id){ return marginStore.courses.find(c=>c.id===id); }
+function marginCourseTotalCost(c){ return (c.costItems||[]).reduce((s,ci)=>s+(Number(ci.amount)||0),0); }
+function marginCourseStatus(pm, courseId){
+  if(pm.coreCourseIds.includes(courseId)) return 'core';
+  if(pm.electiveCourseIds.includes(courseId)) return 'elective';
+  return 'none';
+}
+function marginScenariosFor(progId){
+  if(!marginStore.scenariosByProgram[progId] || !marginStore.scenariosByProgram[progId].length){
+    marginStore.scenariosByProgram[progId] = [{ id:marginUid('ms'), name:'Base', isPrimary:true, selectedElectiveCourseIds:[], overrides:{} }];
+  }
+  return marginStore.scenariosByProgram[progId];
+}
+function marginPrimaryScenario(progId){
+  const list = marginScenariosFor(progId);
+  return list.find(s=>s.isPrimary) || list[0];
+}
+function marginScenarioActiveCourseIds(pm, scenario){
+  const ids = new Set(pm.coreCourseIds);
+  (scenario.selectedElectiveCourseIds||[]).forEach(id=>{ if(pm.electiveCourseIds.includes(id)) ids.add(id); });
+  return Array.from(ids);
+}
+function marginScenarioTotals(program, scenario){
+  const pm = programMargin(program);
+  const activeIds = marginScenarioActiveCourseIds(pm, scenario);
+  const courses = activeIds.map(id=>marginCourse(id)).filter(Boolean);
+  const totalCreditHours = courses.reduce((s,c)=>s+(Number(c.creditHours)||0),0);
+  const cogs = courses.reduce((s,c)=>s+marginCourseTotalCost(c),0);
+  const tuitionRate = (scenario.overrides.tuitionRate ?? pm.tuitionRate) || 0;
+  const erf = (scenario.overrides.erf ?? pm.erf) || 0;
+  const maxTerms = (scenario.overrides.maxTerms ?? pm.maxTerms) || 0;
+  const totalTuition = tuitionRate*totalCreditHours;
+  const erfTotal = erf*maxTerms;
+  const totalProgramRevenue = totalTuition+erfTotal;
+  const cogsRatio = totalProgramRevenue ? cogs/totalProgramRevenue : 0;
+  const grossMargin = totalProgramRevenue ? (totalProgramRevenue-cogs)/totalProgramRevenue : 0;
+  return { activeIds, courses, totalCreditHours, cogs, tuitionRate, erf, maxTerms, totalTuition, erfTotal, totalProgramRevenue, cogsRatio, grossMargin };
+}
+
+const MARGIN_SCHOOLS = {
+  SUT:{color:'#1E3A8A', bg:'#E9EEF9', label:'SUT'},
+  SFT:{color:'#7A2331', bg:'#F7E8EA', label:'SFT'},
+  Geneds:{color:'#5B3A8E', bg:'#EFE9F7', label:'Geneds'}
+};
+function marginSchoolBadge(school){
+  const m = MARGIN_SCHOOLS[school] || MARGIN_SCHOOLS.Geneds;
+  return `<span class="mg2-badge" style="color:${m.color};background:${m.bg};">${escapeHtml(m.label)}</span>`;
+}
+function marginStatusBadge(status){
+  const map = { core:{color:'#2F6F4E',bg:'#E6F2EA',label:'Core'}, elective:{color:'#B45309',bg:'#FCF1DC',label:'Elective'}, none:{color:'#6B7280',bg:'#F1F2F4',label:'Not included'} };
+  const m = map[status]||map.none;
+  return `<span class="mg2-badge" style="color:${m.color};background:${m.bg};">${m.label}</span>`;
+}
+
+// ---------- navigation (mirrors openPM/pmBack's full-page view-swap convention) ----------
+async function openMarginCalc(focusProgId, focusScenarioId){
+  const progVisible = document.getElementById('prog-view').style.display !== 'none';
+  const dashVisible = document.getElementById('pm-dash-view').style.display !== 'none';
+  marginOrigin = progVisible ? 'prog' : (dashVisible ? 'dash' : 'hub');
+  if(progVisible){ try{ saveCurrentBlocks(); }catch(e){} }
+  document.getElementById('hub-view').style.display='none';
+  document.getElementById('prog-view').style.display='none';
+  document.getElementById('pm-dash-view').style.display='none';
+  document.getElementById('pm-view').style.display='none';
+  document.getElementById('margin-view').style.display='block';
+  marginDrafts = {};
+  if(focusProgId){ marginView='program'; marginCurProgId=focusProgId; }
+  else { marginView='dashboard'; marginCurProgId=null; }
+  renderMargin();
+  if(focusProgId && focusScenarioId){
+    setTimeout(()=>{ const el=document.getElementById('mg2-scenario-'+focusScenarioId); if(el) el.scrollIntoView({block:'center'}); }, 0);
+  }
+}
+function marginBack(){
+  if(marginView !== 'dashboard'){ marginView='dashboard'; marginCurProgId=null; renderMargin(); return; }
+  document.getElementById('margin-view').style.display='none';
+  if(marginOrigin==='prog'){ document.getElementById('prog-view').style.display='block'; }
+  else if(marginOrigin==='dash'){ document.getElementById('pm-dash-view').style.display='block'; renderPMDash(); }
+  else { document.getElementById('hub-view').style.display='block'; renderHub(); }
+}
+function marginGoLibrary(){ marginView='library'; renderMargin(); }
+function marginOpenProgram(progId){ marginView='program'; marginCurProgId=progId; marginDrafts={}; renderMargin(); }
+function renderMargin(){
+  if(marginView==='library') renderMarginLibrary();
+  else if(marginView==='program' && programs.find(p=>p.id===marginCurProgId)) renderMarginProgram();
+  else { marginView='dashboard'; renderMarginDashboard(); }
+}
+
+// ---------- dashboard ----------
+function renderMarginChart(items){
+  if(!items.length) return '<div style="color:var(--mut);font-size:12.5px;">No programs yet.</div>';
+  return items.map(it=>{
+    const pct = Math.max(0, Math.min(1, it.margin));
+    return `<div class="mg2-chart-row">
+      <div class="mg2-chart-label" onclick="marginOpenProgram('${it.id}')" title="${escapeHtml(it.name)}">${escapeHtml(it.name)}</div>
+      <div class="mg2-chart-track"><div class="mg2-chart-fill" style="width:${(pct*100).toFixed(1)}%;background:${it.margin<0?'#b91c1c':(it.color||'var(--acc)')};"></div></div>
+      <div class="mg2-chart-pct ${it.margin<0?'mg2-bad':'mg2-good'}">${marginPct(it.margin)}</div>
+    </div>`;
+  }).join('');
+}
+function renderMarginDashboard(){
+  const rows = programs.map(p=>{ const s=marginPrimaryScenario(p.id); return { p, s, t:marginScenarioTotals(p, s) }; });
+  const chartItems = rows.map(r=>({ id:r.p.id, name:r.p.name, margin:r.t.grossMargin, color:r.p.color }));
+  document.getElementById('margin-body').innerHTML = `
+    <div class="mg2-header">
+      <div class="mg2-title">All Programs<span class="sub">Margin by program &mdash; primary scenario</span></div>
+      <div class="mg2-actions"><button class="mg2-btn" onclick="marginGoLibrary()">📚 Course Library</button><button class="mg2-btn" onclick="marginTriggerImport()">⬆ Import legacy backup&hellip;</button></div>
+    </div>
+    <div class="mg2-panel"><div class="mg2-panel-title">Margin comparison</div>${renderMarginChart(chartItems)}</div>
+    <div class="mg2-panel" style="margin-bottom:0;">
+      <div class="mg2-panel-title">All programs</div>
+      <table class="mg2-table">
+        <thead><tr><th>Program</th><th>Primary scenario</th><th>Credits</th><th>Revenue</th><th>COGS</th><th>Margin</th></tr></thead>
+        <tbody>${rows.map(({p,s,t})=>`
+          <tr class="clickable" onclick="marginOpenProgram('${p.id}')">
+            <td>${escapeHtml(p.name)}</td>
+            <td>${escapeHtml(s.name)}</td>
+            <td class="num">${t.totalCreditHours}</td>
+            <td class="num">${_costUSD(t.totalProgramRevenue)}</td>
+            <td class="num">${_costUSD(t.cogs)}</td>
+            <td class="num ${t.grossMargin<0?'mg2-bad':'mg2-good'}" style="font-weight:700;">${marginPct(t.grossMargin)}</td>
+          </tr>`).join('') || '<tr><td colspan="6" style="color:var(--mut);">No programs yet.</td></tr>'}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+// ---------- course library ----------
+function marginCourseRowHtml(c){
+  const items = (c.costItems||[]).map(ci=>`
+    <div class="mg2-cost-item-row">
+      <input type="text" class="mg2-field-input" value="${escapeHtml(ci.label)}" oninput="marginLibCostItemField('${c.id}','${ci.id}','label', this.value)">
+      <input type="number" step="0.01" class="mg2-field-input" value="${ci.amount}" oninput="marginLibCostItemField('${c.id}','${ci.id}','amount', this.value)">
+      <button class="mscn-btn" onclick="marginRemoveCostItem('${c.id}','${ci.id}')">&times;</button>
+    </div>`).join('');
+  return `
+    <tr>
+      <td style="min-width:160px;"><input type="text" class="mg2-field-input" value="${escapeHtml(c.code)}" oninput="marginLibCourseField('${c.id}','code', this.value)"></td>
+      <td style="width:90px;"><input type="number" step="1" class="mg2-field-input" value="${c.creditHours}" oninput="marginLibCourseField('${c.id}','creditHours', this.value)"></td>
+      <td style="min-width:260px;">${items}<button class="mg2-btn" onclick="marginAddCostItem('${c.id}')">+ Add cost item</button></td>
+      <td id="mg2-libtotal-${c.id}"><b>${_costUSD(marginCourseTotalCost(c))}</b></td>
+      <td><button class="mscn-btn" onclick="marginRemoveCourse('${c.id}')">Delete</button></td>
+    </tr>`;
+}
+function marginToggleLibSection(school){ marginLibExpanded[school] = !marginLibExpanded[school]; renderMarginLibrary(); }
+function renderMarginLibrary(){
+  const schools = ['SUT','SFT','Geneds'];
+  const sections = schools.map(sch=>{
+    const courses = marginStore.courses.filter(c=>c.school===sch);
+    const expanded = !!marginLibExpanded[sch];
+    return `
+      <div class="mg2-panel">
+        <div class="mg2-panel-title mg2-accordion-header" onclick="marginToggleLibSection('${sch}')" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${expanded?'12px':'0'};">
+          <span><span class="mg2-chevron ${expanded?'open':''}">&#9656;</span>${marginSchoolBadge(sch)} ${sch==='Geneds'?'General Education':sch} courses (${courses.length})</span>
+          <button class="mg2-btn" onclick="event.stopPropagation(); marginAddCourse('${sch}')">+ Add course</button>
+        </div>
+        ${expanded ? `<table class="mg2-table"><thead><tr><th>Course Code</th><th>Credit Hours</th><th>Cost Items</th><th>Total</th><th></th></tr></thead><tbody>${courses.map(marginCourseRowHtml).join('')||'<tr><td colspan="5" style="color:var(--mut);">No courses yet.</td></tr>'}</tbody></table>` : ''}
+      </div>`;
+  }).join('');
+  document.getElementById('margin-body').innerHTML = `<div class="mg2-header"><div class="mg2-title">Course Library<span class="sub">Shared across every program</span></div></div>${sections}`;
+}
+function marginAddCourse(school){
+  marginStore.courses.push({ id:marginUid('mc'), code:'New Course', school, creditHours:4, costItems:[{id:marginUid('mci'), label:'Course materials', amount:0}] });
+  scheduleSave(); renderMarginLibrary();
+}
+async function marginRemoveCourse(courseId){
+  const c = marginCourse(courseId); if(!c) return;
+  const usedIn = programs.filter(p=>p.margin && (p.margin.coreCourseIds.includes(courseId) || p.margin.electiveCourseIds.includes(courseId)));
+  const warn = usedIn.length ? (' It is used by: '+usedIn.map(p=>p.name).join(', ')+'. Removing it will also remove it from those programs and any scenarios.') : '';
+  if(!await appConfirm('Delete course "'+c.code+'"?'+warn)) return;
+  programs.forEach(p=>{
+    if(!p.margin) return;
+    p.margin.coreCourseIds = p.margin.coreCourseIds.filter(id=>id!==courseId);
+    p.margin.electiveCourseIds = p.margin.electiveCourseIds.filter(id=>id!==courseId);
+    (marginStore.scenariosByProgram[p.id]||[]).forEach(s=>{ s.selectedElectiveCourseIds = (s.selectedElectiveCourseIds||[]).filter(id=>id!==courseId); });
+  });
+  marginStore.courses = marginStore.courses.filter(x=>x.id!==courseId);
+  scheduleSave(); renderMarginLibrary();
+}
+function marginLibCourseField(courseId, field, value){
+  const c = marginCourse(courseId); if(!c) return;
+  c[field] = field==='creditHours' ? (value===''?0:Number(value)) : value;
+  scheduleSave();
+}
+function marginAddCostItem(courseId){
+  const c = marginCourse(courseId); if(!c) return;
+  c.costItems.push({id:marginUid('mci'), label:'New cost', amount:0});
+  scheduleSave(); renderMarginLibrary();
+}
+function marginRemoveCostItem(courseId, itemId){
+  const c = marginCourse(courseId); if(!c) return;
+  c.costItems = c.costItems.filter(ci=>ci.id!==itemId);
+  scheduleSave(); renderMarginLibrary();
+}
+function marginLibCostItemField(courseId, itemId, field, value){
+  const c = marginCourse(courseId); const ci = c && c.costItems.find(x=>x.id===itemId); if(!ci) return;
+  ci[field] = field==='amount' ? (value===''?0:Number(value)) : value;
+  scheduleSave();
+  const totalEl = document.getElementById('mg2-libtotal-'+courseId);
+  if(totalEl) totalEl.innerHTML = '<b>'+_costUSD(marginCourseTotalCost(c))+'</b>';
+}
+
+// ---------- program view: membership ----------
+function marginMembershipTableHtml(p, schoolFilter){
+  const pm = programMargin(p);
+  const courses = marginStore.courses.filter(c=>c.school===schoolFilter);
+  const withStatus = courses.map(c=>({c, status:marginCourseStatus(pm, c.id)}));
+  withStatus.sort((a,b)=>(a.status==='none'?1:0)-(b.status==='none'?1:0));
+  let dividerInserted=false;
+  const rows = withStatus.map(({c,status})=>{
+    let dividerRow='';
+    if(status==='none' && !dividerInserted){ dividerInserted=true; dividerRow=`<tr class="mg2-divider-row"><td colspan="4">Not included</td></tr>`; }
+    return dividerRow+`
+      <tr class="mg2-membership-row ${status==='none'?'excluded':''}">
+        <td>${escapeHtml(c.code)}</td><td>${c.creditHours}</td><td>${_costUSD(marginCourseTotalCost(c))}</td>
+        <td><select class="mg2-field-input" style="width:auto;" onchange="marginSetCourseMembership('${p.id}','${c.id}', this.value)">
+          <option value="none" ${status==='none'?'selected':''}>Not included</option>
+          <option value="core" ${status==='core'?'selected':''}>Core</option>
+          <option value="elective" ${status==='elective'?'selected':''}>Elective</option>
+        </select></td>
+      </tr>`;
+  }).join('');
+  return `<table class="mg2-table"><thead><tr><th>Course</th><th>Credits</th><th>Cost</th><th>Membership</th></tr></thead><tbody>${rows||'<tr><td colspan="4" style="color:var(--mut);">No courses in this school yet -- add some from the Course Library.</td></tr>'}</tbody></table>`;
+}
+function marginGenedsMembershipTableHtml(p){
+  const pm = programMargin(p);
+  const courses = marginStore.courses.filter(c=>c.school==='Geneds');
+  const withIncluded = courses.map(c=>({c, included:pm.electiveCourseIds.includes(c.id)}));
+  withIncluded.sort((a,b)=>(a.included?0:1)-(b.included?0:1));
+  let dividerInserted=false;
+  const rows = withIncluded.map(({c,included})=>{
+    let dividerRow='';
+    if(!included && !dividerInserted){ dividerInserted=true; dividerRow=`<tr class="mg2-divider-row"><td colspan="4">Not included</td></tr>`; }
+    return dividerRow+`
+      <tr class="mg2-membership-row ${included?'':'excluded'}">
+        <td>${escapeHtml(c.code)}</td><td>${c.creditHours}</td><td>${_costUSD(marginCourseTotalCost(c))}</td>
+        <td><label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" ${included?'checked':''} onchange="marginToggleGened('${p.id}','${c.id}', this.checked)">${marginStatusBadge(included?'elective':'none')}</label></td>
+      </tr>`;
+  }).join('');
+  return `<table class="mg2-table"><thead><tr><th>Course</th><th>Credits</th><th>Cost</th><th>Include (selectable per scenario)</th></tr></thead><tbody>${rows||'<tr><td colspan="4" style="color:var(--mut);">No Geneds courses yet.</td></tr>'}</tbody></table>`;
+}
+function marginToggleGened(progId, courseId, checked){ marginSetCourseMembership(progId, courseId, checked?'elective':'none'); }
+function marginSetCourseMembership(progId, courseId, status){
+  const p = programs.find(x=>x.id===progId); if(!p) return;
+  const pm = programMargin(p);
+  pm.coreCourseIds = pm.coreCourseIds.filter(id=>id!==courseId);
+  pm.electiveCourseIds = pm.electiveCourseIds.filter(id=>id!==courseId);
+  if(status==='core') pm.coreCourseIds.push(courseId);
+  else if(status==='elective') pm.electiveCourseIds.push(courseId);
+  scheduleSave(); renderMarginProgram();
+}
+function marginToggleIncludesGeneds(progId){
+  const p = programs.find(x=>x.id===progId); if(!p) return;
+  programMargin(p).includesGeneds = !programMargin(p).includesGeneds;
+  scheduleSave(); renderMarginProgram();
+}
+function marginProgramField(progId, field, value){
+  const p = programs.find(x=>x.id===progId); if(!p) return;
+  programMargin(p)[field] = value===''?0:Number(value);
+  scheduleSave();
+  (marginStore.scenariosByProgram[progId]||[]).forEach(s=>marginUpdateScenarioSummaryDOM(progId, s.id));
+}
+function marginProgramSchool(progId, value){
+  const p = programs.find(x=>x.id===progId); if(!p) return;
+  programMargin(p).school = value;
+  scheduleSave(); renderMarginProgram();
+}
+
+// ---------- scenario drafts (edit locally, commit with Save) ----------
+function marginCloneScenario(s){ return JSON.parse(JSON.stringify(s)); }
+function marginGetDraft(progId, scenarioId){
+  const list = marginScenariosFor(progId);
+  const saved = list.find(x=>x.id===scenarioId); if(!saved) return null;
+  if(!marginDrafts[scenarioId]) marginDrafts[scenarioId] = marginCloneScenario(saved);
+  return marginDrafts[scenarioId];
+}
+function marginIsDraftDirty(progId, scenarioId){
+  const list = marginScenariosFor(progId);
+  const saved = list.find(x=>x.id===scenarioId);
+  const draft = marginDrafts[scenarioId];
+  if(!saved || !draft) return false;
+  return JSON.stringify(saved) !== JSON.stringify(draft);
+}
+function marginSaveScenario(progId, scenarioId){
+  const list = marginScenariosFor(progId);
+  const draft = marginDrafts[scenarioId]; if(!draft) return;
+  const idx = list.findIndex(x=>x.id===scenarioId); if(idx===-1) return;
+  list[idx] = marginCloneScenario(draft);
+  delete marginDrafts[scenarioId];
+  scheduleSave(); renderMarginProgram();
+}
+function marginAddScenario(progId){
+  const list = marginScenariosFor(progId);
+  list.push({ id:marginUid('ms'), name:'Scenario '+(list.length+1), isPrimary:false, selectedElectiveCourseIds:[], overrides:{} });
+  scheduleSave(); renderMarginProgram();
+}
+function marginDuplicateScenario(progId, scenarioId){
+  const list = marginScenariosFor(progId);
+  const orig = list.find(s=>s.id===scenarioId); if(!orig) return;
+  const copy = marginCloneScenario(orig);
+  copy.id = marginUid('ms'); copy.name = orig.name+' (copy)'; copy.isPrimary=false;
+  list.push(copy);
+  scheduleSave(); renderMarginProgram();
+}
+async function marginDeleteScenario(progId, scenarioId){
+  const list = marginScenariosFor(progId);
+  if(list.length<=1){ await appAlert('A program must have at least one scenario.'); return; }
+  const s = list.find(x=>x.id===scenarioId); if(!s) return;
+  if(!await appConfirm('Delete scenario "'+s.name+'"?')) return;
+  const wasPrimary = s.isPrimary;
+  marginStore.scenariosByProgram[progId] = list.filter(x=>x.id!==scenarioId);
+  delete marginDrafts[scenarioId];
+  if(wasPrimary && marginStore.scenariosByProgram[progId][0]) marginStore.scenariosByProgram[progId][0].isPrimary=true;
+  scheduleSave(); renderMarginProgram();
+}
+function marginSetPrimaryScenario(progId, scenarioId){
+  const list = marginScenariosFor(progId);
+  list.forEach(s=>{ s.isPrimary = (s.id===scenarioId); });
+  scheduleSave(); renderMarginProgram();
+}
+function marginScenarioNameInput(progId, scenarioId, value){
+  const draft = marginGetDraft(progId, scenarioId); if(!draft) return;
+  draft.name = value;
+  marginUpdateScenarioSummaryDOM(progId, scenarioId);
+}
+function marginToggleScenarioElective(progId, scenarioId, courseId, checked){
+  const draft = marginGetDraft(progId, scenarioId); if(!draft) return;
+  if(checked){ if(!draft.selectedElectiveCourseIds.includes(courseId)) draft.selectedElectiveCourseIds.push(courseId); }
+  else { draft.selectedElectiveCourseIds = draft.selectedElectiveCourseIds.filter(id=>id!==courseId); }
+  marginUpdateScenarioSummaryDOM(progId, scenarioId);
+}
+function marginScenarioOverride(progId, scenarioId, field, value){
+  const draft = marginGetDraft(progId, scenarioId); if(!draft) return;
+  draft.overrides[field] = value===''?null:Number(value);
+  marginUpdateScenarioSummaryDOM(progId, scenarioId);
+}
+function marginUpdateScenarioSummaryDOM(progId, scenarioId){
+  const p = programs.find(x=>x.id===progId);
+  const draft = marginDrafts[scenarioId];
+  if(!p || !draft) return;
+  const t = marginScenarioTotals(p, draft);
+  const set=(id,txt)=>{ const el=document.getElementById(id); if(el) el.textContent=txt; };
+  set('mg2-scn-credits-'+scenarioId, t.totalCreditHours);
+  set('mg2-scn-revenue-'+scenarioId, _costUSD(t.totalProgramRevenue));
+  set('mg2-scn-cogs-'+scenarioId, _costUSD(t.cogs));
+  set('mg2-scn-cogsratio-'+scenarioId, marginPct(t.cogsRatio));
+  const marginEl = document.getElementById('mg2-scn-margin-'+scenarioId);
+  if(marginEl){ marginEl.textContent = marginPct(t.grossMargin); marginEl.className = 'mg2-margin '+marginMarginClass(t.grossMargin*100); }
+  const dirtyEl = document.getElementById('mg2-scn-dirty-'+scenarioId);
+  if(dirtyEl) dirtyEl.style.display = marginIsDraftDirty(progId, scenarioId) ? 'inline-flex' : 'none';
+  renderMarginComparisonTable(progId);
+}
+function marginScenarioCardHtml(p, savedScenario){
+  const s = marginGetDraft(p.id, savedScenario.id);
+  const dirty = marginIsDraftDirty(p.id, savedScenario.id);
+  const t = marginScenarioTotals(p, s);
+  const pm = programMargin(p);
+  const coreCourses = pm.coreCourseIds.map(id=>marginCourse(id)).filter(Boolean);
+  const coreCredits = coreCourses.reduce((sum,c)=>sum+(Number(c.creditHours)||0),0);
+  const coreLine = coreCourses.length ? `<div style="margin-bottom:10px;">${marginStatusBadge('core')} <span style="color:var(--mut);font-size:12px;">${coreCourses.length} core course${coreCourses.length===1?'':'s'}, ${coreCredits} credits &mdash; always included</span></div>` : '<div style="margin-bottom:10px;color:var(--mut);font-size:12px;">No core courses selected yet &mdash; set membership above.</div>';
+  const electivesHtml = pm.electiveCourseIds.map(id=>{
+    const c = marginCourse(id); if(!c) return '';
+    const checked = s.selectedElectiveCourseIds.includes(id);
+    return `<label class="mg2-course-row"><input type="checkbox" ${checked?'checked':''} onchange="marginToggleScenarioElective('${p.id}','${savedScenario.id}','${id}', this.checked)"> ${escapeHtml(c.code)} <span style="color:var(--mut);">(+${c.creditHours} cr, ${_costUSD(marginCourseTotalCost(c))})</span></label>`;
+  }).join('');
+  return `
+    <div class="mg2-scenario-card ${savedScenario.isPrimary?'primary':''}" id="mg2-scenario-${savedScenario.id}">
+      <div class="mg2-scn-head">
+        <input type="text" class="mg2-scn-name" value="${escapeHtml(s.name)}" oninput="marginScenarioNameInput('${p.id}','${savedScenario.id}', this.value)" style="max-width:220px;">
+        <div class="mg2-scn-actions">
+          <span id="mg2-scn-dirty-${savedScenario.id}" class="mg2-badge mg2-dirty-badge" style="display:${dirty?'inline-flex':'none'};">&#9679; Unsaved</span>
+          <button class="mg2-pill-btn primary" onclick="marginSaveScenario('${p.id}','${savedScenario.id}')">Save</button>
+          ${savedScenario.isPrimary ? `<span class="mg2-badge mg2-primary-badge">&#9733; Primary</span>` : `<button class="mg2-pill-btn" onclick="marginSetPrimaryScenario('${p.id}','${savedScenario.id}')">Set Primary</button>`}
+          <button class="mg2-pill-btn" onclick="marginDuplicateScenario('${p.id}','${savedScenario.id}')">Duplicate</button>
+          <button class="mg2-pill-btn" onclick="marginDeleteScenario('${p.id}','${savedScenario.id}')">Delete</button>
+          <button class="mg2-pill-btn primary" onclick="marginOpenInsertDialog('${p.id}','${savedScenario.id}')">📥 Insert into section&hellip;</button>
+        </div>
+      </div>
+      <div class="mg2-scn-body">
+        <div class="mg2-scn-assumptions">
+          <div class="mg2-col-lbl">Assumptions</div>
+          ${coreLine}
+          ${electivesHtml ? `<div style="color:var(--mut);font-size:11px;text-transform:uppercase;margin-bottom:4px;">Electives</div>${electivesHtml}` : ''}
+          <div class="mg2-field-grid" style="margin-top:10px;grid-template-columns:repeat(3,1fr);">
+            <div class="mg2-field"><label>Tuition rate</label><input type="number" step="0.01" class="mg2-field-input" placeholder="${pm.tuitionRate}" value="${s.overrides.tuitionRate ?? ''}" oninput="marginScenarioOverride('${p.id}','${savedScenario.id}','tuitionRate', this.value)"></div>
+            <div class="mg2-field"><label>ERF</label><input type="number" step="0.01" class="mg2-field-input" placeholder="${pm.erf}" value="${s.overrides.erf ?? ''}" oninput="marginScenarioOverride('${p.id}','${savedScenario.id}','erf', this.value)"></div>
+            <div class="mg2-field"><label>Max terms</label><input type="number" step="1" class="mg2-field-input" placeholder="${pm.maxTerms}" value="${s.overrides.maxTerms ?? ''}" oninput="marginScenarioOverride('${p.id}','${savedScenario.id}','maxTerms', this.value)"></div>
+          </div>
+        </div>
+        <div class="mg2-scn-results">
+          <div class="mg2-col-lbl">Results</div>
+          <div class="mgn-row"><span class="mgn-k">Credit hours</span><span class="mgn-o" id="mg2-scn-credits-${savedScenario.id}">${t.totalCreditHours}</span></div>
+          <div class="mgn-row"><span class="mgn-k">Revenue</span><span class="mgn-o" id="mg2-scn-revenue-${savedScenario.id}">${_costUSD(t.totalProgramRevenue)}</span></div>
+          <div class="mgn-row"><span class="mgn-k">COGS</span><span class="mgn-o" id="mg2-scn-cogs-${savedScenario.id}">${_costUSD(t.cogs)}</span></div>
+          <div class="mgn-row"><span class="mgn-k">COGS % of revenue</span><span class="mgn-o" id="mg2-scn-cogsratio-${savedScenario.id}">${marginPct(t.cogsRatio)}</span></div>
+          <div class="mg2-big"><span class="lbl">Gross margin</span><span class="mg2-margin ${marginMarginClass(t.grossMargin*100)}" id="mg2-scn-margin-${savedScenario.id}">${marginPct(t.grossMargin)}</span></div>
+        </div>
+      </div>
+    </div>`;
+}
+function renderMarginComparisonTable(progId){
+  const p = programs.find(x=>x.id===progId);
+  const container = document.getElementById('mg2-comparison-'+progId);
+  if(!p || !container) return;
+  const list = marginScenariosFor(progId);
+  const rows = list.map(s=>({s, t:marginScenarioTotals(p, s)}));
+  const maxMargin = Math.max(...rows.map(r=>r.t.grossMargin));
+  container.innerHTML = `
+    <table class="mg2-table">
+      <thead><tr><th>Scenario</th><th>Primary</th><th>Credits</th><th>Revenue</th><th>COGS</th><th>COGS Ratio</th><th>Gross Margin</th></tr></thead>
+      <tbody>${rows.map(({s,t})=>`
+        <tr ${t.grossMargin===maxMargin?'style="background:#FDF4F5;"':''}>
+          <td>${escapeHtml(s.name)}</td><td>${s.isPrimary?'★':''}</td>
+          <td class="num">${t.totalCreditHours}</td><td class="num">${_costUSD(t.totalProgramRevenue)}</td>
+          <td class="num">${_costUSD(t.cogs)}</td><td class="num">${marginPct(t.cogsRatio)}</td>
+          <td class="num" style="font-weight:700;"><span class="${marginMarginClass(t.grossMargin*100)}">${marginPct(t.grossMargin)}</span></td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+function renderMarginProgram(){
+  const p = programs.find(x=>x.id===marginCurProgId);
+  if(!p){ marginView='dashboard'; renderMarginDashboard(); return; }
+  const pm = programMargin(p);
+  const list = marginScenariosFor(p.id);
+  document.getElementById('margin-body').innerHTML = `
+    <div class="mg2-header">
+      <div class="mg2-title">${escapeHtml(p.name)}<span class="sub">Course membership from the ${escapeHtml(pm.school)} library</span></div>
+      <div class="mg2-actions"><button class="mg2-btn" onclick="marginAddScenario('${p.id}')">+ New Scenario</button></div>
+    </div>
+    <div class="mg2-panel">
+      <div class="mg2-panel-title">Program details</div>
+      <div class="mg2-field-grid">
+        <div class="mg2-field"><label>Course library</label>
+          <select class="mg2-field-input" onchange="marginProgramSchool('${p.id}', this.value)">
+            <option value="SUT" ${pm.school==='SUT'?'selected':''}>SUT</option>
+            <option value="SFT" ${pm.school==='SFT'?'selected':''}>SFT</option>
+          </select>
+        </div>
+        <div class="mg2-field"><label>Default tuition rate ($/SCH)</label><input type="number" step="0.01" class="mg2-field-input" value="${pm.tuitionRate}" oninput="marginProgramField('${p.id}','tuitionRate', this.value)"></div>
+        <div class="mg2-field"><label>Default ERF ($/term)</label><input type="number" step="0.01" class="mg2-field-input" value="${pm.erf}" oninput="marginProgramField('${p.id}','erf', this.value)"></div>
+        <div class="mg2-field"><label>Default max terms</label><input type="number" step="1" class="mg2-field-input" value="${pm.maxTerms}" oninput="marginProgramField('${p.id}','maxTerms', this.value)"></div>
+      </div>
+      <div class="mg2-field"><label>General education</label><button class="mg2-btn" onclick="marginToggleIncludesGeneds('${p.id}')">${pm.includesGeneds?'Enabled — click to disable':'Enable General Education'}</button></div>
+    </div>
+    <div class="mg2-panel">
+      <div class="mg2-panel-title">Course membership <span style="text-transform:none;font-weight:400;">&mdash; defaults for new scenarios</span></div>
+      ${marginMembershipTableHtml(p, pm.school)}
+    </div>
+    ${pm.includesGeneds ? `<div class="mg2-panel"><div class="mg2-panel-title">${marginSchoolBadge('Geneds')} General Education &mdash; course membership</div>${marginGenedsMembershipTableHtml(p)}</div>` : ''}
+    <div class="mg2-panel"><div class="mg2-panel-title">Scenarios</div>${list.map(s=>marginScenarioCardHtml(p, s)).join('')}</div>
+    <div class="mg2-panel" style="margin-bottom:0;"><div class="mg2-panel-title">Scenario comparison</div><div id="mg2-comparison-${p.id}"></div></div>
+  `;
+  renderMarginComparisonTable(p.id);
+}
+
+// ---------- insert a saved scenario into a section ----------
+async function marginOpenInsertDialog(progId, scenarioId){
+  const p = programs.find(x=>x.id===progId); if(!p) return;
+  const list = marginScenariosFor(progId);
+  const scenario = list.find(s=>s.id===scenarioId); if(!scenario) return;
+  const phases = phasesOf(p);
+  if(!phases.length){ await appAlert('This program has no phases/sections yet.'); return; }
+  const t = marginScenarioTotals(p, scenario);
+  const res = await new Promise(resolve=>{
+    const old=document.getElementById('app-dialog-ov'); if(old) old.remove();
+    const ov=document.createElement('div'); ov.id='app-dialog-ov'; ov.className='dlg-ov';
+    const phaseOpts = phases.map(ph=>`<option value="${escapeHtml(ph.id)}">${escapeHtml(ph.name)}</option>`).join('');
+    ov.innerHTML = '<div class="dlg-box" role="dialog" aria-modal="true" style="width:min(440px,90vw);">'+
+      '<div class="dlg-msg">Insert scenario into section</div>'+
+      '<div style="font-size:12px;color:var(--mut);margin-bottom:14px;">'+escapeHtml(p.name)+' — '+escapeHtml(scenario.name)+'</div>'+
+      '<div class="mg2-dlg-field"><label>Phase</label><select class="mg2-dlg-select" id="mg2-ins-phase">'+phaseOpts+'</select></div>'+
+      '<div class="mg2-dlg-field"><label>Section</label><select class="mg2-dlg-select" id="mg2-ins-section"></select></div>'+
+      '<div class="mg2-dlg-preview">'+
+        '<div class="stat">Revenue<b>'+_costUSD(t.totalProgramRevenue)+'</b></div>'+
+        '<div class="stat">COGS<b>'+_costUSD(t.cogs)+'</b></div>'+
+        '<div class="stat">Margin<b class="'+marginMarginClass(t.grossMargin*100)+'">'+marginPct(t.grossMargin)+'</b></div>'+
+      '</div>'+
+      '<div class="dlg-btns"><button class="dlg-btn dlg-cancel">Cancel</button><button class="dlg-btn dlg-ok">Insert</button></div>'+
+    '</div>';
+    document.body.appendChild(ov);
+    const phaseSel = ov.querySelector('#mg2-ins-phase');
+    const secSel = ov.querySelector('#mg2-ins-section');
+    function fillSections(){
+      const ph = phases.find(x=>x.id===phaseSel.value) || phases[0];
+      secSel.innerHTML = (ph.sections||[]).map(s=>`<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)}</option>`).join('') || '<option value="">(no sections)</option>';
+    }
+    phaseSel.addEventListener('change', fillSections);
+    fillSections();
+    function done(v){ document.removeEventListener('keydown',onKey,true); ov.remove(); resolve(v); }
+    function ok(){ const sectionId = secSel.value; if(!sectionId) return; done({ sectionId }); }
+    function onKey(e){
+      if(e.key==='Escape'){ e.stopPropagation(); e.preventDefault(); done(null); }
+      else if(e.key==='Enter'){ e.stopPropagation(); e.preventDefault(); ok(); }
+    }
+    ov.querySelector('.dlg-ok').onclick = ok;
+    ov.querySelector('.dlg-cancel').onclick = ()=>done(null);
+    ov.onclick = e=>{ if(e.target===ov) done(null); };
+    document.addEventListener('keydown', onKey, true);
+  });
+  if(!res) return;
+  await marginInsertScenarioIntoSection(progId, scenarioId, res.sectionId);
+}
+async function marginInsertScenarioIntoSection(progId, scenarioId, targetSectionId){
+  const key = progId+':'+targetSectionId;
+  const node = makeBlock({ t:'marginScenario', progId, scenarioId, savedAt:new Date().toISOString() });
+  if(renderedKey === key){
+    document.getElementById('blocks-root').appendChild(node);
+    initBlockSort();
+    scheduleSave();
+  } else {
+    const container = document.createElement('div');
+    if(blockStore[key] !== undefined){
+      container.innerHTML = blockStore[key];
+    } else {
+      // Never-opened section -- seed the same starter content loadContent() would show,
+      // so inserting here matches what you'd see if you opened the section first.
+      container.appendChild(makeBlock({t:'callout',icon:'📝',txt:'This section is ready for content.'}));
+      container.appendChild(makeBlock({t:'text',html:''}));
+    }
+    container.appendChild(node);
+    blockStore[key] = container.innerHTML;
+    sectionUpdated[key] = Date.now();
+    scheduleSave();
+  }
+}
+
+// ---------- the saved-scenario block itself (lives in blockStore, survives reload) ----------
+function marginScenarioBlockInnerHtml(p, pm, scenario, t, savedAt){
+  const courseRows = t.courses.map(c=>`<div class="mscn-course-row"><span>${escapeHtml(c.code)}</span><span class="cost">${c.creditHours} cr &middot; ${_costUSD(marginCourseTotalCost(c))}</span></div>`).join('');
+  const dateLabel = new Date(savedAt).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});
+  return `<div class="block-margin-scenario" data-margin-program="${p.id}" data-margin-scenario="${scenario.id}" data-margin-saved="${savedAt}">`+
+    `<div class="mscn-head"><div class="mscn-head-left">${marginSchoolBadge(pm.school)}<span class="mscn-title">${escapeHtml(p.name)} — ${escapeHtml(scenario.name)}</span>${scenario.isPrimary?'<span class="mg2-badge mg2-primary-badge">★ Primary</span>':''}</div><div class="mscn-meta">Saved ${dateLabel}</div></div>`+
+    `<div class="mscn-courses"><div class="mg2-col-lbl" style="margin-bottom:6px;">${t.courses.length} active course${t.courses.length===1?'':'s'} &mdash; ${t.totalCreditHours} credits</div>${courseRows||'<div style="color:var(--mut);font-size:12px;">No courses selected.</div>'}</div>`+
+    `<div class="mscn-stats">`+
+      `<div class="mscn-stat"><div class="lbl">Revenue</div><div class="val">${_costUSD(t.totalProgramRevenue)}</div></div>`+
+      `<div class="mscn-stat"><div class="lbl">COGS</div><div class="val">${_costUSD(t.cogs)}</div></div>`+
+      `<div class="mscn-stat"><div class="lbl">Gross margin</div><div class="val ${marginMarginClass(t.grossMargin*100)}">${marginPct(t.grossMargin)}</div></div>`+
+    `</div>`+
+    `<div class="mscn-foot"><button class="mscn-btn" onclick="refreshMarginScenario(this)">🔄 Refresh</button><button class="mscn-btn" onclick="openMarginCalc('${p.id}','${scenario.id}')">↗ Open in Calculator</button></div>`+
+  `</div>`;
+}
+function refreshMarginScenario(btn){
+  const block = btn.closest('.block-margin-scenario'); if(!block) return;
+  const progId = block.dataset.marginProgram, scenarioId = block.dataset.marginScenario;
+  const p = programs.find(x=>x.id===progId);
+  const list = marginStore.scenariosByProgram[progId]||[];
+  const scenario = list.find(s=>s.id===scenarioId);
+  if(!p || !scenario){
+    if(!block.querySelector('.mscn-missing')){
+      block.insertAdjacentHTML('afterbegin', '<div class="mscn-missing">This scenario no longer exists in the calculator — the numbers below are the last saved snapshot.</div>');
+    }
+    return;
+  }
+  const pm = programMargin(p);
+  const t = marginScenarioTotals(p, scenario);
+  const savedAt = new Date().toISOString();
+  block.outerHTML = marginScenarioBlockInnerHtml(p, pm, scenario, t, savedAt);
+  scheduleSave();
+}
+
+// ---------- import a legacy standalone Margin Calculator backup ----------
+// Maps that tool's own program list onto THIS app's real programs by known id --
+// there's no shared "code" field to match generically, so this is a fixed lookup.
+// CFTG and ASFT both map onto the merged "ASFT and CFTG New Iteration 2026" program;
+// when more than one legacy program lands on the same target, the one with more core
+// courses (the superset) supplies the membership, and every scenario from all of them
+// is kept -- scenarios built for the smaller program may then show slightly inflated
+// numbers, since they'll include a few courses their original version didn't have.
+const MARGIN_LEGACY_PROGRAM_MAP = {
+  CUTF: 'prog-cutas', ASUT: 'prog-asut', CUTMT: 'prog-cutmt',
+  CFTG: 'prog-1784050127557', ASFT: 'prog-1784050127557'
+};
+function marginTriggerImport(){
+  const inp = document.getElementById('margin-import-file-input');
+  if(inp){ inp.value=''; inp.click(); }
+}
+function marginHandleImportFile(input){
+  const file = input.files && input.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = async function(ev){
+    let payload;
+    try{ payload = JSON.parse(ev.target.result); }
+    catch(e){ await appAlert('That file is not valid JSON.'); input.value=''; return; }
+    if(!payload || !payload.__marginCalcBackup || !payload.data || !Array.isArray(payload.data.courses) || !Array.isArray(payload.data.programs)){
+      await appAlert('That file is not a recognized Margin Calculator backup.');
+      input.value=''; return;
+    }
+    await marginImportLegacyBackup(payload.data);
+    input.value='';
+  };
+  reader.readAsText(file);
+}
+async function marginImportLegacyBackup(data){
+  const existingIds = new Set(marginStore.courses.map(c=>c.id));
+  let coursesAdded = 0;
+  data.courses.forEach(c=>{
+    if(!existingIds.has(c.id)){ marginStore.courses.push(JSON.parse(JSON.stringify(c))); existingIds.add(c.id); coursesAdded++; }
+  });
+
+  const byTarget = {}; // realProgId -> [legacy program objects]
+  data.programs.forEach(prog=>{
+    const targetId = MARGIN_LEGACY_PROGRAM_MAP[prog.code];
+    if(targetId) (byTarget[targetId] = byTarget[targetId] || []).push(prog);
+  });
+
+  const summary = [], skipped = [];
+  Object.entries(byTarget).forEach(([targetId, legacyPrograms])=>{
+    const realProg = programs.find(p=>p.id===targetId);
+    if(!realProg){ legacyPrograms.forEach(lp=>skipped.push(lp.name+' ('+lp.code+') -- no matching program found')); return; }
+    const priorSchool = (realProg.margin && realProg.margin.school) || marginAutoSchool(realProg.name);
+    const base = legacyPrograms.slice().sort((a,b)=>(b.coreCourseIds||[]).length-(a.coreCourseIds||[]).length)[0];
+    realProg.margin = {
+      tuitionRate: base.tuitionRate, erf: base.erf, maxTerms: base.maxTerms,
+      coreCourseIds: [...(base.coreCourseIds||[])], electiveCourseIds: [...(base.electiveCourseIds||[])],
+      includesGeneds: !!base.includesGeneds, school: priorSchool
+    };
+    const scenarios = [];
+    let primarySet = false;
+    legacyPrograms.forEach(lp=>{
+      (lp.scenarios||[]).forEach(s=>{
+        const isPrimary = !primarySet && !!s.isPrimary;
+        if(isPrimary) primarySet = true;
+        scenarios.push({
+          id: marginUid('ms'), name: s.name, isPrimary,
+          selectedElectiveCourseIds: [...(s.selectedElectiveCourseIds||[])],
+          overrides: Object.assign({}, s.overrides||{})
+        });
+      });
+    });
+    if(scenarios.length && !primarySet) scenarios[0].isPrimary = true;
+    marginStore.scenariosByProgram[targetId] = scenarios;
+    summary.push(realProg.name+': '+scenarios.length+' scenario'+(scenarios.length===1?'':'s')+(legacyPrograms.length>1?' (merged from '+legacyPrograms.map(lp=>lp.code).join(' + ')+')':''));
+  });
+
+  scheduleSave();
+  renderMargin();
+  let msg = 'Imported '+coursesAdded+' course(s) into the shared library.\n\n'+summary.join('\n');
+  if(skipped.length) msg += '\n\nSkipped (no matching program in this Playbook):\n'+skipped.join('\n');
+  await appAlert(msg);
+}
+
 // ==================== INIT ====================
 async function init(){
   let loaded = false;
@@ -7719,7 +8546,7 @@ async function init(){
   // An unconditional write here re-stamped and re-flattened whatever was loaded,
   // which turned any bad read into a permanent overwrite.
   if(seededThisBoot)
-  try{ await saveSpace({ programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, v:2, ts: Date.now() }); }catch(e){ console.warn('seed persist failed:', e); }
+  try{ await saveSpace({ programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, v:2, ts: Date.now() }); }catch(e){ console.warn('seed persist failed:', e); }
 
   renderHub();
   // Reopen the program you were working in last session
@@ -7730,6 +8557,16 @@ async function init(){
     // toggle entirely, so there's no dead-end control to click.
     setMode('view');
     document.querySelectorAll('.mode-btn').forEach(b=>b.style.display='none');
+    // Same belt-and-suspenders treatment for everything else that's only ever
+    // meaningful to an editor -- undo/redo/lock, the Tools launcher (PM Board,
+    // Margin Calculator, Ask Claude, Shortcuts), the status cycler, and
+    // Data & Backup. A direct hide here (not a `.view-mode` CSS rule) so this
+    // never affects you personally clicking "View" to preview your own work --
+    // only a real shared-link viewer boot reaches this branch.
+    const tbExtra=document.getElementById('tb-extra'); if(tbExtra) tbExtra.style.display='none';
+    const tbMore=document.getElementById('tb-more'); if(tbMore) tbMore.style.display='none';
+    const statusBtn=document.getElementById('status-btn'); if(statusBtn) statusBtn.style.display='none';
+    const dbBtn=document.getElementById('databackup-btn'); if(dbBtn) dbBtn.style.display='none';
   } else {
     showMissingAssetBanner(_lastMissingAssetIds);
   }
