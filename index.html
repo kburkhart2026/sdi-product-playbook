@@ -1135,12 +1135,14 @@ table.mg2-table tr.clickable:hover{background:#FDF4F5;}
     </div>
     <div class="hub-title">Product Development Playbook</div>
     <div class="hub-sync-status local" id="hub-sync-status">💾 Saving locally</div>
-    <button class="hub-util-btn" onclick="openPMDash()" title="Portfolio dashboard — PM roll-up across all programs">📊 Dashboard</button>
-    <button class="hub-util-btn" onclick="exportBackup()" title="Download a backup file of all programs and content">⬇ Backup</button>
-    <button class="hub-util-btn" onclick="triggerRestore()" title="Restore everything from a backup file">⬆ Restore</button>
-    <input type="file" id="restore-file-input" accept="application/json,.json" style="display:none" onchange="handleRestoreFile(this)">
-    <button class="hub-new-btn" style="background:rgba(255,255,255,0.12);margin-right:6px;" onclick="showTemplateModal()">From Template</button>
-    <button class="hub-new-btn" onclick="newProgram()">+ New Program</button>
+    <div id="hub-editor-actions" style="display:flex;align-items:center;gap:8px;">
+      <button class="hub-util-btn" onclick="openPMDash()" title="Portfolio dashboard — PM roll-up across all programs">📊 Dashboard</button>
+      <button class="hub-util-btn" onclick="exportBackup()" title="Download a backup file of all programs and content">⬇ Backup</button>
+      <button class="hub-util-btn" onclick="triggerRestore()" title="Restore everything from a backup file">⬆ Restore</button>
+      <input type="file" id="restore-file-input" accept="application/json,.json" style="display:none" onchange="handleRestoreFile(this)">
+      <button class="hub-new-btn" style="background:rgba(255,255,255,0.12);margin-right:6px;" onclick="showTemplateModal()">From Template</button>
+      <button class="hub-new-btn" onclick="newProgram()">+ New Program</button>
+    </div>
   </div>
   <div class="hub-body">
     <div id="recent-strip"></div>
@@ -2408,8 +2410,9 @@ function makeProgCard(p){
       <div class="pc2-bar"><div class="pc2-fill" style="width:${st.pct}%;background:${p.color}"></div></div>
       <div class="pc2-actions">
         <button class="pc2-btn pc2-primary" onclick="openProgram('${p.id}')">Open &#8594;</button>
+        ${githubMode()==='viewer' ? '' : `
         <button class="pc2-btn" onclick="openPM('${p.id}')">PM Board</button>
-        <button class="pc2-btn pc2-more" onclick="progMenu(event,'${p.id}')" title="More actions">&#8942;</button>
+        <button class="pc2-btn pc2-more" onclick="progMenu(event,'${p.id}')" title="More actions">&#8942;</button>`}
       </div>
     </div>`;
   return card;
@@ -8567,6 +8570,11 @@ async function init(){
     const tbMore=document.getElementById('tb-more'); if(tbMore) tbMore.style.display='none';
     const statusBtn=document.getElementById('status-btn'); if(statusBtn) statusBtn.style.display='none';
     const dbBtn=document.getElementById('databackup-btn'); if(dbBtn) dbBtn.style.display='none';
+    // Hub-page editor actions (Dashboard/Backup/Restore/From Template/+New Program) --
+    // none of these can actually touch your real GitHub content (nothing in viewer
+    // mode ever writes there), but showing "+ New Program" to a read-only visitor
+    // is confusing regardless, so hide the whole cluster.
+    const hubActions=document.getElementById('hub-editor-actions'); if(hubActions) hubActions.style.display='none';
   } else {
     showMissingAssetBanner(_lastMissingAssetIds);
   }
