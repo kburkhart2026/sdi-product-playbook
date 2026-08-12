@@ -1541,23 +1541,6 @@ function githubHeaders(token){
 function githubRepoUrl(path){
   return GITHUB_API+'/repos/'+GITHUB_OWNER+'/'+GITHUB_CONTENT_REPO+path;
 }
-function githubRawUrl(path){
-  return 'https://raw.githubusercontent.com/'+GITHUB_OWNER+'/'+GITHUB_CONTENT_REPO+'/'+GITHUB_BRANCH+'/'+path;
-}
-// Faster read: one request, no base64 inflation (raw content, not a Git-Data-API blob).
-// Only used for viewer boots -- raw.githubusercontent.com is CDN-cached for a few minutes,
-// which is a fine trade for a much faster load when someone's just looking, but NOT fine
-// for your own editor reconnect path, which needs to see truly current state every time.
-async function githubReadFileFast(path){
-  const token = githubActiveToken();
-  if(!token || !GITHUB_OWNER || !GITHUB_CONTENT_REPO) return null;
-  try{
-    const resp = await fetch(githubRawUrl(path), { headers: githubHeaders(token) });
-    if(!resp.ok) return null;
-    return { json: await resp.json() };
-  }catch(e){ return null; }
-}
-
 // Reads a file at `path` in the content repo via the Git Data API (not the
 // simpler Contents API, which is only reliable under ~1MB -- this app's
 // content is well past that). Returns {json, sha}, or null if the file
@@ -1630,7 +1613,7 @@ async function saveToGithub(state){
 }
 
 async function loadFromGithub(){
-  const f = githubMode()==='viewer' ? await githubReadFileFast(GITHUB_CONTENT_PATH) : await githubReadFile(GITHUB_CONTENT_PATH);
+  const f = await githubReadFile(GITHUB_CONTENT_PATH);
   return f ? f.json : null;
 }
 
