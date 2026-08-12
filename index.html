@@ -1541,6 +1541,22 @@ function githubHeaders(token){
 function githubRepoUrl(path){
   return GITHUB_API+'/repos/'+GITHUB_OWNER+'/'+GITHUB_CONTENT_REPO+path;
 }
+function githubRawUrl(path){
+  return 'https://raw.githubusercontent.com/'+GITHUB_OWNER+'/'+GITHUB_CONTENT_REPO+'/'+GITHUB_BRANCH+'/'+path;
+}
+// Faster read: one request, no base64 inflation (raw content, not a Git-Data-API blob).
+// Only used for viewer boots -- raw.githubusercontent.com is CDN-cached for a few minutes,
+// which is a fine trade for a much faster load when someone's just looking, but NOT fine
+// for your own editor reconnect path, which needs to see truly current state every time.
+async function githubReadFileFast(path){
+  const token = githubActiveToken();
+  if(!token || !GITHUB_OWNER || !GITHUB_CONTENT_REPO) return null;
+  try{
+    const resp = await fetch(githubRawUrl(path), { headers: githubHeaders(token) });
+    if(!resp.ok) return null;
+    return { json: await resp.json() };
+  }catch(e){ return null; }
+}
 
 // Reads a file at `path` in the content repo via the Git Data API (not the
 // simpler Contents API, which is only reliable under ~1MB -- this app's
@@ -1614,7 +1630,7 @@ async function saveToGithub(state){
 }
 
 async function loadFromGithub(){
-  const f = await githubReadFile(GITHUB_CONTENT_PATH);
+  const f = githubMode()==='viewer' ? await githubReadFileFast(GITHUB_CONTENT_PATH) : await githubReadFile(GITHUB_CONTENT_PATH);
   return f ? f.json : null;
 }
 
@@ -2325,6 +2341,9 @@ function fmtAgo(ts){
 }
 function renderRecentStrip(){
   const host=document.getElementById('recent-strip'); if(!host) return;
+  // "Pick up where you left off" reflects YOUR editing history, stored per-browser --
+  // meaningless (and confusing) to show a real viewer, who never left off anywhere.
+  if(githubMode()==='viewer'){ host.innerHTML=''; return; }
   const items=Object.entries(sectionUpdated||{}).sort((a,b)=>b[1]-a[1]).slice(0,12).map(([k,ts])=>{
     const i=k.indexOf(':'); const pid=k.slice(0,i), sid=k.slice(i+1);
     const p=programs.find(x=>x.id===pid); if(!p) return null;
@@ -8483,6 +8502,10 @@ async function init(){
   let viewerModeForced = false;
   const ghMode = githubMode();
   if(ghMode === 'viewer'){
+    // Content can be several MB, so this can take a few seconds -- without this,
+    // the screen just sits there looking stuck rather than obviously working.
+    const grid=document.getElementById('prog-grid');
+    if(grid) grid.innerHTML='<div style="padding:20px;color:var(--mut);font-size:13px;">Loading shared content&hellip;</div>';
     const githubState = await loadFromGithub();
     if(githubState && githubState.v === 2){
       applyState(githubState);
@@ -8552,8 +8575,10 @@ async function init(){
   try{ await saveSpace({ programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, v:2, ts: Date.now() }); }catch(e){ console.warn('seed persist failed:', e); }
 
   renderHub();
-  // Reopen the program you were working in last session
-  if(uiState.lastProg && programs.some(p=>p.id===uiState.lastProg)) openProgram(uiState.lastProg);
+  // Reopen the program you were working in last session -- never for a real viewer, who
+  // should always land on the main Portfolio screen, not wherever YOU last happened to be
+  // (this is per-browser local state, so it only ever reflects your own editing history).
+  if(!viewerModeForced && uiState.lastProg && programs.some(p=>p.id===uiState.lastProg)) openProgram(uiState.lastProg);
   if(viewerModeForced){
     // Belt-and-suspenders on top of the token itself only ever being
     // read-only server-side: lock the UI into view-mode and remove the Edit

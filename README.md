@@ -103,10 +103,15 @@ pushes needed for content (only for app-code updates, see below).
 ## Sharing a read-only link
 
 Take a viewer PAT from step 5 above and append it to your Pages URL as a
-`#data=` fragment:
+`#data=` fragment. Real example, with a real (fake, for illustration) token —
+**note there are no `<` or `>` characters in the actual link, anywhere**:
 ```
-https://<your-username>.github.io/sdi-product-playbook/#data=<viewer-token>
+https://kburkhart2026.github.io/sdi-product-playbook/#data=github_pat_11ABCDEFG0abcdefghijklmnop
 ```
+The angle brackets you'll see elsewhere in this doc (like `<your-username>`)
+are just "put your own value here" notation — never type the brackets
+themselves into a real URL or command.
+
 Anyone opening that link sees current content, locked into view-only mode,
 with nothing editor-only visible — just the program and **Export ▾** with
 all seven export formats (PDF/Word/Excel per page, PDF/Word/PowerPoint/HTML
