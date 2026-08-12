@@ -8490,7 +8490,9 @@ async function init(){
     const grid=document.getElementById('prog-grid');
     if(grid) grid.innerHTML='<div style="padding:20px;color:var(--mut);font-size:13px;">Loading shared content&hellip;</div>';
     const githubState = await loadFromGithub();
-    if(githubState && githubState.v === 2){
+    // Require real content, not just a valid version number -- a shared link that
+    // technically "loads" 0 programs is not a working link, it's a broken one.
+    if(githubState && githubState.v === 2 && (githubState.programs||[]).length > 0){
       applyState(githubState);
       loaded = true;
       viewerModeForced = true;
@@ -8503,10 +8505,21 @@ async function init(){
     }
   } else if(ghMode === 'editor'){
     const githubState = await loadFromGithub();
-    if(githubState && githubState.v === 2){
+    if(githubState && githubState.v === 2 && (githubState.programs||[]).length > 0){
       applyState(githubState);
       loaded = true;
       setHubSyncStatus('github');
+    } else if(githubState && githubState.v === 2){
+      // GitHub answered fine -- this is a real, working connection -- but handed
+      // back content with zero programs in it. That is a loud red flag, not a
+      // quiet one: this is exactly the shape of the Aug 12 incident where an
+      // empty state got autosaved straight over real content. Never treat this
+      // as "loaded successfully," and never let it fall silently into the
+      // generic seed/recovery flow below without saying GitHub is the suspect --
+      // `loaded` stays false, so the local-storage fallback below still runs
+      // exactly as it would for an outright fetch failure.
+      setHubSyncStatus('warn');
+      await appAlert('Your connected GitHub content repo loaded, but it has no programs in it. This usually means something overwrote it there.\n\nChecking this browser\'s own local copy next — if that also comes back empty, STOP and check ⚙ Data & Backup → Version history, or your content repo\'s commit history on GitHub, before continuing or creating anything new.');
     } else {
       setHubSyncStatus('warn');
     }
