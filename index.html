@@ -2223,7 +2223,11 @@ function scheduleSave(){
   clearTimeout(saveTimer);
   const ind = document.getElementById('save-ind');
   if(ind) ind.textContent = 'Saving...';
-  saveTimer = setTimeout(persist, 800);
+  // Null saveTimer out the moment it actually fires -- otherwise it holds a
+  // stale-but-truthy timer id forever after the very first edit in a
+  // session, which made the beforeunload warning below think a save was
+  // still pending even long after it had already succeeded.
+  saveTimer = setTimeout(()=>{ saveTimer = null; persist(); }, 800);
 }
 
 // Synchronous flush -- no GitHub push, no indicator, safe to call from beforeunload.
