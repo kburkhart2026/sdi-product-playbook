@@ -1411,6 +1411,7 @@ table.mg2-table tr.clickable:hover{background:#FDF4F5;}
     <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--mut);margin:16px 0 8px;">GitHub Hosting</div>
     <div class="export-opt" onclick="closeDataBackupModal(); connectGithubEditor();">🐙 Connect to GitHub…</div>
     <div class="export-opt" onclick="closeDataBackupModal(); pushLocalContentToGithub();">⬆🐙 Push local content to GitHub</div>
+    <div class="export-opt" onclick="closeDataBackupModal(); migrateContentToPerProgramFiles();">🗂️🐙 Migrate content to per-program files</div>
     <div class="backup-meta" id="backup-meta"></div>
   </div>
 </div>
@@ -1494,6 +1495,8 @@ const GITHUB_OWNER = 'kburkhart2026';
 const GITHUB_CONTENT_REPO = 'sdi-product-playbook-content';
 const GITHUB_BRANCH = 'main';
 const GITHUB_CONTENT_PATH = 'sdi-space.json';
+const GITHUB_MANIFEST_PATH = 'manifest.json'; // lightweight: program list/metadata + all non-bulk side-tables
+function githubProgramPath(progId){ return 'programs/'+progId+'.json'; } // that program's blockStore slice only
 const GITHUB_EDITOR_KEY = 'sdi_github_editor_pat'; // localStorage key, this browser only
 const GITHUB_API = 'https://api.github.com';
 
@@ -1546,20 +1549,29 @@ function githubRepoUrl(path){
 }
 // Reads a file at `path` in the content repo via the Git Data API (not the
 // simpler Contents API, which is only reliable under ~1MB -- this app's
-// content is well past that). Returns {json, sha}, or null if the file
-// doesn't exist yet / the token can't access it.
-async function githubReadFile(path){
+// content is well past that). Distinguishes WHY a read failed, unlike
+// githubReadFile below -- callers that use "not found" as a green light to
+// proceed (e.g. "no program file yet, that's a brand-new program, nothing to
+// load") must never mistake a network blip or expired token for that signal.
+// Returns { status:'ok', json, sha } | { status:'not_found' } | { status:'error' }.
+async function githubReadFileStatus(path){
   const token = githubActiveToken();
-  if(!token || !GITHUB_OWNER || !GITHUB_CONTENT_REPO) return null;
+  if(!token || !GITHUB_OWNER || !GITHUB_CONTENT_REPO) return { status:'error' };
   try{
     const metaResp = await fetch(githubRepoUrl('/contents/'+path+'?ref='+GITHUB_BRANCH), { headers: githubHeaders(token) });
-    if(!metaResp.ok) return null; // file doesn't exist yet, or no access
+    if(!metaResp.ok) return { status: metaResp.status===404 ? 'not_found' : 'error' };
     const meta = await metaResp.json();
     const blobResp = await fetch(githubRepoUrl('/git/blobs/'+meta.sha), { headers: githubHeaders(token) });
-    if(!blobResp.ok) return null;
+    if(!blobResp.ok) return { status:'error' };
     const blob = await blobResp.json();
-    return { json: JSON.parse(base64ToUtf8(blob.content)), sha: meta.sha };
-  }catch(e){ return null; }
+    return { status:'ok', json: JSON.parse(base64ToUtf8(blob.content)), sha: meta.sha };
+  }catch(e){ return { status:'error' }; }
+}
+// Simpler wrapper for callers that don't need to distinguish "doesn't exist"
+// from "failed" -- returns {json, sha}, or null for either case.
+async function githubReadFile(path){
+  const r = await githubReadFileStatus(path);
+  return r.status==='ok' ? { json: r.json, sha: r.sha } : null;
 }
 
 // The shared blob -> tree -> commit -> ref-update chain for writing `jsonObj`
@@ -1575,7 +1587,15 @@ async function githubCommitFile(path, jsonObj, message){
 
   const MAX_ATTEMPTS = 3;
   const RETRY_DELAY_MS = 500;
+  // Separate from the conflict-retry loop below: covers a genuinely dropped
+  // connection or timeout mid-request (a thrown exception), not a completed
+  // request GitHub explicitly rejected. Larger files (a big program's full
+  // content) spend longer uploading and are more likely to hit exactly this
+  // kind of transient network hiccup than a small manifest ever was -- this
+  // is what "worked on retry, no conflict warning in the console" pointed to.
+  const NETWORK_RETRY_ATTEMPTS = 3;
 
+  for(let netAttempt=1; netAttempt<=NETWORK_RETRY_ATTEMPTS; netAttempt++){
   try{
     // Content is fixed for this call (same jsonObj on every attempt) -- build
     // the blob once, outside the retry loop.
@@ -1638,7 +1658,16 @@ async function githubCommitFile(path, jsonObj, message){
       // loop back: re-read ref + tree fresh, rebuild tree/commit on the new base
     }
     return false;
-  }catch(e){ return false; }
+  }catch(e){
+    // A thrown exception (not a completed HTTP response) -- likely a dropped
+    // connection or timeout mid-upload. Worth retrying the WHOLE chain from
+    // scratch (including rebuilding the blob), unlike a rejection.
+    if(netAttempt===NETWORK_RETRY_ATTEMPTS) return false;
+    await new Promise(r=>setTimeout(r, RETRY_DELAY_MS));
+    continue;
+  }
+  }
+  return false;
 }
 
 async function saveToGithub(state){
@@ -1649,6 +1678,41 @@ async function saveToGithub(state){
 async function loadFromGithub(){
   const f = await githubReadFile(GITHUB_CONTENT_PATH);
   return f ? f.json : null;
+}
+
+// Checks for the new manifest-based storage format. Only a CONFIRMED read
+// (status:'ok') switches boot onto the manifest+lazy-load path -- both
+// "genuinely doesn't exist yet" and "the read failed for some other reason"
+// fall back to the legacy single-file path unchanged below, since that path
+// is the same one this app has always used and carries no additional risk
+// either way. There is no destructive action gated on this probe, so an
+// ambiguous result just means a slower (today's-speed) boot, never data loss.
+async function probeManifest(){
+  const r = await githubReadFileStatus(GITHUB_MANIFEST_PATH);
+  return r.status==='ok' ? r.json : null;
+}
+
+// Fetches one program's content file and merges it into the live blockStore,
+// but only in manifestMode -- under the legacy single-file model everything
+// is already loaded by loadFromGithub() above, so this is a no-op there.
+// Returns true if the program's content is now safely in memory (including
+// the "brand-new program, confirmed nothing to load yet" case), or false if
+// the fetch genuinely failed -- callers MUST treat false as "do not proceed,"
+// never as "safe to render an empty placeholder," since a transient failure
+// misread that way would let someone type into, and then save over, content
+// that was simply never actually fetched.
+async function ensureProgramLoaded(progId){
+  if(!progId) return false;
+  if(!manifestMode || loadedPrograms.has(progId)) return true;
+  if(_programLoadPromises[progId]) return _programLoadPromises[progId];
+  _programLoadPromises[progId] = (async()=>{
+    const r = await githubReadFileStatus(githubProgramPath(progId));
+    if(r.status==='not_found'){ loadedPrograms.add(progId); return true; } // genuinely brand-new program, nothing to load
+    if(r.status==='ok'){ Object.assign(blockStore, (r.json&&r.json.blockStore)||{}); loadedPrograms.add(progId); return true; }
+    return false; // network/auth/server error -- do NOT mark loaded, do NOT proceed
+  })();
+  try{ return await _programLoadPromises[progId]; }
+  finally{ delete _programLoadPromises[progId]; }
 }
 
 // One-time action (Export ▾ → Push local content to GitHub) for migrating a
@@ -1662,6 +1726,75 @@ async function pushLocalContentToGithub(){
   const ok = await githubCommitFile(GITHUB_CONTENT_PATH, state, 'Push local content');
   if(ok) await appAlert('Current content pushed to GitHub ✓');
   else await appAlert('Push failed. Check that your editor token is still valid and scoped to '+(GITHUB_CONTENT_REPO||'the content repo')+'.');
+}
+
+// One-time action: splits the single sdi-space.json blob into manifest.json
+// (metadata + all the small side-tables) plus one programs/<id>.json file
+// per program, and pushes all of them. The old sdi-space.json is NEVER
+// deleted -- it's the automatic rollback for the entire rest of this feature.
+//
+// Only ever reachable from a browser that's still in the OLD, fully-loaded
+// single-file mode (manifestMode===false), never from one that's already
+// lazy-loading -- a lazy-loading browser only has SOME programs' content in
+// memory, and writing "everything currently loaded" from it would silently
+// overwrite the other programs' real files with nothing. That's not a
+// hypothetical: it's exactly the kind of gap that caused a real data-loss
+// incident earlier this session, just relocated to a new seam.
+//
+// Write order matters: every program file is written FIRST, manifest.json
+// LAST, and only if every program file actually succeeded. Boot only ever
+// switches an app into the new mode by finding manifest.json -- so as long
+// as that file is the last thing written, an interruption partway through
+// (a slow section with embedded images, a lost connection, an impatient
+// reload) always leaves the repo in a state boot still reads as "not
+// migrated yet," never a half-migrated one where the app thinks it's on the
+// new storage but some programs' content was never actually written.
+async function migrateContentToPerProgramFiles(){
+  if(githubMode() !== 'editor'){ await appAlert('Connect an editor GitHub token first (Export ▾ → Connect to GitHub).'); return; }
+  if(manifestMode){
+    await appAlert('This browser is already using the new per-program storage -- migration already happened. Nothing to do here.');
+    return;
+  }
+  const existing = await githubReadFileStatus(GITHUB_MANIFEST_PATH);
+  if(existing.status === 'ok'){
+    const proceed = await appConfirm('manifest.json already exists in this content repo -- migration was likely already run before (possibly interrupted). This browser is still fully loaded in the old single-file mode, so re-running will overwrite every program\'s file with whatever\'s currently loaded here. Only continue if this browser\'s content is the one you want to keep. Continue?');
+    if(!proceed) return;
+  }
+  saveCurrentBlocks();
+  const programIds = programs.map(p=>p.id);
+  if(!await appConfirm('This splits your current content into a manifest plus one file per program ('+programIds.length+' programs) and pushes all of them to GitHub. This can take a while if any section has large embedded images -- the toolbar will show progress, so give it time even if it looks slow. Your existing sdi-space.json is left untouched as a backup either way. Continue?')) return;
+
+  const ind = document.getElementById('save-ind');
+  const ts = Date.now();
+  const failedPrograms = [];
+  for(let i=0;i<programIds.length;i++){
+    const pid = programIds[i];
+    if(ind){ ind.textContent = 'Migrating '+(i+1)+'/'+programIds.length+'…'; ind.style.color = '#f59e0b'; }
+    const progFile = { blockStore: sliceBlockStoreForProgram(pid), ts };
+    const progOk = await githubCommitFile(githubProgramPath(pid), progFile, 'Migrate: '+pid);
+    if(!progOk) failedPrograms.push(pid);
+  }
+
+  if(failedPrograms.length){
+    if(ind){ ind.textContent=''; ind.style.color=''; }
+    await appAlert('Migration stopped -- '+failedPrograms.length+' program file(s) failed to write ('+failedPrograms.join(', ')+'). Nothing has switched over: no manifest was written, so your app is still using the original file exactly as before. Check your connection and try again -- re-running from this browser is safe since it still has everything loaded.');
+    return;
+  }
+
+  if(ind){ ind.textContent = 'Finishing up…'; ind.style.color = '#f59e0b'; }
+  const manifest = buildManifest();
+  manifest.ts = ts; // keep it consistent with the program files just written
+  const manifestOk = await githubCommitFile(GITHUB_MANIFEST_PATH, manifest, 'Migrate: manifest');
+  if(ind){ ind.textContent=''; ind.style.color=''; }
+
+  if(manifestOk){
+    manifestMode = true;
+    programIds.forEach(pid=>loadedPrograms.add(pid)); // every program's content is already in memory right now
+    dirtyPrograms.clear(); // everything was just written fresh
+    await appAlert('Migration complete ✓ This browser is now using the new per-program storage. Your old sdi-space.json is still there, untouched, as a fallback.');
+  } else {
+    await appAlert('Every program file was written successfully, but the final manifest write failed -- nothing has switched over yet, your app is still using the original file exactly as before. Just try again; it will pick up cleanly.');
+  }
 }
 
 async function connectGithubEditor(){
@@ -1784,6 +1917,31 @@ let curPhase = 'strategy';
 let curSection = 's-market';
 let blockStore = {}; // key: progId+':'+sectionId -> innerHTML string
 let renderedKey = null; // the progId:sectionId whose content is currently in #blocks-root -- saves write back to THIS key only
+
+// ---- manifest + per-program lazy loading ----
+let manifestMode = false; // true once boot detects a real manifest.json (vs. the legacy single-file blob)
+const loadedPrograms = new Set(); // progId's whose blockStore slice is actually in memory this session
+const _programLoadPromises = {}; // progId -> in-flight ensureProgramLoaded() promise, for de-duplication
+let searchIndexLoaded = false; // true once every program has been loaded for full-text search (manifestMode only)
+const dirtyPrograms = new Set(); // progId's with real content changes since their file was last written to GitHub
+
+// The lightweight, always-written file: everything except bulk section
+// content. Confirmed by measuring real content that this stays well under
+// 100KB regardless of how much section content exists, since none of these
+// fields can hold bulk HTML/images.
+function buildManifest(){
+  return { v:3, ts: Date.now(), programs, phases: clonePhases(PHASES), sectionStatus, sectionLocks,
+           sectionComments, sectionUpdated, blockTags, pmStore, marginStore };
+}
+// Just one program's slice of blockStore, same key shape as the global
+// object (progId:sectionId) so merging it back in is a zero-transform
+// Object.assign -- mirrors the slicing duplicateProgram() already does.
+function sliceBlockStoreForProgram(progId){
+  const out = {};
+  const prefix = progId+':';
+  Object.keys(blockStore).forEach(k=>{ if(k.startsWith(prefix)) out[k]=blockStore[k]; });
+  return out;
+}
 let renderedPhase = null; // the phase id that #blocks-root belongs to -- scopes title write-back
 let sectionStatus = {}; // key: progId+':'+sectionId -> status string
 let sectionLocks = {}; // key: progId+':'+sectionId -> bool
@@ -2094,6 +2252,19 @@ function persistLocalNow(){
 // alive, so the async write there actually completes.
 window.addEventListener('beforeunload', persistLocalNow);
 window.addEventListener('pagehide', persistLocalNow);
+// The local flush above is reliable and synchronous, but the actual GitHub
+// commit is not -- it's an in-flight network request that a reload/close
+// simply cancels mid-air, with no way to force it through in time. A large
+// program's save can genuinely take several seconds (encoding + upload +
+// any network retry), so warn instead of silently losing that edit if one
+// is still genuinely running when the page is about to go away.
+window.addEventListener('beforeunload', (e)=>{
+  if(githubMode()!=='editor') return;
+  if(!saveTimer && !persistInFlight && !persistAgainRequested) return;
+  e.preventDefault();
+  e.returnValue = 'A save to GitHub is still in progress. If you leave now, your latest edit may not be saved.';
+  return e.returnValue;
+});
 document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState!=='hidden') return;
   if(window.__skipPersist) return;
@@ -2187,25 +2358,49 @@ async function doPersist(){
   const state = { programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, v:2, ts: Date.now() };
   const ind = document.getElementById('save-ind');
 
-  // Always keep a local backup (IndexedDB primary, localStorage mirror)
+  // Always keep a local backup (IndexedDB primary, localStorage mirror).
+  // Under manifestMode this only ever contains loaded-this-session programs,
+  // not necessarily everything -- GitHub stays the complete, authoritative
+  // copy; this local mirror is a partial cache, not a lie about completeness.
   const storeOK = await saveSpace(state);
   if(!storeOK && ind){ ind.textContent='⚠ Save failed (storage full?)'; ind.style.color='#ef4444'; }
 
-  if(githubMode() === 'editor'){
-    const ok = await saveToGithub(state);
-    if(ind){
-      ind.textContent = ok ? '✓ Saved to GitHub' : '⚠ GitHub save failed';
-      ind.style.color  = ok ? '#10b981' : '#f59e0b';
-      setTimeout(()=>{ if(ind){ ind.textContent=''; ind.style.color=''; } }, 2800);
-    }
-    setHubSyncStatus(ok ? 'github' : 'warn');
-  } else {
+  if(githubMode() !== 'editor'){
     if(ind){
       ind.textContent = '✓ Saved';
       ind.style.color = '#10b981';
       setTimeout(()=>{ if(ind){ ind.textContent=''; ind.style.color=''; } }, 2500);
     }
+    return;
   }
+
+  let ok;
+  if(!manifestMode){
+    ok = await saveToGithub(state);
+  } else {
+    // Manifest is small and changes often -- always write it. A program's
+    // own file is only written if it's actually dirty AND actually loaded
+    // (the second check is a defensive no-op by construction, since nothing
+    // can mark a program dirty without first merging its content in) --
+    // never for a program merely opened/viewed, and never for one that was
+    // never loaded, so an autosave never re-uploads programs nothing
+    // happened to.
+    const manifestOk = await githubCommitFile(GITHUB_MANIFEST_PATH, buildManifest(), 'Autosave manifest '+new Date().toLocaleString());
+    ok = manifestOk;
+    const toWrite = [...dirtyPrograms].filter(pid=>loadedPrograms.has(pid));
+    for(const pid of toWrite){
+      const progFile = { blockStore: sliceBlockStoreForProgram(pid), ts: Date.now() };
+      const progOk = await githubCommitFile(githubProgramPath(pid), progFile, 'Autosave '+pid+' '+new Date().toLocaleString());
+      if(progOk) dirtyPrograms.delete(pid); else ok = false; // leave it dirty -- retry on the next save
+    }
+  }
+
+  if(ind){
+    ind.textContent = ok ? '✓ Saved to GitHub' : '⚠ GitHub save failed';
+    ind.style.color  = ok ? '#10b981' : '#f59e0b';
+    setTimeout(()=>{ if(ind){ ind.textContent=''; ind.style.color=''; } }, 2800);
+  }
+  setHubSyncStatus(ok ? 'github' : 'warn');
 }
 
 // Async load: IndexedDB first, then the localStorage mirror, rehydrating images.
@@ -2317,8 +2512,12 @@ function saveCurrentBlocks(){
     clone.querySelectorAll('.tools-open').forEach(el=>el.classList.remove('tools-open'));
     const cur = clone.innerHTML;
     // Real edit detection: content changed vs. what was stored -> stamp the section
-    if(blockStore[renderedKey] !== undefined && blockStore[renderedKey] !== cur){
-      sectionUpdated[renderedKey] = Date.now();
+    if(blockStore[renderedKey] !== cur){
+      if(blockStore[renderedKey] !== undefined) sectionUpdated[renderedKey] = Date.now();
+      // manifestMode: this program's file needs writing next save -- not
+      // every program that merely got opened/viewed, only ones that actually
+      // changed, so an autosave never re-uploads programs nothing happened to.
+      dirtyPrograms.add(renderedKey.slice(0, renderedKey.indexOf(':')));
     }
     blockStore[renderedKey] = cur;
   }
@@ -2815,7 +3014,7 @@ function renderProgBanner(){
 }
 
 // ==================== CONTENT ====================
-function loadContent(sid){
+async function loadContent(sid){
   renderProgBanner();
   const key = curProgId+':'+sid;
   const root = document.getElementById('blocks-root');
@@ -2829,6 +3028,22 @@ function loadContent(sid){
   document.getElementById('page-title').textContent = resolvedName;
   const bcSec = document.getElementById('bc-sec');
   if(bcSec) bcSec.textContent = resolvedName;
+
+  // manifestMode only: this program's content may not be in memory yet.
+  // While we fetch it, renderedKey stays null -- saveCurrentBlocks() already
+  // refuses to act on a null renderedKey, so there's no separate lock needed
+  // to stop an autosave from writing an empty placeholder mid-fetch; typing
+  // into the spinner is also impossible since it's not editable content.
+  if(manifestMode && !loadedPrograms.has(curProgId)){
+    renderedKey = null;
+    if(root) root.innerHTML = '<div class="viewer-loading"><span class="viewer-spinner"></span>Loading this program&hellip;</div>';
+    const ok = await ensureProgramLoaded(curProgId);
+    if(curProgId+':'+sid !== key) return; // navigated elsewhere mid-fetch -- whatever's open now already rendered itself
+    if(!ok){
+      if(root) root.innerHTML = '<div class="viewer-loading">Could not load this program&rsquo;s content. <button class="pc2-btn" onclick="loadContent(\''+sid.replace(/'/g,"\\'")+'\')">Retry</button></div>';
+      return;
+    }
+  }
 
   if(blockStore[key]!==undefined){
     root.innerHTML = blockStore[key];
@@ -4898,7 +5113,31 @@ document.addEventListener('click', e=>{
 });
 
 // ==================== SEARCH ====================
+let _searchIndexLoadPromise = null;
+// Full-text search needs every program's content in memory. In manifestMode
+// that's not true by default -- so the first search in a session triggers a
+// one-time fetch of every program (same one-time cost today's boot always
+// paid, just moved to first-search instead of every load), then every
+// search after that is instant, same as before the split.
 function runSearch(q){
+  if(manifestMode && !searchIndexLoaded){
+    const box = document.getElementById('search-results');
+    if(q.trim()){ box.classList.add('show'); box.innerHTML = '<div class="sr-none">Loading search index&hellip; this happens once per session.</div>'; }
+    else { box.classList.remove('show'); }
+    if(!_searchIndexLoadPromise){
+      _searchIndexLoadPromise = Promise.all(programs.map(p=>ensureProgramLoaded(p.id))).then(results=>{
+        searchIndexLoaded = results.every(Boolean);
+        _searchIndexLoadPromise = null;
+        if(!searchIndexLoaded) console.warn('runSearch: one or more programs failed to load for the search index; will retry on next search.');
+        const liveVal = document.getElementById('sb-search')?.value;
+        if(liveVal!==undefined) runSearch(liveVal); // re-run with whatever's currently typed
+      });
+    }
+    return;
+  }
+  runSearchSync(q);
+}
+function runSearchSync(q){
   const box = document.getElementById('search-results');
   q = q.trim().toLowerCase();
   if(!q){ box.classList.remove('show'); return; }
@@ -4988,6 +5227,7 @@ async function deletePhase(pid, e){
   if(!await appConfirm('Delete tab "'+ph.name+'" and all its sections? This cannot be undone.')) return;
   // Clean this program's stored content for all sections in this tab
   ph.sections.forEach(s=>{ delete blockStore[curProgId+':'+s.id]; pmOnSectionDeleted(curProgId, s.id); });
+  dirtyPrograms.add(curProgId);
   const idx = PHASES.findIndex(p=>p.id===pid);
   PHASES.splice(idx,1);
   // If we were in this phase, navigate to first available section
@@ -5015,6 +5255,7 @@ async function deleteSection(pid, sid, e){
   // Clean this program's stored content
   delete blockStore[curProgId+':'+sid];
   pmOnSectionDeleted(curProgId, sid);
+  dirtyPrograms.add(curProgId);
   const idx = ph.sections.findIndex(s=>s.id===sid);
   ph.sections.splice(idx,1);
   // Navigate if we were on this section
@@ -5216,9 +5457,17 @@ function loadUserTags(){
 }
 
 // ==================== UNDO / REDO ====================
+// Undo/redo are scoped to ONLY the open program's blockStore keys (the same
+// progId:-prefix slicing duplicateProgram()/sliceBlockStoreForProgram() use
+// elsewhere) -- not the entire global blockStore. Under lazy loading, other
+// programs' content can be merged into that same shared object (by opening
+// them, or via copy/duplicate/margin-insert actions) without ever changing
+// curProgId; an unscoped snapshot taken before that merge would treat those
+// keys as "didn't exist in the old snapshot" and delete them outright on the
+// next undo -- silently wiping a program that was never even edited.
 function pushUndo(){
   if(!curProgId) return;
-  const snap = JSON.stringify({blockStore:{...blockStore}});
+  const snap = JSON.stringify({blockStore: sliceBlockStoreForProgram(curProgId)});
   if(undoStack.length && undoStack[undoStack.length-1]===snap) return;
   undoStack.push(snap);
   if(undoStack.length>UNDO_LIMIT) undoStack.shift();
@@ -5226,24 +5475,28 @@ function pushUndo(){
   updateUndoButtons();
 }
 function undo(){
-  if(!undoStack.length) return;
+  if(!undoStack.length || !curProgId) return;
   saveCurrentBlocks();
-  const snap = JSON.stringify({blockStore:{...blockStore}});
+  const snap = JSON.stringify({blockStore: sliceBlockStoreForProgram(curProgId)});
   redoStack.push(snap);
   const prev = JSON.parse(undoStack.pop());
-  Object.keys(blockStore).forEach(k=>{ if(!(k in prev.blockStore)) delete blockStore[k]; });
+  const prefix = curProgId+':';
+  Object.keys(blockStore).forEach(k=>{ if(k.startsWith(prefix) && !(k in prev.blockStore)) delete blockStore[k]; });
   Object.assign(blockStore, prev.blockStore);
+  dirtyPrograms.add(curProgId);
   loadContent(curSection);
   updateUndoButtons();
 }
 function redo(){
-  if(!redoStack.length) return;
+  if(!redoStack.length || !curProgId) return;
   saveCurrentBlocks();
-  const snap = JSON.stringify({blockStore:{...blockStore}});
+  const snap = JSON.stringify({blockStore: sliceBlockStoreForProgram(curProgId)});
   undoStack.push(snap);
   const next = JSON.parse(redoStack.pop());
-  Object.keys(blockStore).forEach(k=>{ if(!(k in next.blockStore)) delete blockStore[k]; });
+  const prefix = curProgId+':';
+  Object.keys(blockStore).forEach(k=>{ if(k.startsWith(prefix) && !(k in next.blockStore)) delete blockStore[k]; });
   Object.assign(blockStore, next.blockStore);
+  dirtyPrograms.add(curProgId);
   loadContent(curSection);
   updateUndoButtons();
 }
@@ -5342,9 +5595,21 @@ async function duplicateProgram(id){
   const newProg={...src,id:newId,name:newName.trim(),created:new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})};
   newProg.phases = clonePhases(src.phases); // own copy -- structures must not be shared
   programs.push(newProg);
+  // The source program's content must actually be in memory before copying
+  // its blockStore slice -- otherwise (manifestMode, source never opened
+  // this session) this loop would silently find nothing and produce an
+  // empty duplicate.
+  const srcLoaded = await ensureProgramLoaded(id);
+  if(!srcLoaded){
+    await appAlert('Could not load "'+src.name+'" to duplicate it -- check your connection and try again.');
+    programs.pop();
+    return;
+  }
   Object.keys(blockStore).forEach(k=>{
     if(k.startsWith(id+':')) blockStore[newId+':'+k.slice(id.length+1)]=blockStore[k];
   });
+  loadedPrograms.add(newId); // its content is now genuinely in memory (copied above)
+  dirtyPrograms.add(newId); // needs its own GitHub file written on next save
   scheduleSave();
   renderHub();
 }
@@ -6656,7 +6921,7 @@ function regenBlockIds(html, oldBid){
   });
   return {html:out, newBid};
 }
-function doCopyBlock(){
+async function doCopyBlock(){
   if(!copySrcBlock){ closeCopyModal(); return; }
   const progId=document.getElementById('cb-prog').value;
   const secId=document.getElementById('cb-sec').value;
@@ -6673,8 +6938,19 @@ function doCopyBlock(){
     upgradeBlocks(rootEl); initBlockSort(); scheduleSave();
   } else {
     saveCurrentBlocks();
+    // The target program's content must be in memory before reading its
+    // blockStore slice -- otherwise (manifestMode, target never opened this
+    // session) `prev` would wrongly read as undefined/empty and this would
+    // overwrite that section's real content with just the copied block.
+    const targetLoaded = await ensureProgramLoaded(progId);
+    if(!targetLoaded){
+      await appAlert('Could not load the target program -- check your connection and try again. Nothing was copied.');
+      closeCopyModal();
+      return;
+    }
     const prev=blockStore[targetKey];
     blockStore[targetKey]=(prev===undefined?'':prev)+res.html;
+    dirtyPrograms.add(progId);
     persist();
   }
   const p=programs.find(x=>x.id===progId);
@@ -8394,18 +8670,31 @@ async function marginInsertScenarioIntoSection(progId, scenarioId, targetSection
     initBlockSort();
     scheduleSave();
   } else {
+    // The target program's content must be in memory before checking whether
+    // this section already has content -- otherwise a genuinely-never-opened
+    // section and a simply-not-loaded-yet program's real section would look
+    // identical (both blockStore[key]===undefined), and this would seed a
+    // blank placeholder over content that was never actually fetched.
+    const targetLoaded = await ensureProgramLoaded(progId);
+    if(!targetLoaded){
+      await appAlert('Could not load the target program -- check your connection and try again. Nothing was inserted.');
+      return;
+    }
     const container = document.createElement('div');
     if(blockStore[key] !== undefined){
       container.innerHTML = blockStore[key];
     } else {
-      // Never-opened section -- seed the same starter content loadContent() would show,
-      // so inserting here matches what you'd see if you opened the section first.
+      // Confirmed (now that the program is actually loaded): a genuinely
+      // never-opened section -- seed the same starter content loadContent()
+      // would show, so inserting here matches what you'd see if you opened
+      // the section first.
       container.appendChild(makeBlock({t:'callout',icon:'📝',txt:'This section is ready for content.'}));
       container.appendChild(makeBlock({t:'text',html:''}));
     }
     container.appendChild(node);
     blockStore[key] = container.innerHTML;
     sectionUpdated[key] = Date.now();
+    dirtyPrograms.add(progId);
     scheduleSave();
   }
 }
@@ -8565,6 +8854,14 @@ async function init(){
     // the screen just sits there looking stuck rather than obviously working.
     const grid=document.getElementById('prog-grid');
     if(grid) grid.innerHTML='<div class="viewer-loading"><span class="viewer-spinner"></span>Loading shared content&hellip; this can take several seconds for a large Playbook.</div>';
+    const manifest = await probeManifest();
+    if(manifest && manifest.v === 3 && (manifest.programs||[]).length > 0){
+      manifestMode = true;
+      applyState(manifest);
+      loaded = true;
+      viewerModeForced = true;
+      setHubSyncStatus('viewer');
+    } else {
     const githubState = await loadFromGithub();
     // Require real content, not just a valid version number -- a shared link that
     // technically "loads" 0 programs is not a working link, it's a broken one.
@@ -8579,7 +8876,15 @@ async function init(){
       await appAlert('Could not load the shared content — the link may have expired or been revoked. Ask whoever shared it with you for a fresh link.');
       return;
     }
+    }
   } else if(ghMode === 'editor'){
+    const manifest = await probeManifest();
+    if(manifest && manifest.v === 3 && (manifest.programs||[]).length > 0){
+      manifestMode = true;
+      applyState(manifest);
+      loaded = true;
+      setHubSyncStatus('github');
+    } else {
     const githubState = await loadFromGithub();
     if(githubState && githubState.v === 2 && (githubState.programs||[]).length > 0){
       applyState(githubState);
@@ -8598,6 +8903,7 @@ async function init(){
       await appAlert('Your connected GitHub content repo loaded, but it has no programs in it. This usually means something overwrote it there.\n\nChecking this browser\'s own local copy next — if that also comes back empty, STOP and check ⚙ Data & Backup → Version history, or your content repo\'s commit history on GitHub, before continuing or creating anything new.');
     } else {
       setHubSyncStatus('warn');
+    }
     }
   } else {
     setHubSyncStatus('local');
