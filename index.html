@@ -1564,21 +1564,21 @@ async function githubReadFile(path){
 
 // The shared blob -> tree -> commit -> ref-update chain for writing `jsonObj`
 // to `path` in the content repo. Moving the branch ref only succeeds if it
-// hasn't moved since this function read it a moment earlier, which gives
-// conflict detection for free -- if someone else saved in between, this
-// fails rather than silently overwriting their work.
+// hasn't moved since we last read it, which gives conflict detection for
+// free -- but a moved ref might just mean something unrelated committed (e.g.
+// the daily auto-backup, at a different path) rather than a real conflict, so
+// on a non-fast-forward rejection we rebase onto the CURRENT ref/tree and
+// retry a bounded number of times before giving up.
 async function githubCommitFile(path, jsonObj, message){
   const token = githubActiveToken();
   if(!token || !GITHUB_OWNER || !GITHUB_CONTENT_REPO) return false;
+
+  const MAX_ATTEMPTS = 3;
+  const RETRY_DELAY_MS = 500;
+
   try{
-    const refResp = await fetch(githubRepoUrl('/git/refs/heads/'+GITHUB_BRANCH), { headers: githubHeaders(token) });
-    if(!refResp.ok) return false;
-    const parentCommitSha = (await refResp.json()).object.sha;
-
-    const commitResp = await fetch(githubRepoUrl('/git/commits/'+parentCommitSha), { headers: githubHeaders(token) });
-    if(!commitResp.ok) return false;
-    const baseTreeSha = (await commitResp.json()).tree.sha;
-
+    // Content is fixed for this call (same jsonObj on every attempt) -- build
+    // the blob once, outside the retry loop.
     const blobPutResp = await fetch(githubRepoUrl('/git/blobs'), {
       method:'POST', headers: githubHeaders(token),
       body: JSON.stringify({ content: utf8ToBase64(JSON.stringify(jsonObj)), encoding:'base64' })
@@ -1586,27 +1586,58 @@ async function githubCommitFile(path, jsonObj, message){
     if(!blobPutResp.ok) return false;
     const newBlobSha = (await blobPutResp.json()).sha;
 
-    const treeResp = await fetch(githubRepoUrl('/git/trees'), {
-      method:'POST', headers: githubHeaders(token),
-      body: JSON.stringify({ base_tree: baseTreeSha, tree: [{ path, mode:'100644', type:'blob', sha: newBlobSha }] })
-    });
-    if(!treeResp.ok) return false;
-    const newTreeSha = (await treeResp.json()).sha;
+    for(let attempt=1; attempt<=MAX_ATTEMPTS; attempt++){
+      const refResp = await fetch(githubRepoUrl('/git/refs/heads/'+GITHUB_BRANCH), { headers: githubHeaders(token) });
+      if(!refResp.ok) return false; // 401/403/404 -- not a race, retrying won't help
+      const parentCommitSha = (await refResp.json()).object.sha;
 
-    const newCommitResp = await fetch(githubRepoUrl('/git/commits'), {
-      method:'POST', headers: githubHeaders(token),
-      body: JSON.stringify({ message: message||('Update '+path), tree: newTreeSha, parents:[parentCommitSha] })
-    });
-    if(!newCommitResp.ok) return false;
-    const newCommitSha = (await newCommitResp.json()).sha;
+      const commitResp = await fetch(githubRepoUrl('/git/commits/'+parentCommitSha), { headers: githubHeaders(token) });
+      if(!commitResp.ok) return false;
+      const baseTreeSha = (await commitResp.json()).tree.sha;
 
-    // PATCH, not force -- fails if the branch moved since we read it above,
-    // instead of silently clobbering whatever moved it.
-    const updateRefResp = await fetch(githubRepoUrl('/git/refs/heads/'+GITHUB_BRANCH), {
-      method:'PATCH', headers: githubHeaders(token),
-      body: JSON.stringify({ sha: newCommitSha, force:false })
-    });
-    return updateRefResp.ok;
+      const treeResp = await fetch(githubRepoUrl('/git/trees'), {
+        method:'POST', headers: githubHeaders(token),
+        body: JSON.stringify({ base_tree: baseTreeSha, tree: [{ path, mode:'100644', type:'blob', sha: newBlobSha }] })
+      });
+      if(!treeResp.ok) return false;
+      const newTreeSha = (await treeResp.json()).sha;
+
+      const newCommitResp = await fetch(githubRepoUrl('/git/commits'), {
+        method:'POST', headers: githubHeaders(token),
+        body: JSON.stringify({ message: message||('Update '+path), tree: newTreeSha, parents:[parentCommitSha] })
+      });
+      if(!newCommitResp.ok) return false;
+      const newCommitSha = (await newCommitResp.json()).sha;
+
+      // PATCH, not force -- fails if the branch moved since we read it above,
+      // instead of silently clobbering whatever moved it.
+      const updateRefResp = await fetch(githubRepoUrl('/git/refs/heads/'+GITHUB_BRANCH), {
+        method:'PATCH', headers: githubHeaders(token),
+        body: JSON.stringify({ sha: newCommitSha, force:false })
+      });
+      if(updateRefResp.ok) return true;
+
+      // Only a non-fast-forward rejection (branch moved under us) is worth
+      // retrying. 401/403/404/5xx mean retrying won't help -- give up now.
+      const isRaceConflict = updateRefResp.status===422 || updateRefResp.status===409;
+      if(!isRaceConflict || attempt===MAX_ATTEMPTS) return false;
+
+      // This is a full-document replace with no field-level merge, so
+      // "rebase" only ever means re-basing the TREE (picking up whatever
+      // else moved, e.g. the daily auto-backup's own file) -- never silently
+      // discarding content at THIS path if it's already as new or newer than
+      // what we're about to write.
+      if(jsonObj && typeof jsonObj.ts === 'number'){
+        const remote = await githubReadFile(path);
+        if(remote && remote.json && typeof remote.json.ts === 'number' && remote.json.ts >= jsonObj.ts){
+          console.warn('githubCommitFile: not overwriting '+path+' -- remote is already as new or newer.');
+          return false;
+        }
+      }
+      await new Promise(r=>setTimeout(r, RETRY_DELAY_MS));
+      // loop back: re-read ref + tree fresh, rebuild tree/commit on the new base
+    }
+    return false;
   }catch(e){ return false; }
 }
 
@@ -1763,6 +1794,8 @@ let userTemplates = [];
 let blockSortable = null;
 let uid = 2000;
 let saveTimer = null;
+let persistInFlight = null;        // Promise for the persist() chain currently running, or null when idle
+let persistAgainRequested = false; // set when a save was requested while one was already in flight
 
 // Undo/redo
 const UNDO_LIMIT = 20;
@@ -2127,7 +2160,28 @@ function showMissingAssetBanner(missingIds){
   b.querySelector('#asset-loss-dismiss').onclick=()=>b.remove();
 }
 
+// Guarded entry point: at most one persist()/saveToGithub()/githubCommitFile()
+// chain is ever in flight in this tab. A call landing while one is already
+// running (e.g. Cmd/Ctrl+S on top of a debounced autosave) doesn't start a
+// second parallel commit chain -- it just flags that another save is wanted,
+// and exactly one more full persist() (with whatever is current in memory by
+// then) runs right after the in-flight one finishes.
 async function persist(){
+  if(persistInFlight){
+    persistAgainRequested = true;
+    return persistInFlight;
+  }
+  persistInFlight = doPersist().finally(()=>{
+    persistInFlight = null;
+    if(persistAgainRequested){
+      persistAgainRequested = false;
+      persist();
+    }
+  });
+  return persistInFlight;
+}
+
+async function doPersist(){
   saveCurrentBlocks();
   pushUndo();
   const state = { programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, v:2, ts: Date.now() };
