@@ -1768,6 +1768,12 @@ async function migrateContentToPerProgramFiles(){
   const ts = Date.now();
   const failedPrograms = [];
   for(let i=0;i<programIds.length;i++){
+    // A brief pause between commits (not before the first) -- a burst of many
+    // rapid back-to-back writes can trip GitHub's secondary rate limiting,
+    // which shows up as a plain failed write with no conflict/network-error
+    // signal to retry on. Spacing them out avoids triggering it in the first
+    // place, rather than trying to recover from it after the fact.
+    if(i>0) await new Promise(r=>setTimeout(r, 400));
     const pid = programIds[i];
     if(ind){ ind.textContent = 'Migrating '+(i+1)+'/'+programIds.length+'…'; ind.style.color = '#f59e0b'; }
     const progFile = { blockStore: sliceBlockStoreForProgram(pid), ts };
