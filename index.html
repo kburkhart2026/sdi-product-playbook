@@ -546,12 +546,32 @@ body.view-mode .tbl-gear,
 body.view-mode .tbl-rowops,
 body.view-mode .tbl-row-del,
 body.view-mode .dl-add,
-body.view-mode .ap-add{display:none!important;}
+body.view-mode .ap-add,
+body.view-mode .pm-gdrag,
+body.view-mode .pm-gdel,
+body.view-mode .pm-del:not(.pm-del-row),
+body.view-mode .pm-addrow,
+body.view-mode .pm-addgroup,
+body.view-mode .pm-subadd{display:none!important;}
 body.view-mode [contenteditable]{pointer-events:none;}
 body.view-mode .block-file:not(.filled),
 body.view-mode .img-ph,
 body.view-mode .vid-ph,
 body.view-mode .emb-ph{pointer-events:none;cursor:default;}
+/* .pm-drag and .pm-del-row are direct children of the PM table's CSS-grid
+   row (.pm-row) with implicit (DOM-order) column placement -- display:none
+   on a grid item removes it from the grid entirely, shifting every later
+   cell into the wrong column and corrupting the whole row's layout. Only
+   these two get visibility:hidden instead, which hides them (and blocks
+   their clicks) without removing their column from the grid. */
+body.view-mode .pm-drag,
+body.view-mode .pm-del-row{visibility:hidden;}
+/* PM board: content stays fully visible, only add/edit/delete/drag are
+   disabled -- the expand-detail toggle and section-link preview are pure
+   viewing/navigation and are deliberately left untouched here. */
+body.view-mode .pm-date,
+body.view-mode .pm-progwrap input[type=range],
+body.view-mode .pm-subcheck{pointer-events:none;}
 
 /* claude panel */
 .claude-toggle{background:linear-gradient(135deg,#7c3aed,#4f8ef7);color:#fff;border:none;padding:5px 13px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;transition:opacity 0.12s;}
@@ -953,7 +973,7 @@ body.view-mode .wysiwyg-bar{display:none!important;}
 .pm-gname{font-weight:800;font-size:13px;text-transform:uppercase;letter-spacing:0.06em;color:var(--ink);}
 .pm-gcount{font-size:11px;color:var(--mut);}
 .pm-garrow{margin-left:auto;font-size:10px;color:var(--mut);}
-.pm-cols,.pm-row{display:grid;grid-template-columns:18px 26px minmax(180px,1fr) 130px 148px 148px 150px 34px;align-items:center;gap:4px;padding:0 16px 0 10px;}
+.pm-cols,.pm-row{display:grid;grid-template-columns:18px 26px minmax(180px,1fr) 130px 148px 148px 148px 150px 34px;align-items:center;gap:4px;padding:0 16px 0 10px;}
 .pm-cols{font-size:10px;color:#9ca3af;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;border-bottom:1px solid var(--bdr);padding-bottom:5px;}
 .pm-row{border-bottom:1px solid #f3f4f6;padding-top:6px;padding-bottom:6px;font-size:13px;color:var(--txt);}
 .pm-row:hover{background:#fcfcfb;}
@@ -971,6 +991,8 @@ body.view-mode .wysiwyg-bar{display:none!important;}
 .pm-progwrap{display:flex;align-items:center;gap:7px;}
 .pm-progwrap input[type=range]{flex:1;accent-color:var(--acc);height:14px;cursor:pointer;}
 .pm-pct{font-size:11px;font-weight:800;color:var(--mut);width:34px;text-align:right;}
+.pm-prog-locked{font-size:11px;color:var(--mut);display:flex;align-items:center;gap:5px;cursor:default;}
+.pm-prog-locked .pm-pct{width:auto;}
 .pm-del{opacity:0;color:#c4c8cd;cursor:pointer;font-size:12px;text-align:center;transition:opacity 0.12s;}
 .pm-row:hover .pm-del,.pm-sub:hover .pm-del{opacity:1;}
 .pm-del:hover{color:var(--acc);}
@@ -989,6 +1011,13 @@ body.view-mode .wysiwyg-bar{display:none!important;}
 .pm-subadd{width:100%;border:1px dashed var(--bdr);border-radius:4px;padding:5px 8px;font-size:11px;font-family:inherit;outline:none;background:transparent;margin-top:5px;box-sizing:border-box;}
 .pm-subadd:focus{border-color:var(--acc);border-style:solid;background:#fff;}
 #pm-status-menu{position:fixed;z-index:10000;background:#fff;border:1px solid var(--bdr);border-radius:6px;box-shadow:0 8px 24px rgba(16,24,32,0.18);padding:6px;display:flex;flex-direction:column;gap:4px;}
+#pm-sec-preview{position:fixed;z-index:10000;background:#fff;border:1px solid var(--bdr);border-radius:8px;box-shadow:0 8px 24px rgba(16,24,32,0.18);padding:14px;width:220px;}
+#pm-sec-preview .pm-sp-title{font-weight:800;font-size:13px;color:var(--txt);margin-bottom:2px;}
+#pm-sec-preview .pm-sp-phase{font-size:11px;color:var(--mut);margin-bottom:8px;}
+#pm-sec-preview .pm-sp-status{display:inline-block;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.04em;padding:3px 8px;border-radius:4px;margin-bottom:10px;}
+#pm-sec-preview .pm-sp-go{width:100%;background:var(--ink);color:#C9B79C;border:none;border-radius:4px;padding:8px 10px;font-size:12px;font-weight:700;cursor:pointer;}
+#pm-sec-preview .pm-sp-go:hover{background:#000;}
+.pm-linkicon{cursor:pointer;}
 .pm-mi{cursor:pointer;border-radius:4px;padding:2px;}
 .pm-mi:hover{background:#f3f4f6;}
 .pm-kanban{display:grid;grid-template-columns:repeat(6,minmax(180px,1fr));gap:10px;align-items:start;overflow-x:auto;}
@@ -1002,6 +1031,22 @@ body.view-mode .wysiwyg-bar{display:none!important;}
 .pm-kprog{background:#eef0f2;height:5px;border-radius:3px;overflow:hidden;}
 .pm-kprog div{height:100%;border-radius:3px;}
 .pm-kcard .pm-pill{width:auto;padding:3px 9px;font-size:9px;align-self:flex-start;}
+.pm-gantt{overflow-x:auto;border:1px solid var(--bdr);border-radius:8px;}
+.pm-gantt-inner{position:relative;}
+.pm-gantt-row{display:flex;border-bottom:1px solid #f3f4f6;min-height:34px;background:#fff;}
+.pm-gantt-row.head{position:sticky;z-index:3;background:#f8fafc;font-size:10px;color:#9ca3af;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;min-height:22px;}
+.pm-gantt-row.head-month{top:0;}
+.pm-gantt-row.head-week{top:22px;border-bottom:1px solid var(--bdr);}
+.pm-glabel{position:sticky;left:0;z-index:1;background:#fff;width:220px;flex:0 0 220px;padding:0 10px;display:flex;align-items:center;font-size:12px;color:var(--txt);border-right:1px solid var(--bdr);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pm-gantt-row.head .pm-glabel{background:#f8fafc;z-index:4;}
+.pm-gtrack{position:relative;flex:0 0 auto;}
+.pm-gmonthlbl{flex:0 0 auto;text-align:left;padding:6px 0 0 6px;box-sizing:border-box;border-right:1px solid #f1f5f9;overflow:hidden;white-space:nowrap;}
+.pm-gweeklbl{flex:0 0 auto;text-align:left;padding:5px 0 0 6px;box-sizing:border-box;border-right:1px solid #f1f5f9;overflow:hidden;white-space:nowrap;}
+.pm-gbar{position:absolute;top:6px;height:22px;border-radius:4px;font-size:10px;font-weight:600;display:flex;align-items:center;padding:0 6px;overflow:hidden;white-space:nowrap;box-sizing:border-box;z-index:2;}
+.pm-gbar[onclick]{cursor:pointer;}
+.pm-gnodate{font-size:11px;color:var(--mut);padding-left:8px;line-height:34px;}
+.pm-gweekend{position:absolute;top:0;bottom:0;background:rgba(0,0,0,0.035);z-index:0;}
+.pm-gtoday{position:absolute;top:0;bottom:0;width:2px;background:#D50032;z-index:1;}
 .pm-dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
 .pm-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px;}
 .pm-kpi{background:#fff;border:1px solid var(--bdr);border-radius:8px;padding:14px 16px;box-shadow:0 1px 4px rgba(16,24,32,0.05);}
@@ -1220,6 +1265,7 @@ table.mg2-table tr.clickable:hover{background:#FDF4F5;}
             </div>
           </div>
           <button class="tb-more" id="tb-more" onclick="toggleTbExtra(event)" title="More tools">⋯</button>
+          <button class="pm-board-btn" id="pm-board-viewer-btn" onclick="openPM()" style="display:none">📋 PM Board</button>
           <button class="status-badge" id="status-btn" onclick="cycleStatus()">In Progress</button>
           <div class="export-wrap">
             <button class="export-btn" onclick="toggleExport(event)">Export ▾</button>
@@ -1287,6 +1333,7 @@ table.mg2-table tr.clickable:hover{background:#FDF4F5;}
       <div class="pm-toggle">
         <button id="pm-tbtn" class="active" onclick="setPMView('table')">Table</button>
         <button id="pm-kbtn" onclick="setPMView('kanban')">Kanban</button>
+        <button id="pm-gbtn" onclick="setPMView('gantt')">Gantt</button>
       </div>
       <button id="pm-expand-btn" class="pm-dash-btn" onclick="pmExpandAllGroups()" title="Expand every group">⌄ Expand All</button>
       <button id="pm-collapse-btn" class="pm-dash-btn" onclick="pmCollapseAllGroups()" title="Collapse every group">⌃ Collapse All</button>
@@ -1327,6 +1374,7 @@ table.mg2-table tr.clickable:hover{background:#FDF4F5;}
 <input type="file" id="margin-import-file-input" accept="application/json,.json" style="display:none" onchange="marginHandleImportFile(this)">
 
 <div id="pm-status-menu" style="display:none"></div>
+<div id="pm-sec-preview" style="display:none"></div>
 
 <!-- ========== CLAUDE PANEL ========== -->
 <div class="claude-panel" id="claude-panel">
@@ -2687,8 +2735,8 @@ function makeProgCard(p){
       <div class="pc2-bar"><div class="pc2-fill" style="width:${st.pct}%;background:${p.color}"></div></div>
       <div class="pc2-actions">
         <button class="pc2-btn pc2-primary" onclick="openProgram('${p.id}')">Open &#8594;</button>
-        ${githubMode()==='viewer' ? '' : `
         <button class="pc2-btn" onclick="openPM('${p.id}')">PM Board</button>
+        ${githubMode()==='viewer' ? '' : `
         <button class="pc2-btn pc2-more" onclick="progMenu(event,'${p.id}')" title="More actions">&#8942;</button>`}
       </div>
     </div>`;
@@ -7714,7 +7762,7 @@ function pmInitialStatusFor(pid, secId){
   return (st==='complete'||st==='approved') ? 'done' : (st==='in-progress'||st==='review') ? 'working' : 'not-started';
 }
 function pmNewTaskFor(ph, sec, status){
-  return {id:pmNewId(), name:sec.name, group:ph.id, owner:'', status, due:'',
+  return {id:pmNewId(), name:sec.name, group:ph.id, owner:'', status, start:'', due:'',
     progress:status==='done'?100:status==='working'?50:0, notes:'', subs:[], sectionId:sec.id};
 }
 
@@ -7859,6 +7907,7 @@ function setPMView(v){
   pmView=v;
   document.getElementById('pm-tbtn').classList.toggle('active', v==='table');
   document.getElementById('pm-kbtn').classList.toggle('active', v==='kanban');
+  document.getElementById('pm-gbtn').classList.toggle('active', v==='gantt');
   // Expand/Collapse All only apply to the table view's collapsible groups --
   // kanban columns (by status) aren't collapsible.
   const disp = v==='table' ? '' : 'none';
@@ -7893,6 +7942,7 @@ function renderPMBody(){
   const board=pmEnsure(pmProgId);
   if(!p||!board){ root.innerHTML=''; return; }
   if(pmView==='kanban'){ renderPMKanban(root, board); pmInitKanbanDrag(); return; }
+  if(pmView==='gantt'){ renderPMGantt(root, board); return; }
   const {groups, known} = pmGroupsOf(board);
   let html='';
   groups.forEach(g=>{
@@ -7911,7 +7961,7 @@ function renderPMBody(){
         <span class="pm-garrow">${collapsed?'▶':'▼'}</span>
       </div>`;
     if(!collapsed){
-      html+=`<div class="pm-cols"><div></div><div></div><div>Task</div><div>Owner</div><div style="text-align:center">Status</div><div>Due</div><div>Progress</div><div></div></div>`;
+      html+=`<div class="pm-cols"><div></div><div></div><div>Task</div><div>Owner</div><div style="text-align:center">Status</div><div>Start</div><div>Due</div><div>Progress</div><div></div></div>`;
       html+=`<div class="pm-rows" data-gid="${g.id}">`;
       tasks.forEach(t=>{ html+=pmRowHTML(t,g); });
       html+='</div>';
@@ -7927,27 +7977,29 @@ function renderPMBody(){
   pmInitTableDrag();
 }
 function pmRowHTML(t,g){
-  const st=pmStatusOf(t.status);
+  const isLinked = !!t.sectionId;
+  const st = pmStatusOf(t.status);
   const today=new Date().toISOString().slice(0,10);
-  const overdue = t.due && t.due<today && t.status!=='done';
+  const overdue = !isLinked && t.due && t.due<today && t.status!=='done';
   const subDone=t.subs.filter(s=>s.done).length;
   const badges=(t.subs.length?`<span class="pm-badge">${subDone}/${t.subs.length} ✓</span>`:'')+(t.notes?'<span class="pm-badge">📝</span>':'');
   const open = pmOpenDetail===t.id;
   let h=`<div class="pm-item" data-tid="${t.id}"><div class="pm-row" style="border-left:3px solid ${g.color}">
     <div class="pm-drag" title="Drag to move">⠿</div>
     <div class="pm-exp" onclick="pmToggleDetail('${t.id}')" title="Notes &amp; subtasks">${open?'▾':'▸'}</div>
-    <div><span class="pm-nm" contenteditable="true" spellcheck="false" onblur="pmEdit('${t.id}','name',this.textContent)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">${pmEsc(t.name)}</span>${badges}</div>
+    <div>${isLinked?`<span class="pm-linkicon" onclick="pmShowSectionPreview('${t.id}', event)" title="Linked to a section -- click to preview">📄</span> `:''}<span class="pm-nm" contenteditable="true" spellcheck="false" onblur="pmEdit('${t.id}','name',this.textContent)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">${pmEsc(t.name)}</span>${badges}</div>
     <div class="pm-owner" contenteditable="true" spellcheck="false" data-ph="Owner…" onblur="pmEdit('${t.id}','owner',this.textContent)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">${pmEsc(t.owner)}</div>
-    <div style="text-align:center"><span class="pm-pill" style="background:${st.bg};color:${st.fg}" onclick="pmStatusMenu(event,'${t.id}')">${st.lbl} ▾</span></div>
-    <div><input type="date" class="pm-date ${overdue?'overdue':''}" value="${pmEsc(t.due)}" onchange="pmEdit('${t.id}','due',this.value)">${overdue?'<span class="pm-warn" title="Overdue">⚠</span>':''}</div>
-    <div class="pm-progwrap"><input type="range" min="0" max="100" step="5" value="${t.progress}" oninput="pmProg('${t.id}',this)"><span class="pm-pct">${t.progress}%</span></div>
-    <div class="pm-del" onclick="pmDelTask('${t.id}')" title="Delete task">✕</div>
+    <div style="text-align:center"><span class="pm-pill" style="background:${st.bg};color:${st.fg}" onclick="pmStatusMenu(event,'${t.id}')" title="${isLinked?'Auto-set to Complete when the section is locked -- click to change':''}">${st.lbl} ▾</span></div>
+    <div>${isLinked ? '' : `<input type="date" class="pm-date" value="${pmEsc(t.start||'')}" onchange="pmEdit('${t.id}','start',this.value)">`}</div>
+    <div>${isLinked ? '' : `<input type="date" class="pm-date ${overdue?'overdue':''}" value="${pmEsc(t.due)}" onchange="pmEdit('${t.id}','due',this.value)">${overdue?'<span class="pm-warn" title="Overdue">⚠</span>':''}`}</div>
+    <div class="pm-progwrap">${isLinked ? '' : `<input type="range" min="0" max="100" step="5" value="${t.progress}" oninput="pmProg('${t.id}',this)"><span class="pm-pct">${t.progress}%</span>`}</div>
+    <div class="pm-del pm-del-row" onclick="pmDelTask('${t.id}')" title="Delete task">✕</div>
   </div>`;
   if(open){
     h+=`<div class="pm-detail">
-      <div><div class="pm-dlbl">Notes</div><textarea placeholder="Add notes…" onblur="pmEdit('${t.id}','notes',this.value)">${pmEsc(t.notes)}</textarea></div>
+      <div><div class="pm-dlbl">Notes</div><textarea class="pm-notes" placeholder="Add notes…" onblur="pmEdit('${t.id}','notes',this.value)">${pmEsc(t.notes)}</textarea></div>
       <div><div class="pm-dlbl">Subtasks</div><div>`+
-      t.subs.map((s,i)=>`<div class="pm-sub"><input type="checkbox" ${s.done?'checked':''} onchange="pmSubToggle('${t.id}',${i},this.checked)"><span class="${s.done?'done':''}">${pmEsc(s.n)}</span><span class="pm-del" onclick="pmSubDel('${t.id}',${i})">✕</span></div>`).join('')+
+      t.subs.map((s,i)=>`<div class="pm-sub"><input class="pm-subcheck" type="checkbox" ${s.done?'checked':''} onchange="pmSubToggle('${t.id}',${i},this.checked)"><span class="${s.done?'done':''}">${pmEsc(s.n)}</span><span class="pm-del" onclick="pmSubDel('${t.id}',${i})">✕</span></div>`).join('')+
       `</div><input class="pm-subadd" type="text" placeholder="+ Add subtask, press Enter" onkeydown="pmSubAdd(event,'${t.id}')"></div>
     </div>`;
   }
@@ -7964,9 +8016,9 @@ function renderPMKanban(root, board){
     tasks.forEach(t=>{
       const init = t.owner ? t.owner.split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase() : '';
       html+=`<div class="pm-kcard" data-tid="${t.id}" style="border-top:3px solid ${gcolor[t.group]||'#9ca3af'}">
-        <div class="pm-knm">${pmEsc(t.name)}</div>
-        <div class="pm-kmeta"><span>${pmEsc(gname[t.group]||'Other')}</span>${t.due?`<span>📅 ${pmEsc(t.due)}</span>`:''}${init?`<span class="pm-kav">${pmEsc(init)}</span>`:''}</div>
-        <div class="pm-kprog"><div style="width:${t.progress}%;background:${s.id==='not-started'?'#9ca3af':s.bg}"></div></div>
+        <div class="pm-knm">${t.sectionId?`<span class="pm-linkicon" onclick="pmShowSectionPreview('${t.id}', event)" title="Linked to a section -- click to preview">📄</span> `:''}${pmEsc(t.name)}</div>
+        <div class="pm-kmeta"><span>${pmEsc(gname[t.group]||'Other')}</span>${(!t.sectionId && t.due)?`<span>📅 ${pmEsc(t.due)}</span>`:''}${init?`<span class="pm-kav">${pmEsc(init)}</span>`:''}</div>
+        ${t.sectionId ? '' : `<div class="pm-kprog"><div style="width:${t.progress}%;background:${s.id==='not-started'?'#9ca3af':s.bg}"></div></div>`}
         <span class="pm-pill" style="background:${s.bg};color:${s.fg}" onclick="pmStatusMenu(event,'${t.id}')">${s.lbl} ▾</span>
       </div>`;
     });
@@ -7975,12 +8027,98 @@ function renderPMKanban(root, board){
   root.innerHTML=html+'</div>';
 }
 
+// ---------- gantt view ----------
+// Static, view-only timeline: bars from start->due, grouped by phase, with a
+// Today line and weekend shading. No dependencies, no drag-to-reschedule --
+// dates are still edited via the table view's date inputs, this is purely a
+// visualization of them (deliberately, per the confirmed v1 scope).
+const PM_GANTT_DAY_W = 12;
+function pmParseDate(s){ if(!s) return null; const d=new Date(s+'T00:00:00'); return isNaN(d.getTime())?null:d; }
+function pmDaysBetween(a,b){ return Math.round((b-a)/86400000); }
+function renderPMGantt(root, board){
+  const {groups, known} = pmGroupsOf(board);
+  const dayW = PM_GANTT_DAY_W, labelW = 220;
+  const today = pmParseDate(new Date().toISOString().slice(0,10));
+
+  const dated = board.tasks.filter(pmMatches).map(t=>({t, s:pmParseDate(t.start), d:pmParseDate(t.due)})).filter(x=>x.s && x.d && x.d>=x.s);
+  let rangeStart, rangeEnd;
+  if(dated.length){
+    rangeStart = new Date(Math.min(today, ...dated.map(x=>x.s.getTime())));
+    rangeEnd = new Date(Math.max(today, ...dated.map(x=>x.d.getTime())));
+  } else {
+    rangeStart = new Date(today);
+    rangeEnd = new Date(today); rangeEnd.setDate(rangeEnd.getDate()+27);
+  }
+  rangeStart.setDate(rangeStart.getDate()-2);
+  rangeEnd.setDate(rangeEnd.getDate()+2);
+  // Snap to full weeks (Sun-Sat) so the week/month header segments align cleanly with columns.
+  rangeStart.setDate(rangeStart.getDate()-rangeStart.getDay());
+  rangeEnd.setDate(rangeEnd.getDate()+(6-rangeEnd.getDay()));
+  const totalDays = Math.max(1, pmDaysBetween(rangeStart, rangeEnd)+1);
+  const totalWidth = totalDays*dayW;
+  const xFor = date => pmDaysBetween(rangeStart, date)*dayW;
+
+  let monthCells='', i=0;
+  while(i<totalDays){
+    const d=new Date(rangeStart); d.setDate(d.getDate()+i);
+    const month=d.getMonth(), year=d.getFullYear();
+    let span=0;
+    while(i+span<totalDays){
+      const dd=new Date(rangeStart); dd.setDate(dd.getDate()+i+span);
+      if(dd.getMonth()!==month || dd.getFullYear()!==year) break;
+      span++;
+    }
+    monthCells += `<div class="pm-gmonthlbl" style="width:${span*dayW}px;">${d.toLocaleDateString(undefined,{month:'long',year:'numeric'})}</div>`;
+    i+=span;
+  }
+  let weekCells='';
+  for(i=0;i<totalDays;i+=7){
+    const span=Math.min(7,totalDays-i);
+    const d=new Date(rangeStart); d.setDate(d.getDate()+i);
+    weekCells += `<div class="pm-gweeklbl" style="width:${span*dayW}px;">${d.toLocaleDateString(undefined,{month:'short',day:'numeric'})}</div>`;
+  }
+
+  let rows = `<div class="pm-gantt-row head head-month"><div class="pm-glabel"></div><div class="pm-gtrack" style="width:${totalWidth}px;display:flex;">${monthCells}</div></div>`;
+  rows += `<div class="pm-gantt-row head head-week"><div class="pm-glabel">Task</div><div class="pm-gtrack" style="width:${totalWidth}px;display:flex;">${weekCells}</div></div>`;
+
+  groups.forEach(g=>{
+    const inGroup = t => g.id==='__other' ? !known.has(t.group) : t.group===g.id;
+    const tasks = board.tasks.filter(inGroup).filter(pmMatches);
+    if(!tasks.length) return;
+    const collapsed = !!board.collapsed[g.id];
+    rows += `<div class="pm-gantt-row" style="background:${g.color}1a;cursor:pointer;" onclick="pmToggleGroup('${g.id}')"><div class="pm-glabel" style="font-weight:800;color:${g.color};background:${g.color}1a;"><span class="pm-garrow" style="margin-left:0;margin-right:6px;">${collapsed?'▶':'▼'}</span>${pmEsc(g.name)}</div><div class="pm-gtrack" style="width:${totalWidth}px"></div></div>`;
+    if(collapsed) return;
+    tasks.forEach(t=>{
+      const st=pmStatusOf(t.status);
+      const s=pmParseDate(t.start), d=pmParseDate(t.due);
+      let trackInner;
+      if(s && d && d>=s){
+        const left = xFor(s);
+        const width = Math.max(dayW-2, (pmDaysBetween(s,d)+1)*dayW - 2);
+        trackInner = `<div class="pm-gbar" data-tid="${t.id}" style="left:${left}px;width:${width}px;background:${st.bg};color:${st.fg}" title="${pmEsc(t.name)} (${t.start} → ${t.due})"${t.sectionId?` onclick="pmShowSectionPreview('${t.id}', event)"`:''}>${pmEsc(t.name)}</div>`;
+      } else {
+        trackInner = `<div class="pm-gnodate">No dates set</div>`;
+      }
+      rows += `<div class="pm-gantt-row"><div class="pm-glabel">${t.sectionId?`<span class="pm-linkicon" onclick="pmShowSectionPreview('${t.id}', event)" title="Linked to a section -- click to preview">📄</span> `:''}${pmEsc(t.name)}</div><div class="pm-gtrack" style="width:${totalWidth}px">${trackInner}</div></div>`;
+    });
+  });
+
+  let overlays='';
+  for(let i=0;i<totalDays;i++){
+    const d=new Date(rangeStart); d.setDate(d.getDate()+i);
+    if(d.getDay()===0||d.getDay()===6) overlays += `<div class="pm-gweekend" style="left:${labelW+i*dayW}px;width:${dayW}px;"></div>`;
+  }
+  if(today>=rangeStart && today<=rangeEnd) overlays += `<div class="pm-gtoday" style="left:${labelW+xFor(today)}px;" title="Today"></div>`;
+
+  root.innerHTML = `<div class="pm-gantt"><div class="pm-gantt-inner" style="width:${labelW+totalWidth}px">${rows}${overlays}</div></div>`;
+}
+
 // ---------- drag & drop + group management ----------
 let pmSortables=[];
 function pmDestroySortables(){ pmSortables.forEach(s=>{ try{s.destroy();}catch(e){} }); pmSortables=[]; }
 function pmInitTableDrag(){
   pmDestroySortables();
-  if(typeof Sortable==='undefined') return;
+  if(typeof Sortable==='undefined' || viewerModeForced) return;
   const body=document.getElementById('pm-body');
   pmSortables.push(new Sortable(body,{handle:'.pm-gdrag',draggable:'.pm-group',animation:150,onEnd:pmGroupDrop}));
   body.querySelectorAll('.pm-rows').forEach(c=>{
@@ -7989,7 +8127,7 @@ function pmInitTableDrag(){
 }
 function pmInitKanbanDrag(){
   pmDestroySortables();
-  if(typeof Sortable==='undefined') return;
+  if(typeof Sortable==='undefined' || viewerModeForced) return;
   document.querySelectorAll('#pm-body .pm-kbody').forEach(c=>{
     pmSortables.push(new Sortable(c,{group:'pm-kanban',draggable:'.pm-kcard',animation:150,onEnd:pmKanbanDrop}));
   });
@@ -8024,6 +8162,7 @@ function pmKanbanDrop(evt){
   pmSave(); renderPMBody();
 }
 function pmAddGroup(ev){
+  if(viewerModeForced) return; // belt-and-suspenders -- the input itself is already hidden
   if(ev.key!=='Enter') return;
   const v=ev.target.value.trim(); if(!v) return;
   const colors=['#6366f1','#8b5cf6','#0ea5e9','#f59e0b','#10b981','#ec4899','#14b8a6','#D50032'];
@@ -8032,6 +8171,7 @@ function pmAddGroup(ev){
   pmSave(); renderPMBody();
 }
 async function pmDelGroup(ev,gid){
+  if(viewerModeForced) return; // belt-and-suspenders -- the button itself is already hidden
   ev.stopPropagation();
   const b=pmStore[pmProgId];
   const n=b.tasks.filter(t=>t.group===gid).length;
@@ -8041,6 +8181,7 @@ async function pmDelGroup(ev,gid){
   pmSave(); renderPMBody();
 }
 function pmRenameGroup(gid,name){
+  if(viewerModeForced) return; // belt-and-suspenders -- contenteditable is already non-interactive
   const g=pmStore[pmProgId].groups.find(x=>x.id===gid);
   const v=(name||'').trim();
   if(g&&v&&g.name!==v){ g.name=v; pmSave(); }
@@ -8050,19 +8191,24 @@ function pmRenameGroup(gid,name){
 function pmToggleGroup(gid){ const b=pmStore[pmProgId]; b.collapsed[gid]=!b.collapsed[gid]; pmSave(); renderPMBody(); }
 function pmToggleDetail(tid){ pmOpenDetail = pmOpenDetail===tid ? null : tid; renderPMBody(); }
 function pmEdit(tid,field,val){
+  if(viewerModeForced) return; // belt-and-suspenders -- the field itself is already non-interactive
   const t=pmTaskById(tid); if(!t) return;
+  if(t.sectionId && (field==='start'||field==='due')) return; // a deliverable has no dates -- no input renders for these, this just double-checks
   const nv = typeof val==='string' ? val.trim() : val;
   if(t[field]===nv) return;
   t[field]=nv; pmSave();
-  if(field==='due') renderPMBody();
+  if(field==='due'||field==='start') renderPMBody();
 }
 function pmProg(tid,el){
+  if(viewerModeForced) return; // belt-and-suspenders -- the slider itself is already non-interactive
   const t=pmTaskById(tid); if(!t) return;
+  if(t.sectionId) return; // belt-and-suspenders -- a deliverable's progress is derived, never manual, no slider is ever rendered for it
   t.progress=+el.value;
   const pct=el.parentElement.querySelector('.pm-pct'); if(pct) pct.textContent=t.progress+'%';
   pmSave();
 }
 function pmStatusMenu(ev,tid){
+  if(viewerModeForced) return; // status stays visible as a pill -- just not changeable
   ev.stopPropagation();
   const m=document.getElementById('pm-status-menu');
   m.innerHTML=PM_STATUSES.map(s=>`<div class="pm-mi" onclick="pmSetStatus('${tid}','${s.id}')"><span class="pm-pill" style="background:${s.bg};color:${s.fg}">${s.lbl}</span></div>`).join('');
@@ -8072,32 +8218,83 @@ function pmStatusMenu(ev,tid){
   m.style.top=Math.min(r.bottom+4, window.innerHeight-230)+'px';
 }
 function pmSetStatus(tid,sid){
+  if(viewerModeForced) return; // belt-and-suspenders -- pmStatusMenu() already refuses to open for a viewer
   const t=pmTaskById(tid);
   if(t){ t.status=sid; if(sid==='done') t.progress=100; pmSave(); }
   document.getElementById('pm-status-menu').style.display='none';
   renderPMBody();
 }
 document.addEventListener('click', ()=>{ const m=document.getElementById('pm-status-menu'); if(m) m.style.display='none'; });
+document.addEventListener('click', ()=>{ const m=document.getElementById('pm-sec-preview'); if(m) m.style.display='none'; });
+
+// A section-linked deliverable's card is not itself editable content -- clicking it
+// shows a small preview (name/phase/status) with an explicit "Go to section" action,
+// rather than jumping immediately, so a stray click on the icon never yanks you out
+// of the PM board unexpectedly. Available identically to editors and viewers, since
+// this is pure navigation, not an edit.
+const PM_SECTION_STATUS_META = {
+  'not-started': {lbl:'Not Started', bg:'#6b7280', fg:'#fff'},
+  'in-progress': {lbl:'In Progress', bg:'#f59e0b', fg:'#fff'},
+  'review':      {lbl:'In Review',   bg:'#f59e0b', fg:'#fff'},
+  'complete':    {lbl:'Complete',    bg:'#10b981', fg:'#fff'},
+  'approved':    {lbl:'Approved',    bg:'#2A6FDB', fg:'#fff'},
+};
+function pmShowSectionPreview(tid, ev){
+  if(ev){ ev.stopPropagation(); }
+  const t = pmTaskById(tid);
+  if(!t || !t.sectionId) return;
+  const p = programs.find(x=>x.id===pmProgId);
+  if(!p) return;
+  let sec=null, ph=null;
+  phasesOf(p).forEach(pp=>{ const f=pp.sections.find(s=>s.id===t.sectionId); if(f){ sec=f; ph=pp; } });
+  const statKey = pmProgId+':'+t.sectionId;
+  const statVal = sectionStatus[statKey]||'not-started';
+  const meta = PM_SECTION_STATUS_META[statVal] || PM_SECTION_STATUS_META['not-started'];
+  const m = document.getElementById('pm-sec-preview');
+  m.innerHTML = `
+    <div class="pm-sp-title">${pmEsc(sec?sec.name:t.name)}</div>
+    <div class="pm-sp-phase">${pmEsc(ph?ph.name:'')}</div>
+    <div class="pm-sp-status" style="background:${meta.bg};color:${meta.fg}">${meta.lbl}</div>
+    <button class="pm-sp-go" onclick="pmGoToSectionFromPreview('${t.sectionId}')">Go to section →</button>`;
+  m.style.display='block';
+  const r = ev && ev.target ? ev.target.getBoundingClientRect() : {left:200,bottom:200};
+  m.style.left = Math.max(8, Math.min(r.left, window.innerWidth-236))+'px';
+  m.style.top = Math.min(r.bottom+6, window.innerHeight-160)+'px';
+}
+function pmGoToSectionFromPreview(secId){
+  const m = document.getElementById('pm-sec-preview'); if(m) m.style.display='none';
+  const p = programs.find(x=>x.id===pmProgId);
+  if(!p) return;
+  let ph=null;
+  phasesOf(p).forEach(pp=>{ if(pp.sections.some(s=>s.id===secId)) ph=pp; });
+  if(!ph) return;
+  pmBack();
+  openProgram(p.id);
+  goTo(ph.id, secId);
+}
 function pmAddTask(ev,gid){
+  if(viewerModeForced) return; // belt-and-suspenders -- the input itself is already hidden
   if(ev.key!=='Enter') return;
   const v=ev.target.value.trim(); if(!v) return;
-  pmStore[pmProgId].tasks.push({id:pmNewId(), name:v, group:gid, owner:'', status:'not-started', due:'', progress:0, notes:'', subs:[]});
+  pmStore[pmProgId].tasks.push({id:pmNewId(), name:v, group:gid, owner:'', status:'not-started', start:'', due:'', progress:0, notes:'', subs:[]});
   pmSave(); renderPMBody();
 }
 async function pmDelTask(tid){
+  if(viewerModeForced) return; // belt-and-suspenders -- the button itself is already hidden
   if(!await appConfirm('Delete this task?')) return;
   const b=pmStore[pmProgId]; b.tasks=b.tasks.filter(t=>t.id!==tid);
   pmSave(); renderPMBody();
 }
 function pmSubAdd(ev,tid){
+  if(viewerModeForced) return; // belt-and-suspenders -- the input itself is already hidden
   if(ev.key!=='Enter') return;
   const v=ev.target.value.trim(); if(!v) return;
   const t=pmTaskById(tid); if(!t) return;
   t.subs.push({n:v, done:false}); ev.target.value='';
   pmSave(); renderPMBody();
 }
-function pmSubToggle(tid,i,ck){ const t=pmTaskById(tid); if(t&&t.subs[i]){ t.subs[i].done=ck; pmSave(); renderPMBody(); } }
-function pmSubDel(tid,i){ const t=pmTaskById(tid); if(t){ t.subs.splice(i,1); pmSave(); renderPMBody(); } }
+function pmSubToggle(tid,i,ck){ if(viewerModeForced) return; const t=pmTaskById(tid); if(t&&t.subs[i]){ t.subs[i].done=ck; pmSave(); renderPMBody(); } }
+function pmSubDel(tid,i){ if(viewerModeForced) return; const t=pmTaskById(tid); if(t){ t.subs.splice(i,1); pmSave(); renderPMBody(); } }
 
 // ---------- portfolio dashboard ----------
 function pmAllStats(){
@@ -8865,6 +9062,13 @@ function hideEditorChromeForViewer(){
   // "View" mode preview (that CSS class alone doesn't touch this), same
   // distinction the gear button above already makes.
   const pptxOpt=document.getElementById('export-opt-pptx'); if(pptxOpt) pptxOpt.style.display='none';
+  // The reverse of everything else here: this button is hidden by default
+  // (editors already reach PM Board via Tools ▾ or the program-card button)
+  // and only shown for a real viewer, since Tools ▾ itself stays fully
+  // hidden for viewers (it holds other genuinely editor-only tools) -- this
+  // gives a viewer a direct way back to the read-only PM board from inside
+  // an open program, not just from the Hub.
+  const pmViewerBtn=document.getElementById('pm-board-viewer-btn'); if(pmViewerBtn) pmViewerBtn.style.display='inline-block';
 }
 async function init(){
   let loaded = false;
