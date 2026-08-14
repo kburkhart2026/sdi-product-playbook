@@ -537,6 +537,7 @@ body.view-mode .dsec,
 body.view-mode .sec-del,
 body.view-mode .ph-del,
 body.view-mode #comments-area,
+body.view-mode .vid-change-bar,
 body.view-mode .tl-add-btn,
 body.view-mode .tbl-add-row,
 body.view-mode .tbl-toolbar,
@@ -3550,6 +3551,7 @@ async function addSec(pid,e){
 
 // ==================== IMAGE ====================
 async function setImage(ph){
+  if(viewerModeForced) return; // belt-and-suspenders -- the placeholder itself is already hidden
   const wrap=ph.parentElement;
   const choice=await appConfirm('How would you like to add the image?','Enter URL','Upload file');
   if(choice){
@@ -3582,6 +3584,7 @@ function showImage(wrap,src){
 }
 
 async function changeImage(btn){
+  if(viewerModeForced) return; // belt-and-suspenders -- the button itself is already hidden
   const wrap = btn.closest('.block-image');
   const choice = await appConfirm('How would you like to add the image?','Enter URL','Upload file');
   if(choice){
@@ -3620,6 +3623,7 @@ async function setVideo(ph){
 }
 
 async function changeVideo(btn){
+  if(viewerModeForced) return; // belt-and-suspenders -- the button itself is already hidden
   const wrap = btn.closest('.block-video');
   const raw=(await appPrompt(
     'Paste a new video URL or embed code:'
@@ -3826,7 +3830,7 @@ function upgradeFileBlocks(root){
 
 // ==================== EMBED / LIVE HTML ====================
 function setEmbed(ph){ chooseEmbedSource(ph.closest('.block-embed')); }
-function changeEmbed(btn){ chooseEmbedSource(btn.closest('.block-embed')); }
+function changeEmbed(btn){ if(viewerModeForced) return; chooseEmbedSource(btn.closest('.block-embed')); }
 
 async function chooseEmbedSource(wrap){
   if(!wrap) return;
@@ -3879,6 +3883,7 @@ function applyEmbedDoc(wrap, html){
   scheduleSave();
 }
 async function setEmbedHeight(btn){
+  if(viewerModeForced) return; // belt-and-suspenders -- the button itself is already hidden
   const wrap=btn.closest('.block-embed');
   const frame=wrap && wrap.querySelector('.emb-frame');
   if(!frame) return;
@@ -7675,6 +7680,7 @@ function closeLightbox(){
 }
 
 function annotateImage(btn){
+  if(viewerModeForced) return; // belt-and-suspenders -- the button itself is already hidden
   const wrap=btn.closest('.block-image');
   const img=wrap.querySelector('img');
   if(!img) return;
