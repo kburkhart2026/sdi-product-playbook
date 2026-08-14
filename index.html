@@ -533,6 +533,10 @@ body.view-mode .bctrl,
 body.view-mode .add-block-area,
 body.view-mode .add-sec,
 body.view-mode .dph,
+body.view-mode .dsec,
+body.view-mode .sec-del,
+body.view-mode .ph-del,
+body.view-mode #comments-area,
 body.view-mode .tl-add-btn,
 body.view-mode .tbl-add-row,
 body.view-mode .tbl-toolbar,
@@ -1225,7 +1229,7 @@ table.mg2-table tr.clickable:hover{background:#FDF4F5;}
               <div style="border-top:1px solid var(--bdr);"></div>
               <div class="export-opt" onclick="exportProgramPDF()">📘 Full program as PDF</div>
               <div class="export-opt" onclick="exportProgramWord()">📚 Full program as Word (.docx)</div>
-              <div class="export-opt" onclick="exportProgramPPTX()">📽 Full program as PowerPoint (.pptx)</div>
+              <div class="export-opt" id="export-opt-pptx" onclick="exportProgramPPTX()">📽 Full program as PowerPoint (.pptx)</div>
               <div class="export-opt" onclick="exportProgramHTML()">🌐 Full program as web page (.html)</div>
             </div>
           </div>
@@ -1926,6 +1930,10 @@ let renderedKey = null; // the progId:sectionId whose content is currently in #b
 
 // ---- manifest + per-program lazy loading ----
 let manifestMode = false; // true once boot detects a real manifest.json (vs. the legacy single-file blob)
+// True for a real shared viewer link, or Karen's own "View" mode preview toggle (same code
+// path, deliberately) -- module-level so any function can refuse a destructive action
+// outright, not just the boot-time chrome-hiding that originally needed this.
+let viewerModeForced = false;
 const loadedPrograms = new Set(); // progId's whose blockStore slice is actually in memory this session
 const _programLoadPromises = {}; // progId -> in-flight ensureProgramLoaded() promise, for de-duplication
 let searchIndexLoaded = false; // true once every program has been loaded for full-text search (manifestMode only)
@@ -2845,7 +2853,10 @@ function renderSidebar(){
       </div>`;
     root.appendChild(grp);
   });
-  // Drag phases
+  // Drag phases and sections -- skipped entirely for a real viewer, not just
+  // hidden, so there's no drag behavior to trigger even if a handle were
+  // somehow visible (belt-and-suspenders on top of the CSS hiding the handles).
+  if(!viewerModeForced){
   new Sortable(root,{animation:150,handle:'.dph',ghostClass:'sortable-ghost',
     onEnd(e){const m=PHASES.splice(e.oldIndex,1)[0];PHASES.splice(e.newIndex,0,m);}});
   // Drag sections (cross-phase enabled)
@@ -2873,6 +2884,7 @@ function renderSidebar(){
       }
     });
   });
+  }
 }
 
 function togglePh(pid){
@@ -3522,6 +3534,7 @@ function cycleApStatus(el){
   scheduleSave();
 }
 async function addSec(pid,e){
+  if(viewerModeForced) return; // belt-and-suspenders -- the button itself is already hidden
   e.stopPropagation();
   const name=await appPrompt('Section name:');
   if(!name||!name.trim()) return;
@@ -4705,6 +4718,7 @@ function pptTableRows(tbl){
   ).filter(r=>r.length && r.some(x=>x!==''));
 }
 async function exportProgramPPTX(){
+  if(viewerModeForced) return; // belt-and-suspenders -- the menu item itself is already hidden for real viewers
   document.getElementById('export-menu').classList.remove('show');
   toast('Building PowerPoint\u2026');
   try{ await loadPptxLib(); }
@@ -5231,6 +5245,7 @@ async function addPhase(){
 
 // ==================== DELETE PHASE / SECTION ====================
 async function deletePhase(pid, e){
+  if(viewerModeForced) return; // belt-and-suspenders -- the button itself is already hidden
   e.stopPropagation();
   const ph = PHASES.find(p=>p.id===pid);
   if(!ph) return;
@@ -5252,6 +5267,7 @@ async function deletePhase(pid, e){
 }
 
 async function deleteSection(pid, sid, e){
+  if(viewerModeForced) return; // belt-and-suspenders -- the button itself is already hidden
   e.stopPropagation();
   const ph = PHASES.find(p=>p.id===pid);
   if(!ph) return;
@@ -5585,6 +5601,7 @@ function renderComments(){
     :comments.map(c=>`<div class="comment-item"><div class="comment-author">${c.author} -- ${new Date(c.ts).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div><div>${c.text}</div></div>`).join('');
 }
 async function addComment(){
+  if(viewerModeForced) return; // belt-and-suspenders -- the whole comments area is already hidden
   const inp=document.getElementById('comment-input');
   if(!inp||!inp.value.trim()) return;
   const key=curProgId+':'+curSection;
@@ -8838,6 +8855,10 @@ function hideEditorChromeForViewer(){
   const statusBtn=document.getElementById('status-btn'); if(statusBtn) statusBtn.style.display='none';
   const dbBtn=document.getElementById('databackup-btn'); if(dbBtn) dbBtn.style.display='none';
   const hubActions=document.getElementById('hub-editor-actions'); if(hubActions) hubActions.style.display='none';
+  // PPTX export is hidden for real viewers only -- kept visible in Karen's own
+  // "View" mode preview (that CSS class alone doesn't touch this), same
+  // distinction the gear button above already makes.
+  const pptxOpt=document.getElementById('export-opt-pptx'); if(pptxOpt) pptxOpt.style.display='none';
 }
 async function init(){
   let loaded = false;
@@ -8852,7 +8873,7 @@ async function init(){
   // never fall through to the seed/local-storage recovery logic below (that
   // recovery is about "is this Karen's real browser with real content
   // missing", not "did a shared link work") -- show a clear message and stop.
-  let viewerModeForced = false;
+  viewerModeForced = false; // module-level -- reset here in case init() ever re-runs without a full page reload
   const ghMode = githubMode();
   if(ghMode === 'viewer'){
     // Hide every editor-only control THE MOMENT we know this is a viewer link --
