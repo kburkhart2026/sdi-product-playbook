@@ -322,8 +322,34 @@ body.view-mode .tbl-rowops,.section-locked .tbl-rowops{display:none!important;}
 .tl-line{flex:1;width:2px;background:var(--bdr);margin-top:4px;}
 .tl-item:last-child .tl-line{display:none;}
 .tl-body{flex:1;}
-.tl-m{font-size:14px;font-weight:500;color:var(--txt);outline:none;}
-.tl-d{font-size:12px;color:var(--mut);margin-top:1px;outline:none;}
+.tl-mrow{display:flex;align-items:flex-start;gap:6px;}
+.tl-m{flex:1;font-size:14px;font-weight:500;color:var(--txt);outline:none;}
+.tl-d{display:flex;align-items:center;gap:4px;margin-top:2px;flex-wrap:wrap;}
+.tl-date-month,.tl-date-year{font-size:12px;color:var(--mut);border:1px solid transparent;background:transparent;font-family:inherit;border-radius:3px;padding:2px 1px;cursor:pointer;outline:none;}
+.tl-date-month:hover,.tl-date-month:focus,.tl-date-year:hover,.tl-date-year:focus{border-color:var(--bdr);background:#fff;}
+.tl-d.no-date .tl-date-month,.tl-d.no-date .tl-date-year{color:#aab;}
+.tl-date-clear{border:none;background:transparent;color:#aab;cursor:pointer;font-size:11px;padding:2px 3px;border-radius:3px;opacity:0;transition:opacity .15s;}
+.tl-item:hover .tl-date-clear{opacity:1;}
+.tl-date-clear:hover{color:#dc2626;background:#fee2e2;}
+.tl-d.no-date .tl-date-clear{display:none;}
+/* Plain-text twin of the two date <select>s, reading either "May 2026" or
+   "No date set". Hidden while editing (the selects already show the same
+   month/year, and their own Month/Year placeholders already say "undated",
+   so both at once is redundant) and shown wherever the selects are hidden
+   instead: view-mode, print, and the static HTML export. It also carries
+   the date into the .docx exporter, which strips every <select> outright --
+   without this span the date would silently vanish from a Word export.
+   Deliberately ONE span for both states rather than a dated span plus a
+   separate always-present "No date set" label: the exporters read raw text
+   and ignore CSS, so a CSS-hidden second label would leak into every
+   exported milestone, dated ones included. */
+.tl-date-text{font-size:12px;color:var(--mut);display:none;}
+.tl-d.no-date .tl-date-text{color:#aab;font-style:italic;}
+.tl-note{font-size:12px;color:var(--mut);outline:none;}
+.tl-note:empty:before{content:attr(data-ph);color:#c4c8cd;}
+.tl-del{flex-shrink:0;border:none;background:transparent;color:var(--mut);cursor:pointer;font-size:13px;line-height:1;padding:2px 4px;border-radius:4px;opacity:0;transition:opacity .15s;}
+.tl-item:hover .tl-del{opacity:1;}
+.tl-del:hover{color:#dc2626;background:#fee2e2;}
 .tl-add-btn{display:flex;align-items:center;gap:6px;padding:8px 0 0;font-size:13px;color:var(--mut);cursor:pointer;border:none;background:transparent;}
 .tl-add-btn:hover{color:var(--acc);}
 
@@ -557,6 +583,10 @@ body.view-mode .ph-del,
 body.view-mode #comments-area,
 body.view-mode .vid-change-bar,
 body.view-mode .tl-add-btn,
+body.view-mode .tl-del,
+body.view-mode .tl-date-clear,
+body.view-mode .tl-date-month,
+body.view-mode .tl-date-year,
 body.view-mode .tbl-add-row,
 body.view-mode .tbl-toolbar,
 body.view-mode .swot-add,
@@ -589,6 +619,12 @@ body.view-mode .pm-del-row{visibility:hidden;}
    viewing/navigation and are deliberately left untouched here. */
 body.view-mode .pm-date,
 body.view-mode .pm-subcheck{pointer-events:none;}
+/* Timeline dates go the other way from the PM board's date inputs above: a
+   <select> renders its own dropdown arrow even with pointer-events disabled,
+   so a viewer saw an arrow that visibly does nothing. Hide the selects
+   outright (see the display:none list above) and swap in the plain-text
+   twin instead. */
+body.view-mode .tl-date-text{display:inline;}
 
 /* Margin Calculator is not offered to viewers at all -- unlike PM Board,
    Karen decided it doesn't need a side-by-side (or any) viewer experience.
@@ -689,7 +725,7 @@ body.view-mode .mg2-gened-check input[type=checkbox]{pointer-events:none;}
 .locked-banner{background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:600;margin-bottom:16px;display:none;}
 .section-locked .locked-banner{display:block;}
 .section-locked .add-block-area{display:none!important;}
-.section-locked .bctrl,.section-locked .swot-add,.section-locked .tbl-toolbar,.section-locked .tbl-gear,.section-locked .tbl-rowops,.section-locked .tbl-row-del,.section-locked .tl-add-btn,.section-locked .tbl-add-row,.section-locked .dl-add,.section-locked .ap-add{display:none!important;}
+.section-locked .bctrl,.section-locked .swot-add,.section-locked .tbl-toolbar,.section-locked .tbl-gear,.section-locked .tbl-rowops,.section-locked .tbl-row-del,.section-locked .tl-add-btn,.section-locked .tl-del,.section-locked .tl-date-clear,.section-locked .tbl-add-row,.section-locked .dl-add,.section-locked .ap-add{display:none!important;}
 .section-locked #page-title{pointer-events:none;}
 
 /* block tags */
@@ -755,11 +791,14 @@ body.view-mode .mg2-gened-check input[type=checkbox]{pointer-events:none;}
 @media print{
   #hub-view,#prog-view .sidebar,.topbar,.add-block-area,.bctrl,.add-sec,.block-picker,
   #imgLightbox,#save-alarm,.swot-add,.prog-banner,
-  .tbl-gear,.tbl-toolbar,.tbl-rowops,.tbl-row-del,.tbl-add-row,.tl-add-btn,.dl-add,.ap-add,
+  .tbl-gear,.tbl-toolbar,.tbl-rowops,.tbl-row-del,.tbl-add-row,.tl-add-btn,.tl-del,.tl-date-clear,.dl-add,.ap-add,
+  .tl-date-month,.tl-date-year,
   .vid-change-bar,.block-tag,.wysiwyg-bar,.btool-tag,.btool-copy,.bdel,.bdrag,
   .cost-add,.cost-clear,.cost-foot-bar,.cost-rowdrag,
   .tbl-rowops,
   .ap-btn[onclick],.locked-banner,.claude-panel,.link-pop,#tbl-fmt-pop,.export-menu,#databackup-modal,#shortcuts-modal{display:none!important;}
+  /* print the milestone date as text, not as two dropdown boxes */
+  .tl-date-text{display:inline!important;}
   body,#prog-view,.app,.main,.content-area{overflow:visible!important;height:auto!important;}
   .content-area{padding:0!important;}
   .content-inner{max-width:100%!important;padding:0!important;}
@@ -796,7 +835,7 @@ body.view-mode .wysiwyg-bar{display:none!important;}
    Headings & table headers keep the condensed brand display face. */
 .block-text,.block-text *,.ct,.ct *,
 .block-table td,.block-table td *,
-.tl-m,.tl-m *,.tl-d,.tl-d *,
+.tl-m,.tl-m *,.tl-note,.tl-note *,
 .dl-table td,.dl-table td *,
 .ap-name,.ap-name *,.ap-desc,.ap-desc *,
 #page-title *{font-family:var(--font-body)!important;}
@@ -3465,7 +3504,7 @@ function makeBlock(data){
       break;}
     case 'timeline':{
       const lid='tl-'+(++uid);
-      const items=(data.items||[]).map(i=>tlItem(i.m,i.d)).join('');
+      const items=tlSortItems(data.items||[]).map(i=>tlItem(i.m,i.date,i.note)).join('');
       wrap.innerHTML=ctrl+`<div class="block-timeline"><div class="tl-lbl">${data.lbl||'Timeline'}</div><div class="tl-list" id="${lid}">${items}</div><button class="tl-add-btn" onclick="addMilestone('${lid}')">+ Add milestone</button></div>`;
       break;}
     case 'decision':{
@@ -3550,8 +3589,170 @@ function makeBlock(data){
   return wrap;
 }
 
-function tlItem(m,d){
-  return `<div class="tl-item"><div class="tl-l"><div class="tl-dot"></div><div class="tl-line"></div></div><div class="tl-body"><div class="tl-m" contenteditable="true" spellcheck="false">${m}</div><div class="tl-d" contenteditable="true" spellcheck="false">${d}</div></div></div>`;
+const TL_MONTH_OPTS=[['01','Jan'],['02','Feb'],['03','Mar'],['04','Apr'],['05','May'],['06','Jun'],['07','Jul'],['08','Aug'],['09','Sep'],['10','Oct'],['11','Nov'],['12','Dec']];
+// Plain month+year <select> pair, not a native <input type=month> -- that
+// input type turned out to silently fall back to an unvalidated plain text
+// box in some browsers (no picker, no real value ever produced), which is
+// why a "date" set through it could look fine on screen and still save as
+// nothing. Two <select>s are universally supported with no fallback risk.
+function tlDateSelectsHTML(date){
+  const parts=(date||'').split('-');
+  const mVal=(parts[0]&&parts[1])?parts[1]:'';
+  const yVal=(parts[0]&&parts[1])?parts[0]:'';
+  const nowY=new Date().getFullYear();
+  const years=new Set(); for(let y=nowY-1;y<=nowY+6;y++) years.add(y);
+  if(yVal) years.add(parseInt(yVal,10));
+  const sortedYears=[...years].sort((a,b)=>a-b);
+  const mOpts='<option value=""'+(mVal?'':' selected')+'>Month</option>'+TL_MONTH_OPTS.map(([v,l])=>`<option value="${v}"${v===mVal?' selected':''}>${l}</option>`).join('');
+  const yOpts='<option value=""'+(yVal?'':' selected')+'>Year</option>'+sortedYears.map(y=>`<option value="${y}"${String(y)===yVal?' selected':''}>${y}</option>`).join('');
+  return `<select class="tl-date-month" onchange="onTimelineDateChange(this)">${mOpts}</select><select class="tl-date-year" onchange="onTimelineDateChange(this)">${yOpts}</select>`;
+}
+const TL_MONTH_FULL=['January','February','March','April','May','June','July','August','September','October','November','December'];
+// "2026-05" -> "May 2026", for the read-only contexts that show text instead
+// of the two selects (viewer, print, HTML export, .docx).
+function tlFormatDate(date){
+  const parts=(date||'').split('-');
+  if(parts.length!==2) return '';
+  const mi=parseInt(parts[1],10)-1;
+  if(!(mi>=0 && mi<12) || !/^\d{4}$/.test(parts[0])) return '';
+  return TL_MONTH_FULL[mi]+' '+parts[0];
+}
+// What the single read-only text span actually shows -- an undated milestone
+// says so in words rather than rendering as a blank gap.
+function tlDateDisplay(date){ return tlFormatDate(date) || 'No date set'; }
+// date is a real "YYYY-MM" value (or '') driving sort order -- always exactly
+// that shape or empty, since it only ever comes from the month/year selects
+// above or the migration parser below, so it's safe in an attribute with no
+// separate escaping. note is optional freeform text for anything that isn't
+// a clean date (see parseLooseMilestoneDate).
+function tlItem(m,date,note){
+  date=date||''; note=note||'';
+  const noDate=!date;
+  return `<div class="tl-item"><div class="tl-l"><div class="tl-dot"></div><div class="tl-line"></div></div><div class="tl-body">`
+    +`<div class="tl-mrow"><div class="tl-m" contenteditable="true" spellcheck="false">${m}</div><button class="tl-del" title="Delete milestone" onclick="delMilestone(this)">✕</button></div>`
+    +`<div class="tl-d ${noDate?'no-date':'has-date'}" data-date="${date}">${tlDateSelectsHTML(date)}<span class="tl-date-text">${tlDateDisplay(date)}</span><button class="tl-date-clear" title="Clear date" onclick="clearTimelineDate(this)">✕</button><span class="tl-note" contenteditable="true" spellcheck="false" data-ph="Add a note (optional)">${note}</span></div>`
+    +`</div></div>`;
+}
+// Stable sort by date ascending -- items sharing a month/year, or multiple
+// undated ones, keep their existing relative order rather than jumping
+// around. Undated (date==='') always sorts last. Used both for a
+// freshly-created block's initial data.items and, via sortTimelineListDom
+// below, for the live DOM after an add/edit/migration.
+function tlSortItems(items){
+  return items.map((it,idx)=>({it,idx})).sort((a,b)=>{
+    const ad=a.it.date||'', bd=b.it.date||'';
+    if(ad && bd) return ad<bd?-1:ad>bd?1:a.idx-b.idx;
+    if(ad && !bd) return -1;
+    if(!ad && bd) return 1;
+    return a.idx-b.idx;
+  }).map(x=>x.it);
+}
+// Same sort, applied directly to an already-rendered .tl-list's DOM children.
+// Reads each item's date from .tl-d's data-date attribute -- the actual
+// source of truth (see onTimelineDateChange) -- never from the selects'
+// own live state directly. Re-appending each in sorted order moves it to
+// the end of the list one at a time, which is all that's needed to reorder
+// the whole list.
+function sortTimelineListDom(list){
+  if(!list) return;
+  const withKey=[...list.querySelectorAll(':scope > .tl-item')].map((el,idx)=>({
+    el, idx, date:(el.querySelector('.tl-d')||{}).getAttribute ? (el.querySelector('.tl-d').getAttribute('data-date')||'') : ''
+  }));
+  withKey.sort((a,b)=>{
+    if(a.date && b.date) return a.date<b.date?-1:a.date>b.date?1:a.idx-b.idx;
+    if(a.date && !b.date) return -1;
+    if(!a.date && b.date) return 1;
+    return a.idx-b.idx;
+  });
+  withKey.forEach(x=>list.appendChild(x.el));
+}
+function onTimelineDateChange(sel){
+  const wrap=sel.closest('.tl-d');
+  if(!wrap) return;
+  const mSel=wrap.querySelector('.tl-date-month'), ySel=wrap.querySelector('.tl-date-year');
+  // Each <option>'s selected ATTRIBUTE has to be kept in sync by hand, same
+  // reason as any other form control here: saveCurrentBlocks() persists a
+  // section by cloning its DOM and reading .innerHTML, which only ever
+  // serializes whichever <option> has the selected ATTRIBUTE baked in, never
+  // whichever one the live UI just picked. Without this, a choice looks
+  // right on screen but silently reverts for anyone loading this section
+  // fresh afterward -- a viewer, or this same editor on a future reload.
+  [mSel,ySel].forEach(s=>{
+    [...s.options].forEach(o=>o.removeAttribute('selected'));
+    if(s.selectedIndex>=0) s.options[s.selectedIndex].setAttribute('selected','');
+  });
+  const date=(mSel.value && ySel.value) ? (ySel.value+'-'+mSel.value) : '';
+  wrap.setAttribute('data-date', date);
+  wrap.classList.toggle('no-date', !date);
+  wrap.classList.toggle('has-date', !!date);
+  const txt=wrap.querySelector('.tl-date-text');
+  if(txt) txt.textContent=tlDateDisplay(date);
+  sortTimelineListDom(wrap.closest('.tl-list'));
+  scheduleSave();
+}
+function clearTimelineDate(btn){
+  const wrap=btn.closest('.tl-d');
+  if(!wrap) return;
+  wrap.querySelectorAll('select').forEach(sel=>{
+    [...sel.options].forEach(o=>o.removeAttribute('selected'));
+    sel.selectedIndex=0; sel.options[0].setAttribute('selected','');
+  });
+  wrap.setAttribute('data-date','');
+  wrap.classList.add('no-date'); wrap.classList.remove('has-date');
+  const txt=wrap.querySelector('.tl-date-text');
+  if(txt) txt.textContent=tlDateDisplay('');
+  sortTimelineListDom(wrap.closest('.tl-list'));
+  scheduleSave();
+}
+async function delMilestone(btn){
+  const item=btn.closest('.tl-item');
+  if(item && await appConfirm('Delete this milestone?')){ item.remove(); scheduleSave(); }
+}
+// Best-effort: pulls a sortable "YYYY-MM" out of the loose, human-written
+// date text this block always used before ("May 2026", "Mid-August 2026",
+// "Q1 2027"...). Whatever doesn't fit into that becomes the note instead of
+// being silently dropped; text that doesn't parse at all is left undated
+// (sorts last, flagged "No date set") rather than guessed at.
+const TL_MONTHS=['january','february','march','april','may','june','july','august','september','october','november','december'];
+const TL_MONTH_ABBR={jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,sept:8,oct:9,nov:10,dec:11};
+function parseLooseMilestoneDate(text){
+  const raw=(text||'').trim();
+  if(!raw) return {date:'',note:''};
+  const monthNames=TL_MONTHS.concat(Object.keys(TL_MONTH_ABBR)).join('|');
+  // Optional day (with ordinal suffix and/or a comma) between the month and
+  // year -- "March 29, 2027" needs to match just as well as "March 2027";
+  // the day itself is discarded either way, only month/year precision is kept.
+  const re=new RegExp('\\b('+monthNames+')\\.?\\s+(?:\\d{1,2}(?:st|nd|rd|th)?,?\\s+)?(\\d{4})\\b','i');
+  const m=raw.match(re);
+  if(m){
+    const name=m[1].toLowerCase();
+    const monthIdx=TL_MONTHS.indexOf(name)>=0?TL_MONTHS.indexOf(name):TL_MONTH_ABBR[name];
+    const date=m[2]+'-'+String(monthIdx+1).padStart(2,'0');
+    let leftover=raw.slice(0,m.index)+raw.slice(m.index+m[0].length);
+    // A leading qualifier ("Mid-", "Early ", "Beginning of ") only modified
+    // the month we already captured -- drop it rather than keeping it as a
+    // note fragment with nothing left to attach to.
+    leftover=leftover.replace(/^\s*(mid|early|late)[\s-]*$/i,'').replace(/^\s*(beginning of|end of)\s*$/i,'');
+    leftover=leftover.replace(/^[\s\-–—,]+|[\s\-–—,]+$/g,'');
+    return {date, note:leftover};
+  }
+  const qm=raw.match(/\bQ([1-4])\s*(\d{4})\b/i);
+  if(qm){
+    const monthIdx=(parseInt(qm[1],10)-1)*3;
+    const date=qm[2]+'-'+String(monthIdx+1).padStart(2,'0');
+    let leftover=raw.slice(0,qm.index)+raw.slice(qm.index+qm[0].length);
+    leftover=leftover.replace(/^[\s\-–—,]+|[\s\-–—,]+$/g,'');
+    return {date, note:leftover};
+  }
+  const sm=raw.match(/\b(spring|summer|fall|autumn|winter)\s+(\d{4})\b/i);
+  if(sm){
+    const seasonMonth={spring:2,summer:5,fall:8,autumn:8,winter:11}[sm[1].toLowerCase()];
+    const date=sm[2]+'-'+String(seasonMonth+1).padStart(2,'0');
+    // A season->month mapping is a guess, not a fact -- keep the full
+    // original text visible as the note too, not just the derived date.
+    return {date, note:raw};
+  }
+  return {date:'', note:raw};
 }
 
 function dlRow(i){
@@ -3768,9 +3969,10 @@ async function delTblCol(id){
 function addMilestone(lid){
   const list=document.getElementById(lid);
   const d=document.createElement('div');
-  d.innerHTML=tlItem('New milestone','Date');
+  d.innerHTML=tlItem('New milestone','','');
   const item=d.firstElementChild;
   list.appendChild(item);
+  sortTimelineListDom(list); // undated, so this stays at the end today -- keeps behavior correct if that ever changes
   item.querySelector('.tl-m').focus();
   scheduleSave();
 }
@@ -4515,7 +4717,14 @@ function _buildDocx(bodyHtml){
   _walkDocx(root,ctx);
   if(!ctx.out.length) ctx.out.push('<w:p/>');
   const bodyXml=ctx.out.join('')+'<w:p/>';
-  const NS='xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="w14"';
+  // No xmlns:mc / mc:Ignorable here. This used to carry mc:Ignorable="w14"
+  // while never declaring an xmlns:w14 -- the Markup Compatibility spec
+  // requires every prefix listed in Ignorable to be a declared namespace, so
+  // Word treated the file as damaged and showed "Word found unreadable
+  // content..." on open (it recovered fine, which is why this went unnoticed).
+  // Nothing this exporter emits uses mc: or w14: markup at all, so the whole
+  // declaration was doing no work -- dropping it is the fix, not declaring w14.
+  const NS='xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"';
   const documentXml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document '+NS+'><w:body>'+bodyXml+'<w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0"/></w:sectPr></w:body></w:document>';
   const styles='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:sz w:val="22"/><w:szCs w:val="22"/><w:color w:val="1E293B"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="120" w:line="264" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults>'+
     '<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style>'+
@@ -4564,7 +4773,8 @@ ul{list-style:disc outside;padding-left:22pt;margin:6pt 0;}
 ol{list-style:decimal outside;padding-left:24pt;margin:6pt 0;}
 li{margin:2pt 0;}
 img{max-width:100%;height:auto;}
-.bctrl,.add-block-area,.tl-add-btn,.tbl-add-row,.dl-add,.ap-add,.tbl-toolbar,.tbl-rowops,.tbl-row-del,.vid-change-bar,.ap-btn[onclick],.block-tag,.tbl-gear,.swot-add,.swot-wm{display:none!important;}
+.bctrl,.add-block-area,.tl-add-btn,.tl-del,.tl-date-clear,.tl-date-month,.tl-date-year,.tbl-add-row,.dl-add,.ap-add,.tbl-toolbar,.tbl-rowops,.tbl-row-del,.vid-change-bar,.ap-btn[onclick],.block-tag,.tbl-gear,.swot-add,.swot-wm{display:none!important;}
+.tl-date-text{display:inline!important;}
 .block-swot{display:grid;grid-template-columns:1fr 1fr;gap:10pt;}
 .swot-q{border:1px solid #ccc;border-top:3px solid #101820;padding:8pt 10pt;}
 .swot-ax{font-size:8pt;text-transform:uppercase;letter-spacing:0.1em;color:#666;}
@@ -6843,6 +7053,58 @@ function upgradeBlocks(root){
       m.insertAdjacentHTML('beforeend', '<div class="mscn-foot"><button class="mscn-btn mscn-refresh-btn" onclick="refreshMarginScenario(this)">\u{1F504} Refresh</button><button class="mscn-btn" onclick="openMarginCalc(\''+pid+'\',\''+sid+'\')">↗ Open in Calculator</button></div>');
     }
   });
+  // Timeline milestones used to be two plain contenteditable fields -- a
+  // label and a free-text "date" with no real value behind it, so nothing
+  // could ever be sorted or reliably re-dated. Upgraded to a real month/year
+  // date (drives auto-sort, stored in .tl-d's data-date attribute) plus an
+  // optional note for whatever didn't parse as one. Detected by the absence
+  // of that attribute, so this only ever touches genuinely un-upgraded items
+  // and never re-runs on ones already on the current shape (idempotent,
+  // same as every other self-heal above).
+  //
+  // There are TWO earlier shapes to carry forward here, not just the
+  // original free-text one:
+  //  - A single <input type="month"> per milestone, which turned out to
+  //    silently fall back to an unvalidated plain text box in some browsers
+  //    (no picker, no real value ever produced), so a date "set" through it
+  //    there was never actually captured. Carry over whatever value did
+  //    survive; don't invent one that wasn't really there.
+  //  - The month/year <select> pair without the plain-text twin
+  //    (.tl-date-text) that read-only contexts now render instead of the
+  //    selects. That one already has a real data-date, so it just needs
+  //    re-rendering to gain the span -- hence the guard below requires BOTH
+  //    markers, not data-date alone.
+  root.querySelectorAll('.block-timeline .tl-item').forEach(item=>{
+    if(item.querySelector('.tl-d[data-date]') && item.querySelector('.tl-date-text')) return; // already current
+    const mEl=item.querySelector('.tl-m');
+    const label=mEl?mEl.innerHTML:'';
+    const dEl=item.querySelector('.tl-d');
+    let date='', note='';
+    const oldInput=item.querySelector('.tl-date-input');
+    if(dEl && dEl.hasAttribute('data-date')){
+      // select-pair shape, pre-text-twin: the stored date is authoritative.
+      date=dEl.getAttribute('data-date')||'';
+      const noteEl=item.querySelector('.tl-note');
+      note=noteEl?noteEl.textContent:'';
+    } else if(oldInput){
+      date=oldInput.getAttribute('value')||'';
+      const noteEl=item.querySelector('.tl-note');
+      note=noteEl?noteEl.textContent:'';
+    } else {
+      const parsed=parseLooseMilestoneDate(dEl?dEl.textContent:'');
+      date=parsed.date; note=parsed.note;
+    }
+    const fresh=document.createElement('div');
+    fresh.innerHTML=tlItem(label, date, note);
+    item.replaceWith(fresh.firstElementChild);
+  });
+  // A short-lived shape carried BOTH the date-text twin and a separate
+  // always-present "No date set" label. Items like that satisfy the guard
+  // above and are skipped, so strip the stray label directly -- it's
+  // CSS-hidden on screen but the Word/HTML exporters read raw text and would
+  // print "No date set" on every milestone, dated ones included.
+  root.querySelectorAll('.block-timeline .tl-nodate-lbl').forEach(el=>el.remove());
+  root.querySelectorAll('.block-timeline .tl-list').forEach(sortTimelineListDom);
 }
 
 // ==================== TABLE: MOVE ROWS / COLUMNS ====================
@@ -9776,8 +10038,12 @@ async function init(){
     hideEditorChromeForViewer();
     // Content can be several MB, so this can take a few seconds -- without this,
     // the screen just sits there looking stuck rather than obviously working.
+    // Same rotating-message style as the per-program spinner below (not the
+    // old fixed "Loading shared content..." text) so a deep link that jumps
+    // straight into a program right after this doesn't visibly swap from one
+    // loading-message style to a completely different one mid-boot.
     const grid=document.getElementById('prog-grid');
-    if(grid) grid.innerHTML='<div class="viewer-loading"><span class="viewer-spinner"></span>Loading shared content&hellip; this can take several seconds for a large Playbook.</div>';
+    if(grid) grid.innerHTML='<div class="viewer-loading"><span class="viewer-spinner"></span>'+randomProgramLoadingMessage()+'</div>';
     const manifest = await probeManifest();
     if(manifest && manifest.v === 3 && (manifest.programs||[]).length > 0){
       manifestMode = true;
