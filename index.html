@@ -1216,7 +1216,13 @@ table.mg2-table tr.clickable:hover{background:#FDF4F5;}
 .mg2-scenario-card{border:1px solid var(--bdr);border-radius:8px;overflow:hidden;margin-bottom:14px;}
 .mg2-scenario-card.primary{border-color:#E9C46A;}
 .mg2-scn-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 15px;background:#FDF4F5;border-bottom:1px solid var(--bdr);flex-wrap:wrap;}
-.mg2-scn-name{font-family:var(--font-cond);text-transform:uppercase;letter-spacing:0.04em;font-weight:700;font-size:13.5px;color:var(--acc);border:none;background:transparent;outline:none;}
+/* A contenteditable span, not an <input> -- an <input> is single-line by
+   nature, so a long scenario name was cut off at its width with no way to
+   see the rest. flex:1 1 220px keeps it sharing the header row with the
+   action buttons (which stay right-aligned via the head's space-between)
+   while letting it grow and wrap onto more lines as the name needs. */
+.mg2-scn-name{flex:1 1 220px;min-width:0;font-family:var(--font-cond);text-transform:uppercase;letter-spacing:0.04em;font-weight:700;font-size:13.5px;line-height:1.3;color:var(--acc);border:none;background:transparent;outline:none;white-space:normal;overflow-wrap:anywhere;}
+.mg2-scn-name:empty:before{content:attr(data-ph);color:#c4c8cd;}
 .mg2-scn-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
 .mg2-pill-btn{font-family:var(--font-cond);text-transform:uppercase;font-size:10px;font-weight:700;letter-spacing:0.03em;border:1px solid var(--bdr);background:#fff;color:var(--txt);padding:5px 9px;border-radius:4px;cursor:pointer;white-space:nowrap;}
 .mg2-pill-btn:hover{border-color:var(--acc);color:var(--acc);}
@@ -9692,7 +9698,7 @@ function marginScenarioCardHtml(p, savedScenario){
   return `
     <div class="mg2-scenario-card ${savedScenario.isPrimary?'primary':''}" id="mg2-scenario-${savedScenario.id}">
       <div class="mg2-scn-head">
-        <input type="text" class="mg2-scn-name" value="${escapeHtml(s.name)}" oninput="marginScenarioNameInput('${p.id}','${savedScenario.id}', this.value)" style="max-width:220px;">
+        <span class="mg2-scn-name" contenteditable="true" spellcheck="false" data-ph="Scenario name" oninput="marginScenarioNameInput('${p.id}','${savedScenario.id}', this.textContent)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">${escapeHtml(s.name)}</span>
         <div class="mg2-scn-actions">
           <span id="mg2-scn-dirty-${savedScenario.id}" class="mg2-badge mg2-dirty-badge" style="display:${dirty?'inline-flex':'none'};">&#9679; Unsaved</span>
           <button class="mg2-pill-btn primary" onclick="marginSaveScenario('${p.id}','${savedScenario.id}')">Save</button>
