@@ -1891,9 +1891,23 @@ async function githubReadFile(path){
 // the daily auto-backup, at a different path) rather than a real conflict, so
 // on a non-fast-forward rejection we rebase onto the CURRENT ref/tree and
 // retry a bounded number of times before giving up.
+// Records why the last GitHub write failed, so the UI can say what actually
+// went wrong instead of a generic "unreachable" for every possible cause.
+let _ghLastError = null;
+function ghLastErrorText(){
+  if(!_ghLastError) return '';
+  const e = _ghLastError;
+  if(e.kind === 'network') return 'no network response (offline, or the request was blocked)';
+  if(e.status === 401) return 'your GitHub token is expired or was revoked (401)';
+  if(e.status === 403) return 'permission denied or rate-limited (403) — wait a minute, then retry';
+  if(e.status === 404) return 'this token cannot see '+GITHUB_CONTENT_REPO+' (404) — check the token still lists that repo';
+  if(e.status === 409 || e.status === 422) return 'another save landed first and the retries were exhausted ('+e.status+')';
+  if(e.status >= 500) return 'GitHub is having problems ('+e.status+') — try again shortly';
+  return 'GitHub returned '+e.status+(e.path?' on '+e.path:'');
+}
 async function githubCommitFile(path, jsonObj, message){
   const token = githubActiveToken();
-  if(!token || !GITHUB_OWNER || !GITHUB_CONTENT_REPO) return false;
+  if(!token || !GITHUB_OWNER || !GITHUB_CONTENT_REPO){ _ghLastError={kind:'notoken',status:0,path:path}; return false; }
 
   const MAX_ATTEMPTS = 3;
   const RETRY_DELAY_MS = 500;
@@ -1913,7 +1927,7 @@ async function githubCommitFile(path, jsonObj, message){
       method:'POST', headers: githubHeaders(token),
       body: JSON.stringify({ content: utf8ToBase64(JSON.stringify(jsonObj)), encoding:'base64' })
     });
-    if(!blobPutResp.ok) return false;
+    if(!blobPutResp.ok){ _ghLastError={kind:'http',status:blobPutResp.status,path:path}; return false; }
     const newBlobSha = (await blobPutResp.json()).sha;
 
     for(let attempt=1; attempt<=MAX_ATTEMPTS; attempt++){
@@ -1927,25 +1941,25 @@ async function githubCommitFile(path, jsonObj, message){
       // way every time. A fresh read on every attempt is required for the
       // conflict-detection logic below to mean anything.
       const refResp = await fetch(githubRepoUrl('/git/refs/heads/'+GITHUB_BRANCH), { headers: githubHeaders(token), cache:'no-store' });
-      if(!refResp.ok) return false; // 401/403/404 -- not a race, retrying won't help
+      if(!refResp.ok){ _ghLastError={kind:'http',status:refResp.status,path:path}; return false; } // 401/403/404 -- not a race, retrying won't help
       const parentCommitSha = (await refResp.json()).object.sha;
 
       const commitResp = await fetch(githubRepoUrl('/git/commits/'+parentCommitSha), { headers: githubHeaders(token), cache:'no-store' });
-      if(!commitResp.ok) return false;
+      if(!commitResp.ok){ _ghLastError={kind:'http',status:commitResp.status,path:path}; return false; }
       const baseTreeSha = (await commitResp.json()).tree.sha;
 
       const treeResp = await fetch(githubRepoUrl('/git/trees'), {
         method:'POST', headers: githubHeaders(token),
         body: JSON.stringify({ base_tree: baseTreeSha, tree: [{ path, mode:'100644', type:'blob', sha: newBlobSha }] })
       });
-      if(!treeResp.ok) return false;
+      if(!treeResp.ok){ _ghLastError={kind:'http',status:treeResp.status,path:path}; return false; }
       const newTreeSha = (await treeResp.json()).sha;
 
       const newCommitResp = await fetch(githubRepoUrl('/git/commits'), {
         method:'POST', headers: githubHeaders(token),
         body: JSON.stringify({ message: message||('Update '+path), tree: newTreeSha, parents:[parentCommitSha] })
       });
-      if(!newCommitResp.ok) return false;
+      if(!newCommitResp.ok){ _ghLastError={kind:'http',status:newCommitResp.status,path:path}; return false; }
       const newCommitSha = (await newCommitResp.json()).sha;
 
       // PATCH, not force -- fails if the branch moved since we read it above,
@@ -1959,7 +1973,7 @@ async function githubCommitFile(path, jsonObj, message){
       // Only a non-fast-forward rejection (branch moved under us) is worth
       // retrying. 401/403/404/5xx mean retrying won't help -- give up now.
       const isRaceConflict = updateRefResp.status===422 || updateRefResp.status===409;
-      if(!isRaceConflict || attempt===MAX_ATTEMPTS) return false;
+      if(!isRaceConflict || attempt===MAX_ATTEMPTS){ _ghLastError={kind:'http',status:updateRefResp.status,path:path}; return false; }
 
       // This is a full-document replace with no field-level merge, so
       // "rebase" only ever means re-basing the TREE (picking up whatever
@@ -1981,7 +1995,7 @@ async function githubCommitFile(path, jsonObj, message){
     // A thrown exception (not a completed HTTP response) -- likely a dropped
     // connection or timeout mid-upload. Worth retrying the WHOLE chain from
     // scratch (including rebuilding the blob), unlike a rejection.
-    if(netAttempt===NETWORK_RETRY_ATTEMPTS) return false;
+    if(netAttempt===NETWORK_RETRY_ATTEMPTS){ _ghLastError={kind:'network',status:0,path:path,msg:String(e&&e.message||e)}; return false; }
     await new Promise(r=>setTimeout(r, RETRY_DELAY_MS));
     continue;
   }
@@ -2176,10 +2190,15 @@ function setHubSyncStatus(mode){
     github: { text:'🐙 GitHub connected', cls:'azure' },
     viewer: { text:'👁 View only (shared link)', cls:'azure' },
     local:  { text:'💾 Saving locally', cls:'local' },
-    warn:   { text:'⚠ GitHub unreachable', cls:'warn' }
+    warn:   { text:'⚠ Not saving to GitHub', cls:'warn' }
   };
   const info = map[mode] || map.local;
   el.textContent = info.text;
+  if(mode==='warn'){
+    const why = (typeof ghLastErrorText==='function') ? ghLastErrorText() : '';
+    if(why){ el.textContent = '⚠ Not saving — '+why; }
+    el.title = why || 'The last save to GitHub did not succeed.';
+  } else { el.title = ''; }
   el.className = 'hub-sync-status ' + info.cls;
 }
 
@@ -2442,9 +2461,23 @@ async function historyPush(lean){
   if(!lean||lean.v!==2) return;
   const ts=lean.ts||Date.now();
   if(ts-_lastHistTs < HIST_MIN_GAP) return;
+  const secs = Object.keys(lean.blockStore||{}).length;
+  // In manifestMode content loads per program, so right after a page load
+  // blockStore is EMPTY and fills in as programs are opened. A snapshot taken
+  // in that window records almost nothing -- and restoring it would replace
+  // real content with a near-empty state. Those are not valid restore points:
+  // an empty one is never stored at all, and a partial one is stored but
+  // flagged so the UI can refuse to restore it.
+  if(secs === 0) return;
+  // Only a snapshot we actually STORE consumes the throttle window, so an empty
+  // post-boot attempt can't block a real snapshot moments later.
   _lastHistTs=ts;
-  const meta={ ts, progs:(lean.programs||[]).length, secs:Object.keys(lean.blockStore||{}).length,
-               bytes:JSON.stringify(lean.blockStore||{}).length };
+  const notLoaded = (typeof manifestMode!=='undefined' && manifestMode && typeof loadedPrograms!=='undefined')
+    ? (lean.programs||[]).filter(pr=>!loadedPrograms.has(pr.id)).length : 0;
+  const meta={ ts, progs:(lean.programs||[]).length, secs,
+               bytes:JSON.stringify(lean.blockStore||{}).length,
+               partial: notLoaded>0, notLoaded,
+               loadedOf: (lean.programs||[]).length - notLoaded };
   await idbPut(ST_HIST,'h'+ts,{meta,state:lean});
   const keys=(await idbKeys(ST_HIST)).sort();
   for(const k of keys.slice(0,Math.max(0,keys.length-HIST_KEEP))) await idbDel(ST_HIST,k);
@@ -2645,9 +2678,17 @@ window.addEventListener('pagehide', persistLocalNow);
 // is still genuinely running when the page is about to go away.
 window.addEventListener('beforeunload', (e)=>{
   if(githubMode()!=='editor') return;
-  if(!saveTimer && !persistInFlight && !persistAgainRequested) return;
+  // Two separate reasons to warn:
+  //  a) a save is still in flight -- reloading cancels it mid-air
+  //  b) the last save FAILED and there are still unsaved programs. Boot reloads
+  //     from GitHub and GitHub wins, so reloading here throws that work away.
+  //     This is exactly how a set of staging edits was lost on Aug 31, 2026.
+  const unsavedAfterFailure = !!_ghLastError && dirtyPrograms.size > 0;
+  if(!saveTimer && !persistInFlight && !persistAgainRequested && !unsavedAfterFailure) return;
   e.preventDefault();
-  e.returnValue = 'A save to GitHub is still in progress. If you leave now, your latest edit may not be saved.';
+  e.returnValue = (!!_ghLastError && dirtyPrograms.size > 0)
+    ? 'Your last save to GitHub FAILED and '+dirtyPrograms.size+' program(s) have unsaved changes. Reloading will replace them with GitHub\'s older copy. Back up first: ⚙ Data & Backup → Backup all data.'
+    : 'A save to GitHub is still in progress. If you leave now, your latest edit may not be saved.';
   return e.returnValue;
 });
 document.addEventListener('visibilitychange',()=>{
@@ -2781,11 +2822,14 @@ async function doPersist(){
   }
 
   if(ind){
-    ind.textContent = ok ? '✓ Saved to GitHub' : '⚠ GitHub save failed';
-    ind.style.color  = ok ? '#10b981' : '#f59e0b';
-    setTimeout(()=>{ if(ind){ ind.textContent=''; ind.style.color=''; } }, 2800);
+    ind.textContent = ok ? '✓ Saved to GitHub' : ('⚠ Not saved: '+ghLastErrorText());
+    ind.style.color  = ok ? '#10b981' : '#dc2626';
+    // A failure message must NOT quietly disappear -- the whole risk is
+    // carrying on unaware, so it stays until a save actually succeeds.
+    if(ok) setTimeout(()=>{ if(ind && ind.textContent==='✓ Saved to GitHub'){ ind.textContent=''; ind.style.color=''; } }, 2800);
   }
   setHubSyncStatus(ok ? 'github' : 'warn');
+  if(ok) _ghLastError = null;
 }
 
 // Async load: IndexedDB first, then the localStorage mirror, rehydrating images.
@@ -7240,9 +7284,14 @@ async function showVersionHistory(){
   const rows=list.length? list.map(h=>
       '<div style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-bottom:1px solid #e5e7eb">'+
       '<div style="flex:1"><div style="font:700 13px/1.3 system-ui,sans-serif;color:#101820">'+new Date(h.ts).toLocaleString()+'</div>'+
-      '<div style="font:400 12px/1.4 system-ui,sans-serif;color:#6b7280">'+h.progs+' program(s) · '+h.secs+' section(s) · '+Math.round(h.bytes/1024)+' KB</div></div>'+
-      '<button data-k="'+h.key+'" style="padding:6px 12px;border:2px solid #D50032;background:#fff;color:#D50032;border-radius:3px;'+
-      'font:700 11px/1 var(--font-cond,system-ui);text-transform:uppercase;letter-spacing:0.07em;cursor:pointer">Restore</button></div>'
+      '<div style="font:400 12px/1.4 system-ui,sans-serif;color:#6b7280">'+h.progs+' program(s) · '+h.secs+' section(s) · '+Math.round(h.bytes/1024)+' KB</div>'+
+      (h.partial ? '<div style="font:700 11px/1.4 system-ui,sans-serif;color:#B54708;margin-top:3px">⚠ Partial capture — only '+h.loadedOf+' of '+h.progs+' programs were loaded. Not safe to restore.</div>' : '')+
+      '</div>'+
+      (h.partial
+        ? '<button disabled title="This snapshot is missing content for '+h.notLoaded+' program(s), so restoring it would replace real content with less." style="padding:6px 12px;border:2px solid #d1d5db;background:#f3f4f6;color:#9ca3af;border-radius:3px;'+
+          'font:700 11px/1 var(--font-cond,system-ui);text-transform:uppercase;letter-spacing:0.07em;cursor:not-allowed">Restore</button></div>'
+        : '<button data-k="'+h.key+'" style="padding:6px 12px;border:2px solid #D50032;background:#fff;color:#D50032;border-radius:3px;'+
+          'font:700 11px/1 var(--font-cond,system-ui);text-transform:uppercase;letter-spacing:0.07em;cursor:pointer">Restore</button></div>')
     ).join('') : '<div style="padding:22px 16px;font:400 13px/1.5 system-ui,sans-serif;color:#6b7280">No versions stored yet. A version is kept each time the app saves (at most one every few minutes).</div>';
   ov.innerHTML='<div style="background:#fff;width:520px;max-width:92vw;max-height:80vh;overflow:auto;border-radius:6px;box-shadow:0 18px 50px rgba(0,0,0,0.3)">'+
     '<div style="padding:16px 16px 10px;border-bottom:3px solid #D50032">'+
