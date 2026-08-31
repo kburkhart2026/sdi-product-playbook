@@ -251,7 +251,7 @@ body.sb-rail .phase-hdr:hover .ph-dot{box-shadow:0 0 0 3px rgba(201,183,156,0.45
 /* ===== PM SIDE PANEL ===== */
 .pm-panel-handle{flex:0 0 6px;cursor:col-resize;background:var(--bdr);}
 .pm-panel-handle:hover,.pm-panel-handle.dragging{background:var(--acc);}
-#pm-panel,#margin-panel{flex:0 0 460px;min-width:0;display:flex;flex-direction:column;background:#fff;border-left:1px solid var(--bdr);overflow:hidden;}
+#pm-panel,#margin-panel,#cc-panel{flex:0 0 460px;min-width:0;display:flex;flex-direction:column;background:#fff;border-left:1px solid var(--bdr);overflow:hidden;}
 .pmp-head{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--bdr);flex-wrap:wrap;}
 .pmp-title{font-family:var(--font-cond);text-transform:uppercase;letter-spacing:0.03em;font-size:14px;font-weight:800;color:var(--ink);flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .pmp-iconbtn{border:1px solid var(--bdr);background:#fff;color:var(--mut);font-size:12px;padding:3px 7px;border-radius:4px;cursor:pointer;line-height:1;}
@@ -263,7 +263,7 @@ body.sb-rail .phase-hdr:hover .ph-dot{box-shadow:0 0 0 3px rgba(201,183,156,0.45
 .pmp-filter{border:1px solid var(--bdr);border-radius:4px;padding:5px 8px;font-size:12px;font-family:inherit;outline:none;flex:1;min-width:80px;background:#fff;}
 .pmp-filter:focus{border-color:var(--acc);}
 .pmp-dashbtn{border:none;background:var(--ink);color:#C9B79C;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.04em;padding:5px 9px;border-radius:4px;cursor:pointer;font-family:inherit;white-space:nowrap;}
-#pm-panel-body,#margin-panel-body{flex:1;overflow-y:auto;padding:0 12px 24px;}
+#pm-panel-body,#margin-panel-body,#cc-panel-body{flex:1;overflow-y:auto;padding:0 12px 24px;}
 .content-inner{max-width:1100px;margin:0 auto;padding:0 20px 0 76px;}
 .page-title{font-size:30px;font-weight:700;color:var(--txt);line-height:1.2;margin-bottom:10px;outline:none;border-radius:4px;padding:2px 4px;margin-left:-4px;}
 .page-title:focus{background:#f8fafc;}
@@ -702,6 +702,67 @@ body.view-mode .mg2-field-input,
 body.view-mode .mg2-scn-name,
 body.view-mode .mg2-course-row input[type=checkbox],
 body.view-mode .mg2-gened-check input[type=checkbox]{pointer-events:none;}
+
+/* staging skin -- only ever active when GITHUB_CONTENT_REPO points at staging */
+.staging-ribbon{position:fixed;left:0;bottom:0;z-index:9999;background:#B54708;color:#fff;
+  font-family:var(--font-cond);font-weight:700;font-size:10.5px;letter-spacing:0.16em;
+  text-transform:uppercase;padding:4px 12px;border-top-right-radius:5px;pointer-events:none;
+  box-shadow:0 -1px 6px rgba(0,0,0,0.22);}
+body.is-staging .sb-logo-area{border-bottom:1px solid rgba(255,255,255,0.14);}
+/* a hazard stripe along the very top, so a screenshot is identifiable too */
+body.is-staging::before{content:'';position:fixed;top:0;left:0;right:0;height:3px;z-index:9999;
+  background:repeating-linear-gradient(135deg,#B54708 0 10px,#7C3A08 10px 20px);pointer-events:none;}
+
+/* consistency checker */
+.cc-summary{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:14px;}
+.cc-stat{flex:1 1 150px;border:1px solid var(--bdr);border-radius:8px;padding:10px 12px;background:#fff;}
+.cc-stat .k{font-family:var(--font-cond);font-weight:600;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);}
+.cc-stat .v{font-size:23px;font-weight:700;color:var(--txt);line-height:1.2;font-variant-numeric:tabular-nums;}
+.cc-stat.hi{border-left:3px solid #B42318;}
+.cc-stat.md{border-left:3px solid #B54708;}
+.cc-stat.ok{border-left:3px solid #067647;}
+.cc-scope{font-size:12px;color:var(--mut);background:#F2F4F7;border:1px solid var(--bdr);border-radius:6px;padding:8px 11px;margin-bottom:14px;}
+.cc-scope a{color:var(--acc);}
+.cc-grouphd{font-family:var(--font-cond);font-weight:700;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);margin:18px 0 8px;padding-bottom:5px;border-bottom:1px solid var(--bdr);}
+.cc-f{border:1px solid var(--bdr);border-radius:8px;margin-bottom:8px;background:#fff;overflow:hidden;}
+.cc-f-top{display:flex;align-items:flex-start;gap:10px;padding:11px 13px;cursor:pointer;}
+.cc-f-top:hover{background:var(--cbg);}
+.cc-sev{flex:0 0 auto;font-family:var(--font-cond);font-weight:700;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;padding:3px 7px;border-radius:3px;margin-top:2px;}
+.cc-sev.hi{background:#FEF3F2;color:#B42318;}
+.cc-sev.md{background:#FFFAEB;color:#B54708;}
+.cc-sev.lo{background:#F2F4F7;color:#475467;}
+.cc-f-main{flex:1;min-width:0;display:block;}
+.cc-f-ttl{display:block;font-size:13.5px;font-weight:700;color:var(--txt);line-height:1.35;}
+.cc-f-sub{display:block;font-size:12px;color:var(--mut);margin-top:2px;}
+.cc-chev{flex:0 0 auto;color:var(--mut);font-size:11px;margin-top:4px;transition:transform .15s;}
+.cc-f[data-open="true"] .cc-chev{transform:rotate(90deg);}
+.cc-f-detail{border-top:1px solid var(--bdr);padding:13px;background:var(--cbg);display:none;}
+.cc-f[data-open="true"] .cc-f-detail{display:block;}
+.cc-cmp{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin-bottom:12px;}
+#cc-panel-body .cc-cmp{grid-template-columns:1fr;}
+#cc-panel-body .cc-summary{gap:6px;}
+#cc-panel-body .cc-stat{flex:1 1 calc(50% - 3px);padding:8px 10px;}
+#cc-panel-body .cc-stat .v{font-size:19px;}
+.cc-box{background:#fff;border:1px solid var(--bdr);border-radius:6px;padding:9px 11px;}
+.cc-box.good{border-color:#067647;border-left:3px solid #067647;}
+.cc-box.bad{border-color:#B42318;border-left:3px solid #B42318;}
+.cc-k{font-family:var(--font-cond);font-weight:600;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);margin-bottom:4px;}
+.cc-v{font-size:13px;font-weight:700;color:var(--txt);word-break:break-word;}
+.cc-w{font-size:11.5px;color:var(--mut);margin-top:4px;}
+.cc-where{font-size:12px;margin:0 0 12px;padding-left:17px;}
+.cc-where li{margin-bottom:3px;}
+.cc-where a{color:var(--acc);text-decoration:none;border-bottom:1px dotted var(--acc);}
+.cc-acts{display:flex;flex-wrap:wrap;gap:7px;}
+.cc-btn{font-family:inherit;font-size:12px;font-weight:700;padding:7px 12px;border-radius:5px;border:1px solid var(--bdr);background:#fff;color:var(--txt);cursor:pointer;}
+.cc-btn:hover{border-color:var(--acc);color:var(--acc);}
+.cc-btn.primary{background:var(--acc);border-color:var(--acc);color:#fff;}
+.cc-btn.primary:hover{filter:brightness(1.08);color:#fff;}
+.cc-empty{text-align:center;padding:44px 16px;color:var(--mut);font-size:13.5px;}
+.cc-empty .big{font-size:30px;margin-bottom:8px;color:#067647;}
+/* flash the block a finding points at, so the eye lands on it after navigating */
+@keyframes cc-flash-kf{0%,100%{box-shadow:0 0 0 0 rgba(213,0,50,0);}
+  20%,60%{box-shadow:0 0 0 3px rgba(213,0,50,.45);}}
+.cc-flash{animation:cc-flash-kf 2.1s ease-in-out;border-radius:6px;}
 
 /* knowledge base */
 .kb-cat{margin-bottom:22px;}
@@ -1446,6 +1507,7 @@ table.mg2-table tr.clickable:hover{background:#FDF4F5;}
                 <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); marginOpenSmart();">💲 Margin Calculator</div>
                 <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); togglePanel();">✦ Ask Claude</div>
                 <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); openKnowledgeBase();">🧠 Knowledge Base</div>
+                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); ccOpenSmart();">🔍 Consistency</div>
                 <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); copyViewerLinkForCurrentPage();">🔗 Copy link to this page</div>
               </div>
             </div>
@@ -1532,6 +1594,16 @@ table.mg2-table tr.clickable:hover{background:#FDF4F5;}
           </div>
           <div id="margin-panel-body"></div>
         </div>
+        <div class="pm-panel-handle" id="cc-panel-handle" title="Drag to resize" style="display:none"></div>
+        <div id="cc-panel" style="display:none">
+          <div class="pmp-head">
+            <div class="pmp-title">Consistency</div>
+            <button class="pmp-dashbtn" onclick="ccRecheck(this)" title="Run the checks again">&#8635; Re-check</button>
+            <button class="pmp-iconbtn" onclick="ccPanelFullScreen()" title="Open full screen">&#8599;</button>
+            <button class="pmp-iconbtn" onclick="ccPanelClose()" title="Close panel">&#10005;</button>
+          </div>
+          <div id="cc-panel-body"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -1591,6 +1663,21 @@ table.mg2-table tr.clickable:hover{background:#FDF4F5;}
 
 <!-- ========== PHASE FLYOUT (sidebar rail mode) ========== -->
 <div id="ph-flyout"></div>
+
+<!-- ========== CONSISTENCY CHECKER ========== -->
+<div id="cc-view" style="display:none">
+  <div class="pm-shell">
+    <div class="pm-head">
+      <div class="pm-back" onclick="ccBack()">&#8592; Back</div>
+      <div>
+        <div class="pm-title">Consistency</div>
+        <div class="pm-sub">Where the same thing is written two different ways &mdash; across programs and within one</div>
+      </div>
+      <div style="margin-left:auto"><button class="mg2-btn" onclick="ccRecheck(this)">&#8635; Re-check</button></div>
+    </div>
+    <div id="cc-body"></div>
+  </div>
+</div>
 
 <!-- ========== KNOWLEDGE BASE (grounding for every AI action) ========== -->
 <div id="kb-view" style="display:none">
@@ -1793,6 +1880,11 @@ const GITHUB_EDITOR_KEY = 'sdi_github_editor_pat'; // localStorage key, this bro
 // every time. Same token you'd otherwise paste into a link by hand.
 const GITHUB_VIEWER_LINK_KEY = 'sdi_github_viewer_link_pat';
 const GITHUB_API = 'https://api.github.com';
+// Staging wears a different skin so it can never be mistaken for production at
+// a glance. Deliberately derived from GITHUB_CONTENT_REPO -- the single line
+// that already distinguishes the two environments -- so the production port
+// (which swaps that constant back) reverts to the maroon identity by itself.
+const IS_STAGING = /staging/i.test(GITHUB_CONTENT_REPO || '');
 
 // ---- UTF-8-safe base64 -----------------------------------------------------
 // The GitHub API represents file content as base64. This app's content has
@@ -2055,7 +2147,7 @@ async function ensureProgramLoaded(progId){
 async function pushLocalContentToGithub(){
   if(githubMode() !== 'editor'){ await appAlert('Connect an editor GitHub token first (Export ▾ → Connect to GitHub).'); return; }
   saveCurrentBlocks();
-  const state = { programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, v:2, ts: Date.now() };
+  const state = { programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, v:2, ts: Date.now() };
   const ok = await githubCommitFile(GITHUB_CONTENT_PATH, state, 'Push local content');
   if(ok) await appAlert('Current content pushed to GitHub ✓');
   else await appAlert('Push failed. Check that your editor token is still valid and scoped to '+(GITHUB_CONTENT_REPO||'the content repo')+'.');
@@ -2299,6 +2391,14 @@ let marginStore = { courses: [], scenariosByProgram: {} }; // shared course libr
 // prose -- is DERIVED at grounding time instead of being copied in, so there
 // is never a second stale copy to keep in sync.
 let knowledgeStore = { entries: [] }; // [{id, cat, title, body, updated}]
+// The agreed-correct value for terms that appear in more than one place.
+// Single source of truth -- deliberately NOT duplicated onto course records,
+// so there is no second copy to drift. Keyed by the course CODE, because a
+// code can appear in content long before it exists in the course library.
+//   courseTitles: { 'UET 102': {title, confirmed, ts} }
+//   progAbbrev:   { progId:    {abbrev, alts:[], confirmed} }
+//   ignored:      { findingKey: true }   -- dismissals persist across checks
+let standardsStore = { courseTitles: {}, progAbbrev: {}, ignored: {} };
 const KB_CATS = [
   { id:'voice',      lbl:'Voice & style',        desc:'How SDI writes. Applied to every draft.' },
   { id:'compliance', lbl:'Compliance & approval', desc:'DEAC, state, FSA/VA, catalog cycle rules.' },
@@ -2329,7 +2429,7 @@ const dirtyPrograms = new Set(); // progId's with real content changes since the
 // fields can hold bulk HTML/images.
 function buildManifest(){
   return { v:3, ts: Date.now(), programs, phases: clonePhases(PHASES), sectionStatus, sectionLocks,
-           sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore };
+           sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore };
 }
 // Just one program's slice of blockStore, same key shape as the global
 // object (progId:sectionId) so merging it back in is a zero-transform
@@ -2469,8 +2569,6 @@ async function historyPush(lean){
   // an empty one is never stored at all, and a partial one is stored but
   // flagged so the UI can refuse to restore it.
   if(secs === 0) return;
-  // Only a snapshot we actually STORE consumes the throttle window, so an empty
-  // post-boot attempt can't block a real snapshot moments later.
   _lastHistTs=ts;
   const notLoaded = (typeof manifestMode!=='undefined' && manifestMode && typeof loadedPrograms!=='undefined')
     ? (lean.programs||[]).filter(pr=>!loadedPrograms.has(pr.id)).length : 0;
@@ -2616,6 +2714,11 @@ function applyState(s){
   marginStore = s.marginStore || { courses: [], scenariosByProgram: {} };
   knowledgeStore = (s.knowledgeStore && Array.isArray(s.knowledgeStore.entries))
     ? s.knowledgeStore : { entries: [] };
+  standardsStore = (s.standardsStore && typeof s.standardsStore==='object')
+    ? { courseTitles: s.standardsStore.courseTitles || {},
+        progAbbrev:   s.standardsStore.progAbbrev   || {},
+        ignored:      s.standardsStore.ignored      || {} }
+    : { courseTitles: {}, progAbbrev: {}, ignored: {} };
   // Per-program tabs migration: any program without its own phases inherits a copy
   // of the old shared structure (or the defaults)
   const shared = (s.phases && s.phases.length) ? s.phases : DEFAULT_PHASES;
@@ -2651,7 +2754,7 @@ function persistLocalNow(){
   if(window.__skipPersist) return; // guard during restore/reload
   saveCurrentBlocks();
   try{
-    const state = { programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, v:2, ts: Date.now() };
+    const state = { programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, v:2, ts: Date.now() };
     const {lean,assets}=dehydrateState(state);
     let ok=false;
     try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(lean)); ok=true; }catch(e){ console.warn('local mirror failed:',e); }
@@ -2682,7 +2785,7 @@ window.addEventListener('beforeunload', (e)=>{
   //  a) a save is still in flight -- reloading cancels it mid-air
   //  b) the last save FAILED and there are still unsaved programs. Boot reloads
   //     from GitHub and GitHub wins, so reloading here throws that work away.
-  //     This is exactly how a set of staging edits was lost on Aug 31, 2026.
+  //     This is exactly how a set of edits was lost on Aug 31, 2026.
   const unsavedAfterFailure = !!_ghLastError && dirtyPrograms.size > 0;
   if(!saveTimer && !persistInFlight && !persistAgainRequested && !unsavedAfterFailure) return;
   e.preventDefault();
@@ -2781,7 +2884,7 @@ async function persist(){
 async function doPersist(){
   saveCurrentBlocks();
   pushUndo();
-  const state = { programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, v:2, ts: Date.now() };
+  const state = { programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, v:2, ts: Date.now() };
   const ind = document.getElementById('save-ind');
 
   // Always keep a local backup (IndexedDB primary, localStorage mirror).
@@ -2824,8 +2927,8 @@ async function doPersist(){
   if(ind){
     ind.textContent = ok ? '✓ Saved to GitHub' : ('⚠ Not saved: '+ghLastErrorText());
     ind.style.color  = ok ? '#10b981' : '#dc2626';
-    // A failure message must NOT quietly disappear -- the whole risk is
-    // carrying on unaware, so it stays until a save actually succeeds.
+    // A failure message must NOT quietly disappear -- it stays until the next
+    // successful save, because the whole risk is carrying on unaware.
     if(ok) setTimeout(()=>{ if(ind && ind.textContent==='✓ Saved to GitHub'){ ind.textContent=''; ind.style.color=''; } }, 2800);
   }
   setHubSyncStatus(ok ? 'github' : 'warn');
@@ -5626,6 +5729,564 @@ function selectPrompt(btn, task){
 
 function modeFromLabel(lbl){ return /(^\s*review|^\s*check|risk|gap)/i.test(lbl||'') ? 'review' : 'draft'; }
 
+// ==================== CONSISTENCY CHECKER ====================
+// Finds places where the same thing is written two different ways, across
+// programs and within one.
+//
+// The governing rule is PRECISION OVER RECALL. An early prototype that grabbed
+// "the words after a course code" out of raw prose reported 6 conflicts, 5 of
+// which were its own extraction noise (adjacent table cells and sentences
+// bleeding into the match). A checker you stop trusting catches nothing, so
+// everything here reads from STRUCTURED POSITIONS -- named table columns and
+// real stored values -- never from loose prose.
+
+const CC_CODE_RE = /^[A-Z]{2,4}\s?\d{3}$/;              // a cell that IS a course code
+function ccNormCode(s){ return String(s||'').trim().toUpperCase().replace(/\s+/g,' ').replace(/^([A-Z]{2,4})(\d{3})$/,'$1 $2'); }
+function ccNormText(s){ return String(s||'').replace(/\s+/g,' ').trim(); }
+// Compare titles ignoring case, punctuation and spacing, so "Intro to GIS," and
+// "intro to gis" are not reported as a difference. Real differences survive.
+function ccTitleKey(s){ return ccNormText(s).toLowerCase().replace(/[.,;:()"'‘’“”]/g,'').replace(/\s+/g,' ').trim(); }
+function ccNum(s){ const m=String(s||'').match(/-?\d+(?:\.\d+)?/); return m?parseFloat(m[0]):null; }
+
+// Which column is which, decided from the header text rather than position,
+// because these tables are hand-built and column order varies between programs.
+const CC_COLS = [
+  ['code',    /^(course\s*(id|code|number|#)|code|id)$/i],
+  ['title',   /^(course\s*(title|name)|title|name)$/i],
+  ['credits', /^(sch|credits?|credit\s*hours?|cr|hrs?)$/i]
+];
+
+// Pulls {code,title,credits} rows out of every real table in one program's
+// content. Returns [] for tables that don't look like course tables at all --
+// a table without a recognisable code column is skipped, not guessed at.
+function ccExtractCourseRows(progId){
+  const out = [];
+  const prefix = progId + ':';
+  Object.keys(blockStore).forEach(key=>{
+    if(key.indexOf(prefix) !== 0) return;
+    const html = blockStore[key];
+    if(!html || html.indexOf('<table') < 0) return;
+    let doc;
+    try{ doc = new DOMParser().parseFromString('<div>'+html+'</div>','text/html'); }catch(e){ return; }
+    doc.querySelectorAll('table').forEach(tbl=>{
+      const ths = [...tbl.querySelectorAll('thead th')].map(th=>ccNormText(th.textContent));
+      if(!ths.length) return;
+      const idx = {};
+      CC_COLS.forEach(([name,re])=>{
+        const i = ths.findIndex(h=>re.test(h));
+        if(i >= 0) idx[name] = i;
+      });
+      if(idx.code === undefined) return; // not a course table -- skip rather than guess
+      const block = tbl.closest('.block');
+      const bid = block ? (block.dataset.bid||'') : '';
+      [...tbl.querySelectorAll('tbody tr')].forEach(tr=>{
+        const tds = [...tr.children].filter(td=>td.tagName==='TD');
+        const rawCode = tds[idx.code] ? ccNormText(tds[idx.code].textContent) : '';
+        const code = ccNormCode(rawCode);
+        if(!CC_CODE_RE.test(code)) return; // only rows whose code cell really is a code
+        out.push({
+          progId, sectionKey:key, sectionId:key.slice(prefix.length), blockId:bid,
+          code,
+          title:   idx.title   !== undefined && tds[idx.title]   ? ccNormText(tds[idx.title].textContent)   : '',
+          credits: idx.credits !== undefined && tds[idx.credits] ? ccNum(tds[idx.credits].textContent)      : null
+        });
+      });
+    });
+  });
+  return out;
+}
+
+function ccSectionName(progId, sectionId){
+  const p = programs.find(x=>x.id===progId); if(!p) return sectionId;
+  let found = sectionId;
+  (phasesOf(p)||[]).forEach(ph=>(ph.sections||[]).forEach(sec=>{
+    if(sec.id===sectionId) found = ph.name+' › '+sec.name;
+  }));
+  return found;
+}
+function ccProgLabel(progId){
+  const p = programs.find(x=>x.id===progId);
+  if(!p) return progId;
+  return String(p.name||progId).split(/\s+[-–—]{1,2}\s+/)[0].trim() || progId;
+}
+// Abbreviation the naming check treats as correct for a program: whatever you
+// set, else the leading token of its name.
+function ccProgAbbrev(progId){
+  const rec = standardsStore.progAbbrev[progId];
+  if(rec && rec.abbrev) return rec.abbrev;
+  return ccProgLabel(progId).replace(/[^A-Za-z0-9-]/g,'');
+}
+
+// ---- the checks -------------------------------------------------------------
+// Every finding carries: a stable key (so a dismissal sticks), the value it
+// should be, what was found instead, and exactly where -- so the view can
+// navigate straight to it.
+function ccRunChecks(){
+  const findings = [];
+  const loaded = programs.filter(p=>!manifestMode || loadedPrograms.has(p.id));
+  const skipped = programs.filter(p=>manifestMode && !loadedPrograms.has(p.id));
+
+  const rowsByProg = {};
+  loaded.forEach(p=>{ rowsByProg[p.id] = ccExtractCourseRows(p.id); });
+  const allRows = [].concat.apply([], Object.values(rowsByProg));
+
+  const push = f => { if(!standardsStore.ignored[f.key]) findings.push(f); };
+
+  // 1 & 2. Course title: against the agreed standard, or across programs when
+  // no standard is set yet.
+  const byCode = {};
+  allRows.forEach(r=>{ if(r.title) (byCode[r.code] = byCode[r.code] || []).push(r); });
+  Object.keys(byCode).forEach(code=>{
+    const rows = byCode[code];
+    const std = standardsStore.courseTitles[code];
+    const variants = {};
+    rows.forEach(r=>{ (variants[ccTitleKey(r.title)] = variants[ccTitleKey(r.title)] || []).push(r); });
+    const keys = Object.keys(variants);
+    if(std && std.title){
+      const stdKey = ccTitleKey(std.title);
+      const offenders = [].concat.apply([], keys.filter(k=>k!==stdKey).map(k=>variants[k]));
+      if(offenders.length) push({
+        key:'title:'+code, type:'Course title', sev:'hi',
+        title: code+' does not match the agreed title',
+        sub:  'Course title · '+offenders.length+' place'+(offenders.length!==1?'s':''),
+        should: std.title, shouldWhere:'The standard you set for '+code,
+        found: [...new Set(offenders.map(o=>o.title))].join(' / '),
+        foundWhere: [...new Set(offenders.map(o=>ccProgLabel(o.progId)))].join(', '),
+        places: offenders.map(o=>({progId:o.progId, sectionId:o.sectionId, blockId:o.blockId, text:o.title})),
+        fixTo: std.title, fixField:'title', code
+      });
+    } else if(keys.length > 1){
+      const spread = keys.map(k=>({ title:variants[k][0].title, rows:variants[k] }))
+                         .sort((a,b)=>b.rows.length-a.rows.length);
+      push({
+        key:'titleconflict:'+code, type:'Course title', sev:'hi',
+        title: code+' is written '+keys.length+' different ways',
+        sub:  'No standard set yet · '+[...new Set(rows.map(r=>ccProgLabel(r.progId)))].length+' programs',
+        should: spread[0].title, shouldWhere:'Most common spelling ('+spread[0].rows.length+' of '+rows.length+') — confirm it below',
+        found: spread.slice(1).map(v=>v.title).join(' / '),
+        foundWhere: [...new Set([].concat.apply([],spread.slice(1).map(v=>v.rows.map(r=>ccProgLabel(r.progId)))))].join(', '),
+        places: rows.map(o=>({progId:o.progId, sectionId:o.sectionId, blockId:o.blockId, text:o.title})),
+        needsStandard: code, options: spread.map(v=>({ value:v.title, where:[...new Set(v.rows.map(r=>ccProgLabel(r.progId)))].join(', ')+' — '+v.rows.length+'×' }))
+      });
+    }
+  });
+
+  // 3. Credit hours in a table vs the course library record.
+  allRows.forEach(r=>{
+    if(r.credits === null) return;
+    const lib = (marginStore.courses||[]).find(c=>ccNormCode(c.code)===r.code);
+    if(!lib) return;
+    const libCr = ccNum(lib.creditHours);
+    if(libCr === null || libCr === r.credits) return;
+    push({
+      key:'credits:'+r.code+':'+r.progId+':'+r.sectionId, type:'Credit hours', sev:'hi',
+      title: r.code+' credit hours disagree with the course library',
+      sub:  'Credit hours · library says '+libCr,
+      should: libCr+' credit hours', shouldWhere:'Course library record for '+r.code,
+      found: r.credits+' credit hours', foundWhere: ccProgLabel(r.progId)+' → '+ccSectionName(r.progId,r.sectionId),
+      places:[{progId:r.progId, sectionId:r.sectionId, blockId:r.blockId, text:String(r.credits)}],
+      fixTo:String(libCr), fixField:'credits', code:r.code
+    });
+  });
+
+  // 4. A course used in content but absent from the library -- it has no cost
+  // or credit record, so margin maths silently excludes it.
+  const libCodes = new Set((marginStore.courses||[]).map(c=>ccNormCode(c.code)));
+  if(libCodes.size){
+    const orphans = {};
+    allRows.forEach(r=>{ if(!libCodes.has(r.code)) (orphans[r.code]=orphans[r.code]||[]).push(r); });
+    Object.keys(orphans).forEach(code=>{
+      const rows = orphans[code];
+      push({
+        key:'orphan:'+code, type:'Missing from library', sev:'md',
+        title: code+' is used in a course table but not in the course library',
+        sub:  'No cost or credit record · '+[...new Set(rows.map(r=>ccProgLabel(r.progId)))].length+' program(s)',
+        should:'— no library record', shouldWhere:'Nothing to compare against, so margin maths excludes it',
+        found: code+(rows[0].title?' — '+rows[0].title:''),
+        foundWhere:[...new Set(rows.map(r=>ccProgLabel(r.progId)))].join(', '),
+        places: rows.map(o=>({progId:o.progId, sectionId:o.sectionId, blockId:o.blockId, text:o.code})),
+        addCourse:{code, title:rows[0].title||'', credits:rows[0].credits}
+      });
+    });
+  }
+
+  // 5. A library course no program actually uses.
+  (marginStore.courses||[]).forEach(c=>{
+    const code = ccNormCode(c.code);
+    if(!CC_CODE_RE.test(code)) return;
+    if(allRows.some(r=>r.code===code)) return;
+    push({
+      key:'unused:'+code, type:'Unused library course', sev:'lo',
+      title: code+' is in the course library but appears in no course table',
+      sub:  'Possibly retired, or a typo in a code',
+      should:'Used by at least one program', shouldWhere:'Every library course should be reachable',
+      found:'Not referenced anywhere', foundWhere:'Course library',
+      places:[]
+    });
+  });
+
+  // 6. Program abbreviation written more than one way. Only variants that
+  // differ by punctuation/case from the agreed one are reported -- an unrelated
+  // word that happens to contain the letters is not a variant.
+  loaded.forEach(p=>{
+    const canon = ccProgAbbrev(p.id);
+    if(!canon || canon.length < 3) return;
+    const alts = new Set(((standardsStore.progAbbrev[p.id]||{}).alts)||[]);
+    const bare = canon.replace(/[^A-Za-z0-9]/g,'').toUpperCase();
+    const variantRe = new RegExp('\\b'+bare.split('').join('[-\\u2013\\u2014\\s]?')+'\\b','g');
+    const hits = [];
+    Object.keys(blockStore).forEach(key=>{
+      const owner = key.slice(0, key.indexOf(':'));
+      if(manifestMode && !loadedPrograms.has(owner)) return;
+      const html = blockStore[key]; if(!html) return;
+      const txt = ccNormText(html.replace(/<[^>]+>/g,' '));
+      let m;
+      while((m = variantRe.exec(txt)) !== null){
+        const found = m[0];
+        if(found === canon || alts.has(found)) continue;
+        hits.push({ progId:owner, sectionId:key.slice(owner.length+1), text:found });
+      }
+    });
+    if(hits.length) push({
+      key:'abbrev:'+p.id, type:'Program name', sev:'md',
+      title: canon+' is written '+([...new Set(hits.map(h=>h.text))].length+1)+' different ways',
+      sub:  'Naming · '+hits.length+' place'+(hits.length!==1?'s':''),
+      should: canon, shouldWhere:'The abbreviation set as standard for this program',
+      found: [...new Set(hits.map(h=>h.text))].join(', '),
+      foundWhere: [...new Set(hits.map(h=>ccProgLabel(h.progId)))].join(', '),
+      places: hits.map(h=>({progId:h.progId, sectionId:h.sectionId, blockId:'', text:h.text})),
+      fixTo:canon, fixField:'text', acceptAlt:p.id
+    });
+  });
+
+  const order = {hi:0, md:1, lo:2};
+  findings.sort((a,b)=>(order[a.sev]-order[b.sev]) || a.title.localeCompare(b.title));
+  return { findings, checkedPrograms:loaded.length, totalPrograms:programs.length,
+           skipped:skipped.map(p=>ccProgLabel(p.id)), courseRows:allRows.length,
+           sharedCodes:Object.keys(byCode).filter(c=>new Set(byCode[c].map(r=>r.progId)).size>1).length };
+}
+
+// ---- applying a fix ---------------------------------------------------------
+// Edits happen on a parsed copy of one block's stored HTML and only ever
+// replace an EXACT text match, so a fix can never restructure content. If the
+// edited section happens to be open, it is re-rendered afterwards so the
+// screen and the store never disagree.
+function ccReplaceInBlock(sectionKey, blockId, from, to, mode){
+  const html = blockStore[sectionKey];
+  if(!html) return 0;
+  let doc;
+  try{ doc = new DOMParser().parseFromString('<div id="ccr">'+html+'</div>','text/html'); }catch(e){ return 0; }
+  const root = doc.getElementById('ccr');
+  const scope = blockId ? (root.querySelector('.block[data-bid="'+blockId+'"]') || root) : root;
+  const fromN = ccNormText(from);
+  let n = 0;
+  if(mode === 'cell'){
+    scope.querySelectorAll('td').forEach(td=>{
+      if(ccNormText(td.textContent) === fromN){ td.textContent = to; n++; }
+    });
+  } else {
+    // whole-word text-node replacement; never touches tags or attributes
+    const esc = fromN.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    const re = new RegExp('\\b'+esc+'\\b','g');
+    const walk = document.createTreeWalker ? null : null;
+    (function rec(el){
+      [...el.childNodes].forEach(node=>{
+        if(node.nodeType === 3){
+          if(re.test(node.nodeValue)){
+            node.nodeValue = node.nodeValue.replace(re, function(){ n++; return to; });
+          }
+        } else if(node.nodeType === 1 && !/^(SCRIPT|STYLE)$/.test(node.tagName)){
+          rec(node);
+        }
+      });
+    })(scope);
+  }
+  if(n){
+    blockStore[sectionKey] = root.innerHTML;
+    dirtyPrograms.add(sectionKey.slice(0, sectionKey.indexOf(':')));
+    sectionUpdated[sectionKey] = Date.now();
+  }
+  return n;
+}
+
+let ccLast = null;      // last check result, so the view can re-render without re-running
+let ccLastRunAt = 0;    // when the checks last actually ran -- shown in the UI
+
+async function ccApplyFix(key, onlyFirst){
+  if(viewerModeForced) return;
+  const f = (ccLast && ccLast.findings || []).find(x=>x.key===key);
+  if(!f || !f.fixTo) return;
+  const places = onlyFirst ? (f.places||[]).slice(0,1) : (f.places||[]);
+
+  // A locked section is protection against ACCIDENTAL edits. This fix is the
+  // opposite of accidental: one named value, reviewed, applied deliberately.
+  // So rather than making you unlock 25 sections by hand, offer to lift the
+  // locks for the duration of this one change and put them back exactly as
+  // they were. Net effect on your locks: none.
+  const lockedKeys = [...new Set(places.map(pl=>pl.progId+':'+pl.sectionId)
+                                       .filter(k=>sectionLocks[k]))];
+  const restore = {};
+  if(lockedKeys.length){
+    const names = lockedKeys.map(k=>{
+      const i = k.indexOf(':');
+      return '• '+ccProgLabel(k.slice(0,i))+' › '+ccSectionName(k.slice(0,i), k.slice(i+1));
+    });
+    const shown = names.slice(0,10).join('\n')
+                + (names.length>10 ? '\n• …and '+(names.length-10)+' more' : '');
+    const ok = await appConfirm(
+      lockedKeys.length+' of the '+places.length+' place(s) to fix are in locked sections:\n\n'
+      + shown
+      + '\n\nUnlock them just for this change, apply it, then re-lock them exactly as they are now?\n\n'
+      + 'Only the “'+f.found+'” → “'+f.fixTo+'” replacement is made. Nothing else in those sections is touched, '
+      + 'and your locks end up unchanged.',
+      'Unlock, fix, re-lock', 'Cancel');
+    if(!ok) return;
+    // Deliberately NOT going through toggleLock(): that also calls
+    // pmOnSectionLocked(), which flips the linked PM task between done and
+    // working. Since the lock state is restored unchanged, the PM board should
+    // see nothing happen at all.
+    lockedKeys.forEach(k=>{ restore[k] = sectionLocks[k]; delete sectionLocks[k]; });
+  }
+
+  let changed = 0, blocked = [];
+  try{
+    places.forEach(pl=>{
+      const secKey = pl.progId+':'+pl.sectionId;
+      if(sectionLocks[secKey]){ blocked.push(ccSectionName(pl.progId, pl.sectionId)); return; }
+      if(ccNormText(pl.text) === ccNormText(f.fixTo)) return; // already correct
+      changed += ccReplaceInBlock(secKey, pl.blockId, pl.text, f.fixTo,
+                                  f.fixField === 'text' ? 'text' : 'cell');
+    });
+  } finally {
+    // Restore in a finally so a thrown replacement can never leave a section
+    // unlocked behind your back.
+    Object.keys(restore).forEach(k=>{ sectionLocks[k] = restore[k]; });
+    try{ if(typeof applyLockState==='function') applyLockState(); }catch(e){}
+  }
+  // Accepting a program-name fix also records the standard, so it stops recurring.
+  if(f.acceptAlt && !standardsStore.progAbbrev[f.acceptAlt]){
+    standardsStore.progAbbrev[f.acceptAlt] = { abbrev: f.fixTo, alts: [], confirmed: true };
+  }
+  scheduleSave();
+  // Re-render the open section if it was one of the places we just changed, so
+  // the correction is visible immediately next to the findings list.
+  if(curProgId && curSection && places.some(p=>p.progId===curProgId && p.sectionId===curSection)){
+    renderedKey = null; loadContent(curSection);
+  }
+  ccRefresh();
+  const relocked = Object.keys(restore).length;
+  if(blocked.length){
+    await appAlert('Skipped '+blocked.length+' locked section(s):\n\n'+blocked.join('\n')+'\n\nUnlock them (🔒 in the toolbar) to fix.');
+  } else if(changed){
+    toast('Fixed '+changed+' place'+(changed!==1?'s':'')
+      + (relocked ? ' ✓ — '+relocked+' section'+(relocked!==1?'s':'')+' re-locked' : ' ✓'));
+  } else {
+    toast('Nothing needed changing.');
+  }
+}
+function ccIgnore(key){
+  if(viewerModeForced) return;
+  standardsStore.ignored[key] = true; scheduleSave(); ccRefresh();
+  toast('Dismissed — it will not come back.');
+}
+function ccUnignoreAll(){
+  if(viewerModeForced) return;
+  standardsStore.ignored = {}; scheduleSave(); ccRefresh();
+  toast('Dismissed items restored.');
+}
+// Confirming a title turns "these disagree" into "this is correct", which is
+// what makes later findings actionable rather than just informational.
+function ccSetStandard(code, title){
+  if(viewerModeForced) return;
+  standardsStore.courseTitles[code] = { title: title, confirmed: true, ts: Date.now() };
+  scheduleSave(); ccRefresh();
+  toast('Standard set for '+code+' ✓');
+}
+function ccAcceptVariant(progId, text){
+  if(viewerModeForced) return;
+  const rec = standardsStore.progAbbrev[progId] || { abbrev: ccProgAbbrev(progId), alts: [], confirmed: true };
+  rec.alts = rec.alts || [];
+  if(!rec.alts.includes(text)) rec.alts.push(text);
+  standardsStore.progAbbrev[progId] = rec;
+  scheduleSave(); ccRefresh();
+  toast('“'+text+'” accepted as an allowed form.');
+}
+function ccAddCourse(code, title, credits){
+  if(viewerModeForced) return;
+  marginStore.courses = marginStore.courses || [];
+  marginStore.courses.push({ id: marginUid('mc'), code: code, school: 'SUT',
+    creditHours: credits || 4, costItems: [{ id: marginUid('mci'), label: 'Course materials', amount: 0 }] });
+  if(title) standardsStore.courseTitles[code] = { title: title, confirmed: true, ts: Date.now() };
+  scheduleSave(); ccRefresh();
+  toast(code+' added to the course library ✓ — set its cost in the Margin Calculator.');
+}
+// Navigate to the exact place a finding lives, and flash the block so the eye
+// lands on it. Reuses the same deep-navigation path a viewer deep link uses.
+async function ccGoTo(progId, sectionId, blockId){
+  const p = programs.find(x=>x.id===progId); if(!p) return;
+  const ph = (phasesOf(p)||[]).find(x=>(x.sections||[]).some(s=>s.id===sectionId));
+  if(!ph) return;
+  // Always end up DOCKED. Clicking a location from the full-screen view used to
+  // navigate away and leave no route back to the findings list -- now it hands
+  // off to the panel, so the list stays beside the content and the next finding
+  // is one click away.
+  if(!ccPanelOpen){
+    document.getElementById('cc-view').style.display='none';
+    document.getElementById('prog-view').style.display='block';
+    await ccPanelOpenFor();
+  }
+  openProgram(progId, { phid: ph.id, sid: sectionId });
+  setTimeout(()=>{
+    const el = blockId ? document.querySelector('#blocks-root .block[data-bid="'+blockId+'"]') : null;
+    const target = el || document.getElementById('blocks-root');
+    if(!target) return;
+    target.scrollIntoView({ block:'center', behavior:'smooth' });
+    target.classList.add('cc-flash');
+    setTimeout(()=>target.classList.remove('cc-flash'), 2200);
+  }, 420);
+}
+
+// ==================== CONSISTENCY: VIEW ====================
+let ccOrigin = 'hub';
+function openConsistency(){
+  if(viewerModeForced) return;
+  ccOrigin = document.getElementById('prog-view').style.display !== 'none' ? 'prog'
+           : (document.getElementById('pm-dash-view').style.display !== 'none' ? 'dash' : 'hub');
+  document.getElementById('prog-view').style.display='none';
+  document.getElementById('hub-view').style.display='none';
+  const dash=document.getElementById('pm-dash-view'); if(dash) dash.style.display='none';
+  document.getElementById('cc-view').style.display='block';
+  ccRunAndRender();
+}
+function ccBack(){
+  document.getElementById('cc-view').style.display='none';
+  if(ccOrigin==='prog'){
+    document.getElementById('prog-view').style.display='block';
+    // came here from the docked panel -> put the panel back, don't dump the
+    // user on a bare program view having lost the findings list
+    if(ccPanelWasOpen){ ccPanelWasOpen=false; ccPanelOpenFor(); return; }
+  }
+  if(ccOrigin==='prog') document.getElementById('prog-view').style.display='block';
+  else if(ccOrigin==='dash'){ document.getElementById('pm-dash-view').style.display='block'; renderPMDash(); }
+  else { document.getElementById('hub-view').style.display='block'; renderHub(); }
+}
+// First run loads every program so the check can actually see the whole
+// Playbook -- same once-per-session approach search already uses.
+async function ccRunAndRender(){
+  const body = ccBodyRoot(); if(!body) return;
+  if(manifestMode && programs.some(p=>!loadedPrograms.has(p.id))){
+    body.innerHTML = '<div class="viewer-loading"><span class="viewer-spinner"></span>Loading every program so nothing is missed&hellip; this happens once per session.</div>';
+    await Promise.all(programs.map(p=>ensureProgramLoaded(p.id)));
+  }
+  ccRefresh();
+}
+function ccRefresh(){ ccLast = ccRunChecks(); ccLastRunAt = Date.now(); renderConsistency(); }
+
+// The button the user presses. ccRefresh() alone was invisible: when nothing has
+// changed the re-render is byte-identical, so a click looked like it did nothing.
+// This makes the run observable -- a busy state, a fresh "last checked" time, and
+// a toast saying what was found -- and re-loads any program that isn't in memory
+// so "Re-check" really does check everything.
+async function ccRecheck(btn){
+  if(viewerModeForced) return;
+  const el = btn || document.querySelector('#cc-panel .pmp-dashbtn') || null;
+  const original = el ? el.innerHTML : null;
+  if(el){ el.disabled = true; el.innerHTML = 'Checking\u2026'; }
+  try{
+    // The checks are fast enough to finish in a few milliseconds, which made the
+    // button appear inert. Hold the busy state briefly so the click is always
+    // acknowledged -- the delay is for the eye, not the work.
+    await Promise.all([
+      ccRunAndRender(),                                   // loads any missing programs, then refreshes
+      new Promise(res=>setTimeout(res, 280))
+    ]);
+    const n = ccLast ? ccLast.findings.length : 0;
+    toast(n ? (n+' item'+(n!==1?'s':'')+' need attention') : 'No inconsistencies found \u2713');
+  } finally {
+    if(el){ el.disabled = false; el.innerHTML = original; }
+  }
+}
+
+function ccSevMeta(s){
+  return s==='hi' ? {lbl:'Decide', cls:'hi'} : s==='md' ? {lbl:'Look', cls:'md'} : {lbl:'Info', cls:'lo'};
+}
+function renderConsistency(){
+  const body = ccBodyRoot(); if(!body || !ccLast) return;
+  const r = ccLast;
+  const counts = {hi:0, md:0, lo:0};
+  r.findings.forEach(f=>counts[f.sev]++);
+  const ignoredCount = Object.keys(standardsStore.ignored||{}).length;
+
+  const scope = '<div class="cc-scope">Checked <b>'+r.checkedPrograms+' of '+r.totalPrograms+' programs</b> · '
+    + r.courseRows+' course rows · '+r.sharedCodes+' shared course codes'
+    + (r.skipped.length ? ' · <b style="color:var(--acc)">not checked: '+r.skipped.join(', ')+'</b>'
+                        : ' · every program was loaded, so nothing was skipped')
+    + (ignoredCount ? ' · <a href="#" onclick="event.preventDefault();ccUnignoreAll();">'+ignoredCount+' dismissed — restore</a>' : '')
+    + (ccLastRunAt ? ' · <span style="white-space:nowrap">checked '+new Date(ccLastRunAt).toLocaleTimeString()+'</span>' : '')
+    + '</div>';
+
+  const stats = '<div class="cc-summary">'
+    + '<div class="cc-stat hi"><div class="k">Needs a decision</div><div class="v">'+counts.hi+'</div></div>'
+    + '<div class="cc-stat md"><div class="k">Worth a look</div><div class="v">'+counts.md+'</div></div>'
+    + '<div class="cc-stat"><div class="k">Informational</div><div class="v">'+counts.lo+'</div></div>'
+    + '<div class="cc-stat ok"><div class="k">Check types run</div><div class="v">6</div></div></div>';
+
+  let list = '';
+  if(!r.findings.length){
+    list = '<div class="cc-empty"><div class="big">✓</div><div><b>No inconsistencies found.</b></div>'
+         + '<div style="margin-top:5px">All six check types passed across '+r.checkedPrograms+' program(s).</div></div>';
+  } else {
+    [['hi','Needs a decision'],['md','Worth a look'],['lo','Informational']].forEach(g=>{
+      const items = r.findings.filter(f=>f.sev===g[0]);
+      if(!items.length) return;
+      list += '<div class="cc-grouphd">'+g[1]+' ('+items.length+')</div>';
+      items.forEach(f=>{
+        const sm = ccSevMeta(f.sev);
+        const kq = "'"+String(f.key).replace(/'/g,"\\'")+"'";
+        let acts = '';
+        if(f.needsStandard){
+          acts = (f.options||[]).map(o=>'<button class="cc-btn primary" onclick="ccSetStandard(\''
+                + f.needsStandard + '\', '+JSON.stringify(o.value).replace(/"/g,'&quot;')+')">Use “'+escapeHtml(o.value)+'”</button>').join('');
+        } else if(f.addCourse){
+          acts = '<button class="cc-btn primary" onclick="ccAddCourse('
+               + JSON.stringify(f.addCourse.code).replace(/"/g,'&quot;')+','
+               + JSON.stringify(f.addCourse.title||'').replace(/"/g,'&quot;')+','
+               + (f.addCourse.credits||4)+')">Add '+escapeHtml(f.addCourse.code)+' to the course library</button>';
+        } else if(f.fixTo){
+          const n = (f.places||[]).length;
+          acts = n>1
+            ? '<button class="cc-btn primary" onclick="ccApplyFix('+kq+',false)">Fix all '+n+' places</button>'
+              + '<button class="cc-btn" onclick="ccApplyFix('+kq+',true)">Fix only the first</button>'
+            : '<button class="cc-btn primary" onclick="ccApplyFix('+kq+',false)">Fix it</button>';
+          if(f.acceptAlt) acts += '<button class="cc-btn" onclick="ccAcceptVariant(\''+f.acceptAlt+'\','
+                + JSON.stringify(f.found.split(', ')[0]).replace(/"/g,'&quot;')+')">Allow this form</button>';
+        }
+        acts += '<button class="cc-btn" onclick="ccIgnore('+kq+')">Not an issue</button>';
+
+        list += '<div class="cc-f" data-open="false">'
+          + '<div class="cc-f-top" onclick="this.parentNode.setAttribute(\'data-open\', this.parentNode.getAttribute(\'data-open\')===\'true\'?\'false\':\'true\')">'
+            + '<span class="cc-sev '+sm.cls+'">'+sm.lbl+'</span>'
+            + '<span class="cc-f-main"><span class="cc-f-ttl">'+escapeHtml(f.title)+'</span>'
+              + '<span class="cc-f-sub">'+escapeHtml(f.sub)+'</span></span>'
+            + '<span class="cc-chev">▸</span></div>'
+          + '<div class="cc-f-detail">'
+            + '<div class="cc-cmp">'
+              + '<div class="cc-box good"><div class="cc-k">Should be</div><div class="cc-v">'+escapeHtml(f.should)+'</div>'
+                + '<div class="cc-w">'+escapeHtml(f.shouldWhere)+'</div></div>'
+              + '<div class="cc-box bad"><div class="cc-k">Found instead</div><div class="cc-v">'+escapeHtml(f.found)+'</div>'
+                + '<div class="cc-w">'+escapeHtml(f.foundWhere)+'</div></div></div>'
+            + ((f.places||[]).length ? '<ul class="cc-where">'+f.places.map(pl=>
+                 '<li><a href="#" onclick="event.preventDefault();ccGoTo(\''+pl.progId+'\',\''+pl.sectionId+'\',\''+(pl.blockId||'')+'\')">'
+                 + escapeHtml(ccProgLabel(pl.progId))+' › '+escapeHtml(ccSectionName(pl.progId, pl.sectionId))
+                 + ' — “'+escapeHtml(pl.text)+'” ↗</a></li>').join('')+'</ul>' : '')
+            + '<div class="cc-acts">'+acts+'</div>'
+          + '</div></div>';
+      });
+    });
+  }
+  body.innerHTML = scope + stats + list;
+}
+
 // ==================== KNOWLEDGE BASE: GROUNDING ====================
 // Assembles the persistent context every AI action should carry, and reports
 // exactly what went in so the UI can show it and so a generated claim can be
@@ -6975,7 +7636,7 @@ function buildBackupJSON(){
   // stale, and reading it would export old work while looking successful.
   try{
     saveCurrentBlocks();
-    space={ programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, v:2, ts: Date.now() };
+    space={ programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, v:2, ts: Date.now() };
   }catch(e){ space=null; }
   if(!space){ try{ space=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null'); }catch(e){} }
   try{ tmpls=JSON.parse(localStorage.getItem('sdi_templates')||'[]'); }catch(e){}
@@ -7249,10 +7910,19 @@ async function mergeBundledSnapshot(banner){
     const kbIds = new Set(knowledgeStore.entries.map(e=>e.id));
     snap.knowledgeStore.entries.forEach(e=>{ if(!kbIds.has(e.id)){ knowledgeStore.entries.push(e); kbIds.add(e.id); } });
   }
+  // 7. standards: gap-fill only -- a standard already set here always wins over
+  // the snapshot's, same rule as every other merge above.
+  if(snap.standardsStore && typeof snap.standardsStore==='object'){
+    ['courseTitles','progAbbrev','ignored'].forEach(k=>{
+      const src = snap.standardsStore[k] || {};
+      if(!standardsStore[k]) standardsStore[k] = {};
+      Object.keys(src).forEach(kk=>{ if(standardsStore[k][kk]===undefined) standardsStore[k][kk]=src[kk]; });
+    });
+  }
 
   try{
     await saveSpace({ programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks,
-      sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, v:2, ts: Date.now() });
+      sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, v:2, ts: Date.now() });
   }catch(err){ await appAlert('Restore failed while writing to browser storage: '+err.message); return; }
   window.__skipPersist=true;
   await appAlert('Restored '+addedBlocks+' section(s), '+addedSecs+' new section entr(ies) and '+addedProgs+
@@ -8814,6 +9484,7 @@ function pmPanelHideDom(){
   if(handle) handle.style.display='none';
 }
 function pmPanelOpenFor(pid){
+  if(typeof ccPanelOpen!=='undefined' && ccPanelOpen) ccPanelClose(); // one docked tool at a time
   pmProgId = pid || curProgId;
   if(!pmProgId) return;
   if(marginPanelOpen) marginPanelClose(); // only one docked tool at a time
@@ -8854,6 +9525,7 @@ function marginPanelOpenFor(progId, scenarioId){
   const pid = progId || curProgId;
   if(!pid) return;
   if(pmPanelOpen) pmPanelClose(); // only one docked tool at a time
+  if(typeof ccPanelOpen!=='undefined' && ccPanelOpen) ccPanelClose();
   marginPanelOpen=true;
   marginDrafts={};
   marginView='program'; marginCurProgId=pid;
@@ -8892,6 +9564,50 @@ function marginOpenSmart(){
   if(progVisible && curProgId){ marginPanelOpenFor(curProgId); }
   else { openMarginCalc(); }
 }
+// ---- Consistency: docked panel ----------------------------------------------
+// Same shape as the PM Board and Margin panels. The point of docking this one
+// specifically: a finding's location links navigate the CONTENT AREA while the
+// panel stays put, so the findings list is still there afterwards and re-running
+// the checks shows fixes landing without leaving the tool.
+let ccPanelOpen=false, ccPanelWasOpen=false;
+function ccBodyRoot(){
+  return document.getElementById(ccPanelOpen ? 'cc-panel-body' : 'cc-body');
+}
+function ccPanelHideDom(){
+  const panel=document.getElementById('cc-panel'), handle=document.getElementById('cc-panel-handle');
+  if(panel) panel.style.display='none';
+  if(handle) handle.style.display='none';
+}
+async function ccPanelOpenFor(){
+  if(viewerModeForced) return;
+  if(pmPanelOpen) pmPanelClose();          // only one docked tool at a time
+  if(marginPanelOpen) marginPanelClose();
+  ccPanelOpen=true;
+  const panel=document.getElementById('cc-panel'), handle=document.getElementById('cc-panel-handle');
+  panel.style.flex='0 0 '+(uiState.sidePanelWidth||460)+'px';
+  panel.style.display='flex';
+  handle.style.display='block';
+  await ccRunAndRender();
+}
+function ccPanelClose(){
+  ccPanelOpen=false;
+  ccPanelHideDom();
+}
+function ccPanelFullScreen(){
+  ccPanelWasOpen = true;
+  ccPanelOpen = false;
+  ccPanelHideDom();
+  openConsistency();
+}
+// Tools-menu entry point: dock beside the open program, otherwise (Hub or
+// Dashboard, where there is no content to sit beside) go full screen.
+function ccOpenSmart(){
+  if(viewerModeForced) return;
+  const progVisible = document.getElementById('prog-view').style.display !== 'none';
+  if(progVisible && curProgId){ ccPanelOpenFor(); }
+  else { openConsistency(); }
+}
+
 // Shared by every docked side panel (PM Board, Margin Calculator, ...) --
 // one resize gesture, one remembered width preference, regardless of which
 // tool happens to be docked at the moment.
@@ -8932,6 +9648,7 @@ function initSidePanelResize(handleId, panelId){
 }
 initSidePanelResize('pm-panel-handle','pm-panel');
 initSidePanelResize('margin-panel-handle','margin-panel');
+  initSidePanelResize('cc-panel-handle','cc-panel');
 function openPMDash(){
   document.getElementById('hub-view').style.display='none';
   document.getElementById('prog-view').style.display='none';
@@ -9888,7 +10605,8 @@ function marginCourseRowHtml(c){
     </div>`).join('');
   return `
     <tr>
-      <td style="min-width:160px;"><input type="text" class="mg2-field-input" value="${escapeHtml(c.code)}" oninput="marginLibCourseField('${c.id}','code', this.value)"></td>
+      <td style="min-width:120px;"><input type="text" class="mg2-field-input" value="${escapeHtml(c.code)}" oninput="marginLibCourseField('${c.id}','code', this.value)"></td>
+      <td style="min-width:190px;"><input type="text" class="mg2-field-input" placeholder="Standard title…" value="${escapeHtml(ccStandardTitle(c.code))}" oninput="ccSetTitleFromLibrary('${c.id}', this.value)"></td>
       <td style="width:90px;"><input type="number" step="1" class="mg2-field-input" value="${c.creditHours}" oninput="marginLibCourseField('${c.id}','creditHours', this.value)"></td>
       <td style="min-width:260px;">${items}<button class="mg2-btn mg2-add-costitem-btn" onclick="marginAddCostItem('${c.id}')">+ Add cost item</button></td>
       <td id="mg2-libtotal-${c.id}"><b>${_costUSD(marginCourseTotalCost(c))}</b></td>
@@ -9908,6 +10626,7 @@ function marginCourseRowHtmlCompact(c){
     <div class="mg2-course-compact">
       <div class="mg2-course-compact-row1">
         <input type="text" class="mg2-field-input" value="${escapeHtml(c.code)}" oninput="marginLibCourseField('${c.id}','code', this.value)">
+        <input type="text" class="mg2-field-input" placeholder="Standard title…" value="${escapeHtml(ccStandardTitle(c.code))}" oninput="ccSetTitleFromLibrary('${c.id}', this.value)">
         <input type="number" step="1" class="mg2-field-input" value="${c.creditHours}" oninput="marginLibCourseField('${c.id}','creditHours', this.value)">
         <button class="mscn-btn mg2-del-course-btn" onclick="marginRemoveCourse('${c.id}')">Delete</button>
       </div>
@@ -9927,7 +10646,7 @@ function renderMarginLibrary(){
     if(expanded){
       body = compact
         ? `<div class="mg2-course-compact-list">${courses.map(marginCourseRowHtmlCompact).join('')||'<div style="color:var(--mut);">No courses yet.</div>'}</div>`
-        : `<table class="mg2-table"><thead><tr><th>Course Code</th><th>Credit Hours</th><th>Cost Items</th><th>Total</th><th></th></tr></thead><tbody>${courses.map(marginCourseRowHtml).join('')||'<tr><td colspan="5" style="color:var(--mut);">No courses yet.</td></tr>'}</tbody></table>`;
+        : `<table class="mg2-table"><thead><tr><th>Course Code</th><th>Standard title</th><th>Credit Hours</th><th>Cost Items</th><th>Total</th><th></th></tr></thead><tbody>${courses.map(marginCourseRowHtml).join('')||'<tr><td colspan="6" style="color:var(--mut);">No courses yet.</td></tr>'}</tbody></table>`;
     }
     return `
       <div class="mg2-panel">
@@ -9959,6 +10678,22 @@ async function marginRemoveCourse(courseId){
   });
   marginStore.courses = marginStore.courses.filter(x=>x.id!==courseId);
   scheduleSave(); renderMarginLibrary();
+}
+// The standard title is stored ONCE, in standardsStore keyed by course code --
+// never copied onto the course record, so the library and the checker can never
+// disagree about what the correct title is.
+function ccStandardTitle(code){
+  const rec = standardsStore.courseTitles[ccNormCode(code)];
+  return rec && rec.title ? rec.title : '';
+}
+function ccSetTitleFromLibrary(courseId, value){
+  if(viewerModeForced) return;
+  const c = (marginStore.courses||[]).find(x=>x.id===courseId); if(!c) return;
+  const code = ccNormCode(c.code);
+  const v = String(value||'').trim();
+  if(v) standardsStore.courseTitles[code] = { title: v, confirmed: true, ts: Date.now() };
+  else delete standardsStore.courseTitles[code];
+  scheduleSave();
 }
 function marginLibCourseField(courseId, field, value){
   if(viewerModeForced) return;
@@ -10474,6 +11209,27 @@ async function marginImportLegacyBackup(data){
 // there's no window where a viewer sees editing controls while the page loads.
 // A direct hide (not a `.view-mode` CSS rule) so this never affects Karen personally
 // clicking "View" to preview her own work -- only a real viewer-link boot calls this.
+// Repaints the chrome for staging. Only touches identity colours -- the accent,
+// section rules and status colours stay put, so what you're testing still looks
+// like the real thing.
+function applyStagingSkin(){
+  if(!IS_STAGING) return;
+  const r = document.documentElement.style;
+  r.setProperty('--sbg',  '#3A3F45');   // slate grey sidebar, was maroon
+  r.setProperty('--shov', '#4C5257');
+  r.setProperty('--sact', '#5C6369');
+  r.setProperty('--stxt', '#F2F3F4');
+  r.setProperty('--smut', '#B9BEC3');
+  r.setProperty('--pb',   '#2B3035');   // default topbar when no program colour
+  document.body.classList.add('is-staging');
+  const badge = document.createElement('div');
+  badge.className = 'staging-ribbon';
+  badge.textContent = 'STAGING';
+  badge.title = 'Test environment — content repo: ' + GITHUB_CONTENT_REPO;
+  document.body.appendChild(badge);
+  try{ document.title = '[STAGING] ' + document.title; }catch(e){}
+}
+
 function hideEditorChromeForViewer(){
   document.querySelectorAll('.mode-btn').forEach(b=>b.style.display='none');
   const tbExtra=document.getElementById('tb-extra'); if(tbExtra) tbExtra.style.display='none';
@@ -10503,6 +11259,7 @@ function hideEditorChromeForViewer(){
 }
 async function init(){
   let loaded = false;
+  applyStagingSkin();
   initImageLightbox();
   buildWysiwygBar();
 
@@ -10626,7 +11383,7 @@ async function init(){
   // An unconditional write here re-stamped and re-flattened whatever was loaded,
   // which turned any bad read into a permanent overwrite.
   if(seededThisBoot)
-  try{ await saveSpace({ programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, v:2, ts: Date.now() }); }catch(e){ console.warn('seed persist failed:', e); }
+  try{ await saveSpace({ programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, v:2, ts: Date.now() }); }catch(e){ console.warn('seed persist failed:', e); }
 
   applySidebarRail(); // restore collapsed/expanded from this browser's own preference
   renderHub();
