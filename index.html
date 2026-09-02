@@ -622,6 +622,7 @@ body.view-mode [contenteditable] a{pointer-events:auto;}
 .lp-btn:hover{background:#334155;color:#fff;}
 
 /* view mode */
+body.view-mode .locked-banner,
 body.view-mode .bctrl,
 body.view-mode .add-block-area,
 body.view-mode .add-sec,
@@ -724,7 +725,10 @@ body.view-mode .mg2-gened-check input[type=checkbox]{pointer-events:none;}
 #vk-gate .vk-msg.bad{color:#B42318;font-weight:600;}
 #vk-gate .vk-msg.ok{color:#067647;font-weight:700;}
 #vk-gate .vk-foot{font-size:11.5px;color:#9aa1a9;margin-top:14px;}
-.vk-lock-btn{border:1px solid rgba(255,255,255,0.28);background:rgba(255,255,255,0.08);color:#fff;
+/* .vk-lock-btn: retired -- the topbar "Lock" button read as the section
+   lock control. vkForget() is still defined and callable if a re-lock
+   affordance is ever wanted somewhere less confusable. */
+.vk-lock-btn{display:none;border:1px solid rgba(255,255,255,0.28);background:rgba(255,255,255,0.08);color:#fff;
   font-size:11px;padding:5px 9px;border-radius:4px;cursor:pointer;display:none;}
 .vk-lock-btn:hover{background:rgba(255,255,255,0.2);}
 
@@ -1538,7 +1542,6 @@ table.mg2-table tr.clickable:hover{background:#FDF4F5;}
             </div>
           </div>
           <button class="tb-more" id="tb-more" onclick="toggleTbExtra(event)" title="More tools">⋯</button>
-          <button class="vk-lock-btn" id="vk-lock-btn" onclick="vkForget()" title="Forget the password on this device">&#128274; Lock</button>
               <button class="pm-board-btn" id="pm-board-viewer-btn" onclick="pmOpenSmart()" style="display:none">📋 PM Board</button>
           <button class="status-badge" id="status-btn" onclick="cycleStatus()">In Progress</button>
           <div class="export-wrap">
@@ -11499,10 +11502,6 @@ async function init(){
     if(githubViewerVaultFromUrl() && !vkCachedToken()){
       const unlocked = await vkPromptUnlock();
       if(!unlocked) return;
-    }
-    if(githubViewerVaultFromUrl()){
-      const lockBtn = document.getElementById('vk-lock-btn');
-      if(lockBtn) lockBtn.style.display = 'inline-block';
     }
     // Content can be several MB, so this can take a few seconds -- without this,
     // the screen just sits there looking stuck rather than obviously working.
