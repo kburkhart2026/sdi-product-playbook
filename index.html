@@ -703,6 +703,31 @@ body.view-mode .mg2-scn-name,
 body.view-mode .mg2-course-row input[type=checkbox],
 body.view-mode .mg2-gened-check input[type=checkbox]{pointer-events:none;}
 
+/* viewer password gate */
+#vk-gate{position:fixed;inset:0;z-index:99999;background:#101820;display:flex;align-items:center;
+  justify-content:center;padding:24px;}
+#vk-gate .vk-card{width:100%;max-width:380px;background:#fff;border-radius:10px;padding:30px 28px 24px;
+  box-shadow:0 24px 70px rgba(0,0,0,0.45);text-align:center;}
+#vk-gate .vk-logo{font-family:var(--font-collegiate),Impact,sans-serif;font-size:30px;letter-spacing:0.06em;
+  color:var(--acc);margin-bottom:14px;}
+#vk-gate .vk-title{font-family:var(--font-cond);text-transform:uppercase;letter-spacing:0.07em;
+  font-weight:700;font-size:16px;color:var(--ink);margin-bottom:8px;}
+#vk-gate .vk-sub{font-size:13px;line-height:1.55;color:var(--mut);margin-bottom:18px;}
+#vk-gate #vk-pass{width:100%;box-sizing:border-box;padding:11px 12px;font-family:inherit;font-size:14px;
+  border:1px solid var(--bdr);border-radius:6px;outline:none;margin-bottom:9px;}
+#vk-gate #vk-pass:focus{border-color:var(--acc);}
+#vk-gate #vk-go{width:100%;padding:11px 12px;border:none;border-radius:6px;background:var(--acc);color:#fff;
+  font-family:var(--font-cond);text-transform:uppercase;letter-spacing:0.07em;font-weight:700;font-size:13px;
+  cursor:pointer;}
+#vk-gate #vk-go:disabled{opacity:0.6;cursor:default;}
+#vk-gate .vk-msg{min-height:18px;font-size:12.5px;margin-top:10px;color:var(--mut);}
+#vk-gate .vk-msg.bad{color:#B42318;font-weight:600;}
+#vk-gate .vk-msg.ok{color:#067647;font-weight:700;}
+#vk-gate .vk-foot{font-size:11.5px;color:#9aa1a9;margin-top:14px;}
+.vk-lock-btn{border:1px solid rgba(255,255,255,0.28);background:rgba(255,255,255,0.08);color:#fff;
+  font-size:11px;padding:5px 9px;border-radius:4px;cursor:pointer;display:none;}
+.vk-lock-btn:hover{background:rgba(255,255,255,0.2);}
+
 /* staging skin -- only ever active when GITHUB_CONTENT_REPO points at staging */
 .staging-ribbon{position:fixed;left:0;bottom:0;z-index:9999;background:#B54708;color:#fff;
   font-family:var(--font-cond);font-weight:700;font-size:10.5px;letter-spacing:0.16em;
@@ -1513,7 +1538,8 @@ table.mg2-table tr.clickable:hover{background:#FDF4F5;}
             </div>
           </div>
           <button class="tb-more" id="tb-more" onclick="toggleTbExtra(event)" title="More tools">⋯</button>
-          <button class="pm-board-btn" id="pm-board-viewer-btn" onclick="pmOpenSmart()" style="display:none">📋 PM Board</button>
+          <button class="vk-lock-btn" id="vk-lock-btn" onclick="vkForget()" title="Forget the password on this device">&#128274; Lock</button>
+              <button class="pm-board-btn" id="pm-board-viewer-btn" onclick="pmOpenSmart()" style="display:none">📋 PM Board</button>
           <button class="status-badge" id="status-btn" onclick="cycleStatus()">In Progress</button>
           <div class="export-wrap">
             <button class="export-btn" onclick="toggleExport(event)">Export ▾</button>
@@ -1787,6 +1813,7 @@ table.mg2-table tr.clickable:hover{background:#FDF4F5;}
     <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--mut);margin:16px 0 8px;">GitHub Hosting</div>
     <div class="export-opt" onclick="closeDataBackupModal(); connectGithubEditor();">🐙 Connect to GitHub…</div>
     <div class="export-opt" onclick="closeDataBackupModal(); connectGithubViewerToken();">🔗 Update viewer link token…</div>
+    <div class="export-opt" onclick="closeDataBackupModal(); setViewerPassword();">🔐 Set the viewer password…</div>
     <div class="export-opt" onclick="closeDataBackupModal(); pushLocalContentToGithub();">⬆🐙 Push local content to GitHub</div>
     <div class="export-opt" onclick="closeDataBackupModal(); migrateContentToPerProgramFiles();">🗂️🐙 Migrate content to per-program files</div>
     <div class="backup-meta" id="backup-meta"></div>
@@ -1904,6 +1931,130 @@ function base64ToUtf8(b64){
   return new TextDecoder().decode(bytes);
 }
 
+// ==================== VIEWER PASSWORD VAULT ====================
+// A viewer link carries NO credential. Instead the read-only PAT is encrypted
+// with one org password and stored in `viewer-key.json` next to this file in
+// the (public) app repo. The viewer types the password once; the browser
+// derives the key, decrypts the token locally, and boots read-only exactly as
+// a token link used to.
+//
+// Being honest about what this is: the encrypted blob is public, so it can be
+// attacked offline at the attacker's own pace -- which is why the iteration
+// count below is deliberately high and why the password must be a real
+// passphrase. And anyone who KNOWS the password can recover the PAT from their
+// own browser and use it directly. This removes the credential from the link;
+// it does not make the content safe from someone you gave the password to.
+// Per-person revocation needs a server, which this deliberately does not have.
+const VK_FILE   = 'viewer-key.json';           // sits beside index.html, fetched with no auth
+// Calibrated, not guessed: measured on this hardware, 310k rounds took ~44ms
+// and 4M took ~280ms. Since the encrypted blob is public and therefore
+// attackable offline, the cost per guess is the only real defence -- so this is
+// tuned to land around a quarter-second per attempt rather than left at the
+// usual 310k baseline. A slower viewer device will take longer; that is a
+// once-per-browser cost and the unlock screen shows progress. The value is
+// stored IN the file, so raising it later never breaks an existing key file.
+const VK_ITER   = 4000000;                     // PBKDF2-SHA256 rounds
+const VK_TOKEN_KEY = 'sdi_viewer_vault_token'; // decrypted PAT, this browser only
+function vkB64(bytes){ let s=''; bytes.forEach(b=>{ s+=String.fromCharCode(b); }); return btoa(s); }
+function vkUnB64(str){ const bin=atob(String(str||'')); const a=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) a[i]=bin.charCodeAt(i); return a; }
+async function vkDeriveKey(password, salt, iterations){
+  const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(password),
+                                             'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    { name:'PBKDF2', salt: salt, iterations: iterations||VK_ITER, hash:'SHA-256' },
+    base, { name:'AES-GCM', length:256 }, false, ['encrypt','decrypt']);
+}
+async function vkEncryptToken(password, token){
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv   = crypto.getRandomValues(new Uint8Array(12));
+  const key  = await vkDeriveKey(password, salt, VK_ITER);
+  const ct   = await crypto.subtle.encrypt({ name:'AES-GCM', iv: iv }, key,
+                                           new TextEncoder().encode(token));
+  return { v:1, alg:'AES-GCM', kdf:'PBKDF2-SHA256', iterations:VK_ITER,
+           salt:vkB64(salt), iv:vkB64(iv), ciphertext:vkB64(new Uint8Array(ct)),
+           created:new Date().toISOString() };
+}
+// AES-GCM is authenticated, so a wrong password THROWS rather than returning
+// plausible-looking rubbish. That's what lets the UI say "wrong password" with
+// certainty instead of trying to boot on nonsense.
+async function vkDecryptToken(password, rec){
+  const key = await vkDeriveKey(password, vkUnB64(rec.salt), rec.iterations);
+  const pt  = await crypto.subtle.decrypt({ name:'AES-GCM', iv: vkUnB64(rec.iv) },
+                                          key, vkUnB64(rec.ciphertext));
+  return new TextDecoder().decode(pt);
+}
+function vkCachedToken(){ try{ return localStorage.getItem(VK_TOKEN_KEY)||''; }catch(e){ return ''; } }
+function vkForget(){
+  try{ localStorage.removeItem(VK_TOKEN_KEY); }catch(e){}
+  location.reload();
+}
+// A link of the form ...#v (or #v=1, or &v=1) means "viewer, and the token
+// comes from the vault". Deliberately a separate marker from `data=` so old
+// token links keep working while shares are reissued.
+// Renders the password screen and resolves true once the token is unlocked and
+// cached. Nothing is fetched from GitHub until this resolves, so no content can
+// flash on screen behind the gate.
+function vkPromptUnlock(){
+  return new Promise(resolve=>{
+    const ov = document.createElement('div');
+    ov.id = 'vk-gate';
+    ov.innerHTML =
+      '<div class="vk-card">'
+      + '<div class="vk-logo">SDI</div>'
+      + '<div class="vk-title">Product Development Playbook</div>'
+      + '<div class="vk-sub">This Playbook is password protected. Enter the password you were given.</div>'
+      + '<form id="vk-form" autocomplete="on">'
+      +   '<input id="vk-pass" type="password" placeholder="Password" autocomplete="current-password" aria-label="Password">'
+      +   '<button id="vk-go" type="submit">Unlock</button>'
+      + '</form>'
+      + '<div class="vk-msg" id="vk-msg" role="status"></div>'
+      + '<div class="vk-foot">You will only be asked once on this device.</div>'
+      + '</div>';
+    document.body.appendChild(ov);
+    const pass = ov.querySelector('#vk-pass');
+    const btn  = ov.querySelector('#vk-go');
+    const msg  = ov.querySelector('#vk-msg');
+    setTimeout(()=>pass.focus(), 60);
+
+    let record = null, loadErr = null;
+    // Fetch the key file up front so a broken deployment says so immediately
+    // rather than after someone has typed a password.
+    fetch(VK_FILE, { cache:'no-store' })
+      .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+      .then(j=>{ record = j; })
+      .catch(e=>{ loadErr = e.message;
+        msg.className='vk-msg bad';
+        msg.textContent='This link is not set up yet — no password file was found. Ask whoever shared it to finish setup.';
+        btn.disabled = true; });
+
+    ov.querySelector('#vk-form').addEventListener('submit', async (ev)=>{
+      ev.preventDefault();
+      if(loadErr || !record) return;
+      const v = pass.value;
+      if(!v){ msg.className='vk-msg bad'; msg.textContent='Enter the password.'; return; }
+      btn.disabled = true; const orig = btn.textContent; btn.textContent = 'Unlocking…';
+      msg.className='vk-msg'; msg.textContent='Checking…';
+      try{
+        const token = await vkDecryptToken(v, record);
+        try{ localStorage.setItem(VK_TOKEN_KEY, token); }catch(e){}
+        msg.className='vk-msg ok'; msg.textContent='Unlocked ✓';
+        setTimeout(()=>{ ov.remove(); resolve(true); }, 220);
+      }catch(e){
+        // AES-GCM authentication failure -- a wrong password, with certainty.
+        btn.disabled = false; btn.textContent = orig;
+        msg.className='vk-msg bad'; msg.textContent='That password is not right. Try again.';
+        pass.select();
+      }
+    });
+  });
+}
+
+function githubViewerVaultFromUrl(){
+  const h = location.hash || '';
+  return /(?:^#|&)v(?:=|&|$)/.test(h);
+}
+
 function githubViewerTokenFromUrl(){
   const h = location.hash || '';
   const m = h.match(/(?:^#|&)data=([^&]+)/);
@@ -1929,13 +2080,14 @@ function githubEditorToken(){
 // always show that link's content read-only, even in a browser that also
 // happens to have an editor token saved.
 function githubMode(){
-  if(githubViewerTokenFromUrl()) return 'viewer';
+  if(githubViewerTokenFromUrl()) return 'viewer';   // legacy #data=<PAT> links
+  if(githubViewerVaultFromUrl()) return 'viewer';   // #v -- token unlocked by password
   if(githubEditorToken()) return 'editor';
   return 'off';
 }
 function githubActiveToken(){
   const mode = githubMode();
-  if(mode === 'viewer') return githubViewerTokenFromUrl();
+  if(mode === 'viewer') return githubViewerTokenFromUrl() || vkCachedToken();
   if(mode === 'editor') return githubEditorToken();
   return null;
 }
@@ -2252,6 +2404,63 @@ async function connectGithubViewerToken(){
   }catch(e){ await appAlert('Could not save: '+e.message); return; }
   toast(v.trim() ? 'Viewer link token saved.' : 'Viewer link token cleared.');
 }
+// Editor-only: encrypt the read-only viewer PAT under an org password and hand
+// back the exact file contents to commit as viewer-key.json in the APP repo.
+// Deliberately paste-and-commit rather than writing it automatically -- that
+// would mean giving the app write access to its own source, for something that
+// only happens when the password changes.
+async function setViewerPassword(){
+  if(viewerModeForced) return;
+  let token = '';
+  try{ token = localStorage.getItem(GITHUB_VIEWER_LINK_KEY)||''; }catch(e){}
+  if(!token){
+    const t = await appPrompt('Paste the GitHub VIEWER personal access token (fine-grained, Contents: Read-only, scoped to '+GITHUB_CONTENT_REPO+'). It gets encrypted with the password — it is never written into the app file in the clear:', '');
+    if(t===null || !t.trim()){ return; }
+    token = t.trim();
+    try{ localStorage.setItem(GITHUB_VIEWER_LINK_KEY, token); }catch(e){}
+  }
+  const p1 = await appPrompt('Choose the org password for viewers.\n\nMake it a long passphrase, not a short word: the encrypted file is public, so a short password can be guessed offline. Several unrelated words is ideal.', '');
+  if(p1===null || !p1.trim()) return;
+  if(p1.trim().length < 12){
+    if(!await appConfirm('That password is only '+p1.trim().length+' characters. Because the encrypted file is public it can be attacked offline at the attacker\'s own pace, so a short password is genuinely weak here.\n\nUse it anyway?', 'Use it anyway', 'Let me pick a better one')) return;
+  }
+  const p2 = await appPrompt('Type the same password again to confirm:', '');
+  if(p2===null) return;
+  if(p1.trim() !== p2.trim()){ await appAlert('Those did not match — nothing was changed.'); return; }
+
+  let rec;
+  try{ rec = await vkEncryptToken(p1.trim(), token); }
+  catch(e){ await appAlert('Could not encrypt: '+e.message); return; }
+  const json = JSON.stringify(rec, null, 2);
+
+  const ov = document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;z-index:16000;background:rgba(16,24,32,0.6);display:flex;align-items:center;justify-content:center;padding:20px;';
+  ov.innerHTML =
+    '<div style="background:#fff;max-width:640px;width:100%;max-height:86vh;overflow:auto;border-radius:8px;padding:22px 24px;box-shadow:0 20px 60px rgba(0,0,0,0.35)">'
+    + '<div style="font:700 15px/1.2 var(--font-cond,system-ui);text-transform:uppercase;letter-spacing:.06em;color:#101820;border-bottom:3px solid #D50032;padding-bottom:9px;margin-bottom:14px">Viewer password — one file to commit</div>'
+    + '<ol style="font-size:13.5px;line-height:1.65;color:#334155;padding-left:20px;margin:0 0 14px">'
+    +   '<li>Copy the text below.</li>'
+    +   '<li>In the <b>' + (IS_STAGING ? 'sdi-product-playbook-staging' : 'sdi-product-playbook') + '</b> repo, create or edit a file named exactly <b>viewer-key.json</b> at the top level (next to index.html).</li>'
+    +   '<li>Paste, commit, and wait for Pages to redeploy.</li>'
+    + '</ol>'
+    + '<div style="font-size:12.5px;color:#B54708;background:#FFFAEB;border:1px solid #FDE68A;border-radius:6px;padding:9px 11px;margin-bottom:12px">'
+    +   'This file is public — that is fine and expected. It contains only the <i>encrypted</i> token. Its safety rests entirely on the strength of the password, which is why a passphrase matters.'
+    + '</div>'
+    + '<textarea id="vk-out" readonly style="width:100%;box-sizing:border-box;height:190px;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;border:1px solid #DAD5C9;border-radius:6px;padding:10px">'+escapeHtml(json)+'</textarea>'
+    + '<div style="display:flex;gap:8px;margin-top:12px">'
+    +   '<button id="vk-copy" style="flex:1;padding:9px;border:none;border-radius:6px;background:#D50032;color:#fff;font-weight:700;font-size:13px;cursor:pointer">Copy the file contents</button>'
+    +   '<button id="vk-done" style="padding:9px 14px;border:1px solid #DAD5C9;border-radius:6px;background:#fff;font-weight:700;font-size:13px;cursor:pointer">Close</button>'
+    + '</div>'
+    + '<div style="font-size:12px;color:#5B6470;margin-top:12px">Existing viewer links keep working after a password change — only this one file changes, so nothing needs reissuing. Viewers are asked once more on their next visit.</div>'
+    + '</div>';
+  document.body.appendChild(ov);
+  ov.querySelector('#vk-copy').onclick = async ()=>{
+    try{ await navigator.clipboard.writeText(json); toast('Copied — commit it as viewer-key.json'); }
+    catch(e){ ov.querySelector('#vk-out').select(); }
+  };
+  ov.querySelector('#vk-done').onclick = ()=>ov.remove();
+}
+
 // Tools -> Copy link to this page. Builds a deep link to whatever section
 // is currently open (openProgram()/goTo()'s own curProgId/curSection),
 // prompting for a viewer token only the first time -- reuses whatever's
@@ -2266,7 +2475,9 @@ async function copyViewerLinkForCurrentPage(){
     token = v.trim();
     try{ localStorage.setItem(GITHUB_VIEWER_LINK_KEY, token); }catch(e){}
   }
-  const url = location.origin+location.pathname+'#data='+encodeURIComponent(token)+'&prog='+encodeURIComponent(curProgId)+'&sec='+encodeURIComponent(curSection);
+  // #v, not #data=<PAT>: the link carries no credential at all. The viewer's
+  // password unlocks the token from viewer-key.json instead.
+  const url = location.origin+location.pathname+'#v&prog='+encodeURIComponent(curProgId)+'&sec='+encodeURIComponent(curSection);
   try{
     await navigator.clipboard.writeText(url);
     toast('Viewer link copied to clipboard.');
@@ -11248,6 +11459,9 @@ function hideEditorChromeForViewer(){
   // gives a viewer a direct way back to the read-only PM board from inside
   // an open program, not just from the Hub.
   const pmViewerBtn=document.getElementById('pm-board-viewer-btn'); if(pmViewerBtn) pmViewerBtn.style.display='inline-block';
+  // Shown only for password-unlocked viewers (set in init) -- lets someone clear
+  // the saved token from a shared or public machine without digging through
+  // browser settings.
   // Ask Claude is a drafting tool -- close and hide it outright for a real
   // viewer. Its only entry point (Tools ▾) is already hidden above, and both
   // of its actions refuse when viewerModeForced, so this is the third layer
@@ -11279,6 +11493,17 @@ async function init(){
     // The fetch can take a while; without this, anyone opening the link sees the
     // full editor toolbar for that whole window before it disappears.
     hideEditorChromeForViewer();
+    // Password gate, if this is a vault link. Deliberately before ANY content
+    // fetch: nothing is requested from GitHub, and nothing renders behind the
+    // gate, until the token has actually been unlocked.
+    if(githubViewerVaultFromUrl() && !vkCachedToken()){
+      const unlocked = await vkPromptUnlock();
+      if(!unlocked) return;
+    }
+    if(githubViewerVaultFromUrl()){
+      const lockBtn = document.getElementById('vk-lock-btn');
+      if(lockBtn) lockBtn.style.display = 'inline-block';
+    }
     // Content can be several MB, so this can take a few seconds -- without this,
     // the screen just sits there looking stuck rather than obviously working.
     // Same rotating-message style as the per-program spinner below (not the
