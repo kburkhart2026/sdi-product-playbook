@@ -1808,6 +1808,7 @@ table.mg2-table tr.clickable:hover{background:#FDF4F5;}
     </div>
     <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--mut);margin-bottom:8px;">Backup &amp; Restore</div>
     <div class="export-opt" onclick="closeDataBackupModal(); exportBackup();">💾 Backup all data (.json)</div>
+    <div class="export-opt" onclick="closeDataBackupModal(); backupToGithubNow();">⬆🐙 Back up to GitHub now</div>
     <div class="export-opt" onclick="toggleAutoBackup()" id="auto-bk-opt">⏱ Auto-backup: On</div>
     <div class="export-opt" onclick="closeDataBackupModal(); triggerRestore();">⤴ Restore from backup…</div>
     <div class="export-opt" onclick="closeDataBackupModal(); loadBundledSnapshot();">📦 Load bundled snapshot…</div>
@@ -7941,6 +7942,67 @@ async function exportBackup(){
   toast(cov.complete
     ? 'Backup downloaded \u2713 '+cov.programs+' programs, '+cov.blocks+' sections of content'
     : '\u26a0 PARTIAL backup downloaded \u2014 '+cov.missingPrograms.length+' program(s) missing');
+}
+
+// Manual off-machine backup. The daily one is on a 24h timer and only fires
+// 4s after a boot, so there was no way to get a complete snapshot into the
+// content repo on demand -- which mattered because every backup already in
+// backups/ was partial or empty.
+let _ghBackupRunning = false;
+async function backupToGithubNow(){
+  if(viewerModeForced) return;
+  if(_ghBackupRunning){ toast('A GitHub backup is already running\u2026'); return; }
+  if(githubMode() !== 'editor'){
+    await appAlert('Not connected to GitHub as an editor, so there is nowhere to put an off-machine backup.\n\n'+
+      'Use \u2699 Data & Backup \u2192 \ud83d\udc19 Connect to GitHub\u2026 first.');
+    return;
+  }
+  _ghBackupRunning = true;
+  try{
+    // Same completeness requirement as every other backup path: a snapshot
+    // taken before the programs load reports everything and holds nothing.
+    if(manifestMode && !backupCoverage().complete){
+      toast('Loading all programs so the backup is complete\u2026');
+      if(!await ensureAllProgramsLoaded()){
+        const cov = backupCoverage();
+        const go = await appConfirm(
+          'Some programs could not be loaded, so this backup would be INCOMPLETE.\n\n'+
+          'Missing: '+cov.missingPrograms.length+' of '+cov.programs+' programs.\n\n'+
+          'Commit the partial backup anyway?', 'Commit partial backup', 'Cancel');
+        if(!go) return;
+      }
+    }
+    const backup = buildBackupJSON();
+    if(!backup){ await appAlert('Nothing to back up yet.'); return; }
+    const cov = backup.coverage || {};
+    const d=new Date(), pad=n=>String(n).padStart(2,'0');
+    const stamp=d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'-'+pad(d.getHours())+pad(d.getMinutes());
+    const path='backups/'+(cov.complete===false?'PARTIAL-':'')+stamp+'.json';
+    const mb=(JSON.stringify(backup).length/1048576).toFixed(1);
+    toast('Uploading '+mb+' MB to GitHub\u2026');
+    // AWAITED, unlike the daily backup's original fire-and-forget call -- the
+    // whole point of a manual action is being told whether it worked.
+    const ok = await githubCommitFile(path, backup, (cov.complete===false?'Manual PARTIAL backup ':'Manual backup ')+stamp);
+    if(ok){
+      await appAlert('Backed up to GitHub \u2713\n\n'+
+        'File: '+path+'\n'+
+        'Size: '+mb+' MB\n'+
+        'Programs: '+(cov.programs||0)+'\n'+
+        'Sections with content: '+(cov.blocks||0)+'\n\n'+
+        (cov.complete===false ? '\u26a0 This snapshot is PARTIAL -- some programs were not loaded.'
+                              : 'This is a complete snapshot.'));
+      setHubSyncStatus('github');
+    } else {
+      await appAlert('GitHub backup FAILED.\n\n'+(ghLastErrorText()||'reason not reported')+'\n\n'+
+        'Your local backup file (\ud83d\udcbe Backup all data) is unaffected and still works.');
+      setHubSyncStatus('warn');
+    }
+    // Deliberately does NOT touch sdi_last_backup_ts. That timestamp gates the
+    // DAILY LOCAL FILE download too, so stamping it here would silently cancel
+    // today's local backup as a side effect of asking for a GitHub one.
+  } finally {
+    _ghBackupRunning = false;
+  }
 }
 
 // ---- Auto-backup: once per day, downloads a backup file shortly after load ----
