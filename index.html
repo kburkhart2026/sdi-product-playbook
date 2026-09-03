@@ -2634,6 +2634,7 @@ let manifestMode = false; // true once boot detects a real manifest.json (vs. th
 let viewerModeForced = false;
 const loadedPrograms = new Set(); // progId's whose blockStore slice is actually in memory this session
 const _programLoadPromises = {}; // progId -> in-flight ensureProgramLoaded() promise, for de-duplication
+let seededThisBoot = false; // this boot CREATED content from the starter seed -- never a backup source
 let searchIndexLoaded = false; // true once every program has been loaded for full-text search (manifestMode only)
 const dirtyPrograms = new Set(); // progId's with real content changes since their file was last written to GitHub
 
@@ -7856,7 +7857,43 @@ function buildBackupJSON(){
   try{ tmpls=JSON.parse(localStorage.getItem('sdi_templates')||'[]'); }catch(e){}
   try{ tags=JSON.parse(localStorage.getItem('sdi_user_tags')||'[]'); }catch(e){}
   if(!space) return null;
-  return { __sdiBackup:true, version:2, exportedAt:new Date().toISOString(), sdi_space:space, sdi_templates:tmpls, sdi_user_tags:tags };
+  // Stamped so a file can be judged before it's trusted -- see coverageOfBackupFile.
+  return { __sdiBackup:true, version:2, exportedAt:new Date().toISOString(), coverage:backupCoverage(), sdi_space:space, sdi_templates:tmpls, sdi_user_tags:tags };
+}
+// A backup is only a backup if it actually contains the content. Under
+// manifestMode the boot loads manifest.json and nothing else, so live
+// blockStore starts EMPTY -- a snapshot taken then reports every program and
+// holds no sections. Four such files were found in Downloads (7-8 programs,
+// zero blocks). These two helpers make completeness explicit rather than
+// assumed.
+async function ensureAllProgramsLoaded(){
+  if(!manifestMode) return true;                       // legacy single-file: always complete
+  const results = await Promise.all(programs.map(p=>ensureProgramLoaded(p.id)));
+  return results.every(Boolean);
+}
+function backupCoverage(){
+  const sections = programs.reduce((n,p)=>n+(p.phases||[]).reduce((m,ph)=>m+((ph.sections||[]).length),0),0);
+  const missing  = manifestMode ? programs.filter(p=>!loadedPrograms.has(p.id)).map(p=>p.id) : [];
+  return {
+    programs: programs.length,
+    sections,
+    blocks: Object.keys(blockStore||{}).length,
+    manifestMode,
+    missingPrograms: missing,
+    complete: missing.length === 0
+  };
+}
+// Reads coverage back out of a backup FILE. Files written before this change
+// carry no stamp, so fall back to counting what's actually in them -- an old
+// backup must still be judged honestly, not trusted by default.
+function coverageOfBackupFile(data){
+  const st = data && data.coverage;
+  const sp = (data && data.sdi_space) || {};
+  const progs = (sp.programs||[]).length;
+  const sections = (sp.programs||[]).reduce((n,p)=>n+((p.phases||[]).reduce((m,ph)=>m+((ph.sections||[]).length),0)),0);
+  const blocks = Object.keys(sp.blockStore||{}).length;
+  if(st && typeof st.complete === 'boolean') return Object.assign({}, st, {programs:progs, sections, blocks, stamped:true});
+  return { programs:progs, sections, blocks, missingPrograms:[], complete: blocks>0, stamped:false };
 }
 function downloadBackup(prefix){
   const backup=buildBackupJSON();
@@ -7865,17 +7902,45 @@ function downloadBackup(prefix){
   const url=URL.createObjectURL(blob);
   const d=new Date(), pad=n=>String(n).padStart(2,'0');
   const a=document.createElement('a');
-  a.download=(prefix||'SDI-Product-Space-Backup-')+d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'-'+pad(d.getHours())+pad(d.getMinutes())+'.json';
+  // A partial backup says so in its own name. 35 of the 56 files found in
+  // Downloads were indistinguishable from real backups by filename alone.
+  const partialTag = (backup.coverage && backup.coverage.complete===false) ? 'PARTIAL-' : '';
+  a.download=(prefix||'SDI-Product-Space-Backup-')+partialTag+d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'-'+pad(d.getHours())+pad(d.getMinutes())+'.json';
   a.href=url; document.body.appendChild(a); a.click();
   setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); },1500);
-  try{ localStorage.setItem('sdi_last_backup_ts', String(Date.now())); }catch(e){}
+  try{
+    localStorage.setItem('sdi_last_backup_ts', String(Date.now()));
+    localStorage.setItem('sdi_last_backup_partial', (backup.coverage && backup.coverage.complete===false) ? '1' : '0');
+  }catch(e){}
   updateBackupReminder();
   return true;
 }
 async function exportBackup(){
   const em=document.getElementById('export-menu'); if(em) em.classList.remove('show');
+  // Pull in every program's content BEFORE snapshotting. Without this, a
+  // manual backup taken right after boot holds only whatever happened to be
+  // open -- which is how a 161-section backup ended up with 38 sections of
+  // content in it.
+  if(manifestMode && !backupCoverage().complete){
+    toast('Loading all programs so the backup is complete\u2026');
+    const allLoaded = await ensureAllProgramsLoaded();
+    if(!allLoaded){
+      const cov = backupCoverage();
+      const go = await appConfirm(
+        'Some programs could not be loaded, so this backup would be INCOMPLETE.\n\n'+
+        'Missing: '+cov.missingPrograms.length+' of '+cov.programs+' programs.\n\n'+
+        'A partial backup is still worth having, but it must not be mistaken for a full one -- '+
+        'it will be named PARTIAL and will warn you if you ever restore it.\n\n'+
+        'Save the partial backup anyway?',
+        'Save partial backup', 'Cancel');
+      if(!go) return;
+    }
+  }
   if(!downloadBackup()){ await appAlert('Nothing to back up yet.'); return; }
-  toast('Backup file downloaded \u2713');
+  const cov = backupCoverage();
+  toast(cov.complete
+    ? 'Backup downloaded \u2713 '+cov.programs+' programs, '+cov.blocks+' sections of content'
+    : '\u26a0 PARTIAL backup downloaded \u2014 '+cov.missingPrograms.length+' program(s) missing');
 }
 
 // ---- Auto-backup: once per day, downloads a backup file shortly after load ----
@@ -7894,6 +7959,20 @@ async function maybeAutoBackup(){
   if(!autoBackupEnabled()) return;
   const DAY=24*60*60*1000;
   if(Date.now()-lastBackupTs() < DAY) return;
+  // Never back up the starter seed. 35 of the 56 files found in Downloads were
+  // the embedded 3-program sample, written by boots with no token or storage --
+  // pure noise, and a restore hazard sitting next to the real backups.
+  if(seededThisBoot){ console.warn('maybeAutoBackup: skipped -- this boot loaded starter content, not real data.'); return; }
+  // Load every program BEFORE snapshotting. This runs 4s after boot, which
+  // under manifestMode is the moment the LEAST content is in memory.
+  if(!await ensureAllProgramsLoaded()){
+    // Deliberately does NOT stamp sdi_last_backup_ts -- so this retries on the
+    // next boot rather than counting a failed attempt as today's backup and
+    // going quiet for 24 hours.
+    console.warn('maybeAutoBackup: skipped -- not all programs loaded, refusing to write an incomplete backup.');
+    toast('\u26a0 Daily backup skipped \u2014 could not load all programs. Will retry.');
+    return;
+  }
   if(downloadBackup('SDI-Product-Space-AutoBackup-')) toast('Daily auto-backup downloaded \u2713 (check your Downloads folder)');
   // Off-machine, versioned copy alongside the local download, when an editor
   // token is connected -- independent of any one device. Also becomes a real
@@ -7904,15 +7983,34 @@ async function maybeAutoBackup(){
     if(backup){
       const d=new Date(), pad=n=>String(n).padStart(2,'0');
       const stamp=d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'-'+pad(d.getHours())+pad(d.getMinutes());
-      githubCommitFile('backups/'+stamp+'.json', backup, 'Daily backup '+stamp).catch(()=>{});
+      // Was .catch(()=>{}) -- a failed backup commit vanished without trace,
+      // which is why staging showed no GitHub backup for a week while looking fine.
+      githubCommitFile('backups/'+stamp+'.json', backup, 'Daily backup '+stamp)
+        .then(ok=>{
+          if(!ok){
+            // ghLastErrorText() is '' when no error was recorded -- never show a
+            // bare "failed:" with nothing after it.
+            const why = ghLastErrorText() || 'reason not reported';
+            console.warn('Daily GitHub backup failed:', why);
+            toast('\u26a0 Daily GitHub backup failed: '+why);
+            setHubSyncStatus('warn');
+          }
+        })
+        .catch(e=>{
+          console.warn('Daily GitHub backup threw:', e);
+          toast('\u26a0 Daily GitHub backup failed: '+(e&&e.message||e));
+          setHubSyncStatus('warn');
+        });
     }
   }
 }
 function updateBackupReminder(){
   const ts=lastBackupTs();
   const days=ts? Math.floor((Date.now()-ts)/(24*60*60*1000)) : null;
-  const label=ts? (days===0?'Last backup: today':days===1?'Last backup: yesterday':'Last backup: '+days+' days ago') : 'No backup yet';
-  const overdue=!ts||days>=3;
+  let partial=false; try{ partial = localStorage.getItem('sdi_last_backup_partial')==='1'; }catch(e){}
+  let label=ts? (days===0?'Last backup: today':days===1?'Last backup: yesterday':'Last backup: '+days+' days ago') : 'No backup yet';
+  if(ts && partial) label += ' (PARTIAL)';
+  const overdue=!ts||days>=3||(ts&&partial);
   const meta=document.getElementById('backup-meta');
   if(meta){ meta.textContent='\ud83d\udcbe '+label; meta.style.color=overdue?'#D50032':''; }
   const opt=document.getElementById('auto-bk-opt');
@@ -7945,8 +8043,40 @@ function handleRestoreFile(input){
     try{ data=JSON.parse(ev.target.result); }
     catch(err){ await appAlert('That file is not a valid backup (could not read JSON).'); input.value=''; return; }
     if(!data||!data.__sdiBackup||!data.sdi_space){ await appAlert('That file is not a recognized SDI backup file.'); input.value=''; return; }
-    const cnt=(data.sdi_space.programs||[]).length;
-    if(!await appConfirm('Restore this backup?\n\nExported: '+(data.exportedAt||'unknown')+'\nPrograms in backup: '+cnt+'\n\nThis REPLACES everything currently saved in this browser. If unsure, click Backup first to save the current state.')){ input.value=''; return; }
+    // Program count alone is the ONE number that looks healthy in an empty
+    // backup: a file with 8 programs and zero sections of content reported
+    // "Programs in backup: 8" and gave no hint. Report content too.
+    const cov = coverageOfBackupFile(data);
+    const now = backupCoverage();
+    const summary = 'Exported: '+(data.exportedAt||'unknown')+'\n'+
+      'Programs in backup: '+cov.programs+'\n'+
+      'Sections defined: '+cov.sections+'\n'+
+      'Sections WITH CONTENT: '+cov.blocks+(cov.stamped?'':'  (older backup -- counted, not stamped)')+'\n\n'+
+      'This browser right now: '+now.programs+' programs, '+now.blocks+' sections with content.';
+
+    if(cov.blocks === 0){
+      // Refuse outright. There is no reading of this that helps.
+      await appAlert('This backup contains NO section content.\n\n'+summary+'\n\n'+
+        'Restoring it would replace your work with empty programs. Not continuing.\n\n'+
+        'Pick a backup whose "Sections WITH CONTENT" is not zero, or use '+
+        'Export \u25be \u2192 Version history / Load bundled snapshot instead.');
+      input.value=''; return;
+    }
+    if(cov.blocks < now.blocks){
+      const go = await appConfirm(
+        '\u26a0 This backup holds LESS content than this browser already has.\n\n'+summary+'\n\n'+
+        'Restoring REPLACES everything currently saved here, so '+(now.blocks-cov.blocks)+
+        ' section(s) of content would be dropped.\n\nRestore anyway?',
+        'Restore and lose content', 'Cancel');
+      if(!go){ input.value=''; return; }
+    }
+    if(cov.complete === false){
+      const go = await appConfirm(
+        '\u26a0 This backup is marked PARTIAL \u2014 it was saved while some programs were not loaded.\n\n'+summary+'\n\n'+
+        'Restore it anyway?', 'Restore partial backup', 'Cancel');
+      if(!go){ input.value=''; return; }
+    }
+    if(!await appConfirm('Restore this backup?\n\n'+summary+'\n\nThis REPLACES everything currently saved in this browser. If unsure, click Backup first to save the current state.')){ input.value=''; return; }
     try{
       // A backup file is external input -- it could be a tampered/malicious file, not
       // just your own export -- so defang script vectors before this content is ever
@@ -11571,7 +11701,6 @@ async function init(){
   // exactly the shared content and should show nothing else.
   if(!loaded && ghMode !== 'viewer') loaded = await loadStateAsync();
 
-  let seededThisBoot = false;
   let declinedRecovery = false;
   if(!loaded || programs.length === 0){
     // Storage came back empty. That's expected on a genuine first run, but if
