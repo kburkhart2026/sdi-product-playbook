@@ -251,7 +251,153 @@ body.sb-rail .phase-hdr:hover .ph-dot{box-shadow:0 0 0 3px rgba(201,183,156,0.45
 /* ===== PM SIDE PANEL ===== */
 .pm-panel-handle{flex:0 0 6px;cursor:col-resize;background:var(--bdr);}
 .pm-panel-handle:hover,.pm-panel-handle.dragging{background:var(--acc);}
-#pm-panel,#margin-panel,#cc-panel{flex:0 0 460px;min-width:0;display:flex;flex-direction:column;background:#fff;border-left:1px solid var(--bdr);overflow:hidden;}
+/* ---------- Course table / card blocks ---------- */
+/* The table itself is a standard .block-table -- no new table styling. These
+   only mark which columns the database owns and add the refresh footer. */
+.block-table th[data-course-field]{color:#2F6B4F;}
+.block-table td:not([data-course-field]):not(.tbl-utilcell){background:#F7FAFC;}
+.block-course-card{background:#fff;border:1px solid var(--bdr);border-radius:8px;overflow:hidden;}
+.crs-tbl-foot{display:flex;align-items:center;gap:9px;padding:6px 10px;background:#F6F3F1;
+  border-top:1px solid var(--bdr);font-size:11.5px;color:var(--mut);}
+.crs-card-h{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;padding:9px 12px;
+  border-bottom:1px solid var(--bdr);border-left:3px solid var(--acc);}
+.crs-card-code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;font-weight:600;}
+.crs-card-t{font-family:var(--font-cond);font-size:15px;font-weight:700;}
+.crs-card-meta{margin-left:auto;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:11px;color:var(--mut);}
+.crs-card-sec{padding:8px 12px;border-bottom:1px solid var(--bdr);}
+.crs-card-sec-t{font-family:var(--font-cond);font-size:10.5px;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--mut);margin-bottom:3px;}
+.crs-card-missing{padding:12px;color:var(--mut);font-size:13px;}
+body.view-mode .crs-tbl-refresh,.section-locked .crs-tbl-refresh{display:none!important;}
+/* ---------- insert dialog ---------- */
+.dlg-box-wide{max-width:560px;width:92vw;}
+.dlg-title{font-family:var(--font-cond);font-size:17px;font-weight:700;margin-bottom:12px;}
+.dlg-body{max-height:60vh;overflow-y:auto;}
+.crs-dlg{display:flex;flex-direction:column;gap:9px;text-align:left;}
+.crs-dlg-r{display:flex;align-items:center;gap:10px;}
+.crs-dlg-r label{flex:0 0 108px;font-family:var(--font-cond);font-size:11px;font-weight:700;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--mut);}
+.crs-dlg-r select,.crs-dlg-r input{flex:1;min-width:0;padding:5px 8px;border:1px solid var(--bdr);
+  border-radius:4px;font-size:13px;font-family:inherit;background:#fff;color:var(--ink);}
+.crs-dlg-f label{display:block;font-family:var(--font-cond);font-size:11px;font-weight:700;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin-bottom:5px;}
+.crs-dlg-chks{display:grid;grid-template-columns:1fr 1fr;gap:3px 12px;}
+@media (max-width:520px){.crs-dlg-chks{grid-template-columns:1fr;}}
+.crs-dlg-chk{display:flex!important;align-items:center;gap:6px;font-size:12.5px;
+  text-transform:none!important;letter-spacing:0!important;font-family:inherit!important;
+  font-weight:400!important;color:var(--ink)!important;margin:0!important;}
+.crs-dlg-chk i{color:var(--mut);font-size:11px;}
+.crs-dlg-note{font-size:12px;color:var(--mut);line-height:1.5;margin:2px 0 0;}
+/* ---------- Course Database ---------- */
+#course-panel-body,#course-body{flex:1;min-height:0;overflow-y:auto;}
+#course-body{padding:0 4px;}
+.crs-wrap{display:flex;flex-direction:column;gap:9px;padding:10px 12px 22px;}
+.crs-stats{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11.5px;color:var(--mut);
+  padding-bottom:7px;border-bottom:1px solid var(--bdr);}
+.crs-stats b{color:var(--ink);font-size:14px;font-family:var(--font-cond);}
+.crs-s-draft b{color:#1F5B7A;} .crs-s-flag b{color:#B4761A;}
+.crs-filters{display:flex;flex-wrap:wrap;gap:7px;align-items:center;}
+.crs-search{flex:1 1 170px;min-width:0;padding:6px 9px;border:1px solid var(--bdr);border-radius:4px;
+  font-size:13px;font-family:inherit;background:#fff;color:var(--ink);}
+.crs-search:focus{outline:2px solid var(--acc);outline-offset:-1px;}
+.crs-sel{padding:5px 7px;border:1px solid var(--bdr);border-radius:4px;font-size:12px;background:#fff;color:var(--ink);}
+.crs-chk{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--mut);white-space:nowrap;cursor:pointer;}
+.crs-rows{display:flex;flex-direction:column;border:1px solid var(--bdr);border-radius:5px;overflow:hidden;}
+.crs-row{display:flex;align-items:baseline;gap:7px;padding:5px 9px;cursor:pointer;
+  border-bottom:1px solid var(--bdr);background:#fff;}
+.crs-row:last-child{border-bottom:none;}
+.crs-row:hover{background:#FDF4F5;}
+.crs-code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;font-weight:600;
+  white-space:nowrap;color:var(--ink);}
+.crs-code-lg{font-size:16px;}
+.crs-dl{font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+  border-radius:3px;padding:1px 5px;white-space:nowrap;
+  color:#5B4A6B;background:#F2EEF7;border:1px solid #D6CBE3;}
+/* The two delivery formats are the thing being compared, so they must be
+   distinguishable at a glance rather than by reading the text. */
+.crs-dl-5{color:#1F5B7A;background:#EAF2F7;border-color:#BFD9E8;}
+.crs-dl-8{color:#8A4C1F;background:#FBF0E6;border-color:#E8CFB4;}
+.crs-title{flex:1;min-width:0;font-size:13px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.crs-meta{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--mut);white-space:nowrap;}
+.crs-badge{font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  border-radius:3px;padding:1px 5px;white-space:nowrap;}
+.crs-b-draft{color:#1F5B7A;background:#EAF2F7;border:1px solid #BFD9E8;}
+.crs-b-retired{color:var(--mut);background:#F1EEEC;border:1px solid var(--bdr);}
+.crs-b-active{color:#2F6B4F;background:#EDF5F0;border:1px solid #BFDCCB;}
+.crs-dot{width:7px;height:7px;border-radius:50%;background:#B4761A;flex:0 0 7px;align-self:center;}
+.crs-dot-q{background:var(--mut);}
+.crs-pick{margin:0 2px 0 0;flex:0 0 auto;align-self:center;cursor:pointer;}
+.crs-pickbar{display:flex;flex-direction:column;gap:6px;padding:7px 10px;background:#FDF4F5;
+  border:1px solid #F0CBD5;border-radius:5px;font-size:12px;color:var(--ink);}
+.crs-pickbar-top{display:flex;align-items:center;gap:8px;}
+.crs-colchips{display:flex;flex-wrap:wrap;gap:4px;}
+.crs-chip{border:1px solid var(--bdr);background:#fff;color:var(--mut);border-radius:3px;
+  padding:1px 7px;font-size:10.5px;font-weight:600;letter-spacing:.03em;cursor:pointer;
+  font-family:var(--font-cond);text-transform:uppercase;}
+.crs-chip:hover{border-color:var(--acc);color:var(--acc);}
+.crs-chip.on{background:var(--acc);border-color:var(--acc);color:#fff;}
+.crs-pickbar b{font-family:var(--font-cond);font-size:14px;}
+.crs-ins{margin-left:auto;border:1px solid var(--acc);background:var(--acc);color:#fff;
+  border-radius:4px;padding:4px 10px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;}
+.crs-ins:hover{filter:brightness(1.08);}
+.crs-none,.crs-empty{padding:20px 4px;color:var(--mut);font-size:13px;text-align:center;}
+.crs-empty-t{font-family:var(--font-cond);font-size:17px;font-weight:700;color:var(--ink);margin-bottom:6px;}
+.crs-empty p{max-width:44ch;margin:0 auto 14px;line-height:1.55;}
+.crs-detail-head{display:flex;align-items:center;gap:7px;flex-wrap:wrap;
+  padding-bottom:8px;border-bottom:1px solid var(--bdr);}
+.crs-back{border:1px solid var(--bdr);background:#fff;border-radius:4px;padding:3px 8px;
+  font-size:12px;cursor:pointer;color:var(--mut);font-family:inherit;}
+.crs-back:hover{border-color:var(--acc);color:var(--acc);}
+.crs-del{border:1px solid var(--bdr);background:#fff;border-radius:4px;padding:3px 8px;
+  font-size:11px;cursor:pointer;color:var(--mut);font-family:inherit;}
+.crs-del:hover{border-color:#D50032;color:#D50032;background:#FDF2F4;}
+.crs-sib{font-size:12px;color:var(--mut);background:#F6F3F1;border:1px solid var(--bdr);
+  border-radius:4px;padding:7px 10px;}
+.crs-sib a{color:#1F5B7A;cursor:pointer;text-decoration:underline;}
+.crs-diff{border:1px solid #E3D5B4;background:#FBF3E6;border-radius:5px;padding:9px 11px;
+  display:flex;flex-direction:column;gap:6px;}
+.crs-diff-t{font-family:var(--font-cond);font-size:11px;font-weight:700;letter-spacing:.09em;
+  text-transform:uppercase;color:#8A6A22;}
+.crs-diff-r{display:flex;gap:7px;align-items:center;flex-wrap:wrap;font-size:12px;}
+.crs-diff-r>span:first-child{font-family:var(--font-cond);font-size:10px;font-weight:700;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--mut);flex:0 0 62px;}
+.crs-diff-r code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;
+  padding:1px 5px;border-radius:3px;}
+.crs-cat{background:#EDF5F0;border:1px solid #BFDCCB;color:#22503B;}
+.crs-you{background:#fff;border:1px solid var(--bdr);color:var(--ink);}
+.crs-revert{margin-left:auto;border:1px solid #B4761A;background:#fff;color:#8A6A22;
+  border-radius:3px;padding:1px 7px;font-size:10.5px;font-weight:600;cursor:pointer;
+  font-family:var(--font-cond);letter-spacing:.05em;text-transform:uppercase;}
+.crs-review{font-size:12px;color:#8A6A22;background:#FBF3E6;border:1px solid #E3D5B4;
+  border-radius:4px;padding:7px 10px;line-height:1.5;}
+.crs-conflict{color:#D50032;font-weight:700;}
+.crs-fields{display:flex;flex-direction:column;gap:7px;}
+.crs-f{display:flex;flex-direction:column;gap:2px;}
+.crs-f-l{font-family:var(--font-cond);font-size:11px;font-weight:700;letter-spacing:.07em;
+  text-transform:uppercase;color:var(--mut);display:flex;align-items:center;gap:6px;}
+.crs-pv{font-size:9px;font-weight:700;letter-spacing:.05em;border-radius:3px;padding:0 4px;}
+.crs-pv-edited{color:#8A6A22;background:#FBF3E6;border:1px solid #E3D5B4;}
+.crs-f-in{width:100%;box-sizing:border-box;padding:4px 8px;border:1px solid var(--bdr);
+  border-radius:4px;font-size:13px;font-family:inherit;line-height:1.45;background:#fff;
+  color:var(--ink);resize:vertical;}
+.crs-f-in:focus{outline:2px solid var(--acc);outline-offset:-1px;}
+.crs-f-in::placeholder{color:#B9AEAC;font-style:italic;}
+.crs-offer{border:1px solid var(--bdr);border-radius:5px;overflow:hidden;}
+.crs-offer-t{font-family:var(--font-cond);font-size:11px;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--mut);padding:7px 10px;background:#F6F3F1;
+  border-bottom:1px solid var(--bdr);}
+.crs-offer table{width:100%;border-collapse:collapse;font-size:12px;}
+.crs-offer th{font-family:var(--font-cond);font-size:10px;font-weight:700;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--mut);text-align:left;padding:5px 10px;border-bottom:1px solid var(--bdr);}
+.crs-offer td{padding:5px 10px;border-bottom:1px solid var(--bdr);color:var(--ink);}
+.crs-offer tr:last-child td{border-bottom:none;}
+.crs-offer a{color:#1F5B7A;cursor:pointer;text-decoration:underline;}
+/* viewer mode: the whole tool is editor-only (its entry point lives in Tools),
+   but belt-and-braces in case it is ever surfaced */
+body.view-mode .crs-f-in{pointer-events:none;}
+body.view-mode .crs-del,body.view-mode .crs-revert{display:none!important;}
+#pm-panel,#margin-panel,#cc-panel,#course-panel{flex:0 0 460px;min-width:0;display:flex;flex-direction:column;background:#fff;border-left:1px solid var(--bdr);overflow:hidden;}
 .pmp-head{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--bdr);flex-wrap:wrap;}
 .pmp-title{font-family:var(--font-cond);text-transform:uppercase;letter-spacing:0.03em;font-size:14px;font-weight:800;color:var(--ink);flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .pmp-iconbtn{border:1px solid var(--bdr);background:#fff;color:var(--mut);font-size:12px;padding:3px 7px;border-radius:4px;cursor:pointer;line-height:1;}
@@ -1192,7 +1338,7 @@ body.view-mode .wysiwyg-bar{display:none!important;}
 .cp-api-save{border-radius:3px;}
 
 /* ===== PM SPACE (Monday-style boards) ===== */
-#pm-view,#pm-dash-view,#margin-view{height:100vh;overflow-y:auto;background:#f4f5f7;}
+#pm-view,#pm-dash-view,#margin-view,#cc-view,#course-view{height:100vh;overflow-y:auto;background:#f4f5f7;}
 .pm-shell{max-width:1280px;margin:0 auto;padding:0 24px 60px;}
 .pm-head{display:flex;align-items:center;gap:14px;padding:18px 0 14px;border-bottom:3px solid var(--acc);margin-bottom:18px;flex-wrap:wrap;}
 .pm-back{cursor:pointer;font-size:13px;color:var(--mut);font-weight:600;white-space:nowrap;}
@@ -1537,6 +1683,8 @@ table.mg2-table tr.clickable:hover{background:#FDF4F5;}
                 <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); togglePanel();">✦ Ask Claude</div>
                 <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); openKnowledgeBase();">🧠 Knowledge Base</div>
                 <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); ccOpenSmart();">🔍 Consistency</div>
+                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); crsOpenSmart();">📚 Course Database</div>
+                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); crsInsertEntry();">📋 Insert courses…</div>
                 <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); copyViewerLinkForCurrentPage();">🔗 Copy link to this page</div>
               </div>
             </div>
@@ -1633,6 +1781,18 @@ table.mg2-table tr.clickable:hover{background:#FDF4F5;}
           </div>
           <div id="cc-panel-body"></div>
         </div>
+        <div class="pm-panel-handle" id="course-panel-handle" title="Drag to resize" style="display:none"></div>
+        <div id="course-panel" style="display:none">
+          <div class="pmp-head">
+            <div class="pmp-title">Course Database</div>
+            <button class="pmp-dashbtn" onclick="crsAddPrompt()" title="Add a course">&#43; Course</button>
+            <button class="pmp-dashbtn" onclick="crsLinkMarginAction()" title="Match costing lines to courses">&#128279; Link</button>
+            <button class="pmp-dashbtn" onclick="crsExportDialog()" title="Export the database">&#8681;</button>
+            <button class="pmp-iconbtn" onclick="crsPanelFullScreen()" title="Open full screen">&#8599;</button>
+            <button class="pmp-iconbtn" onclick="crsPanelClose()" title="Close panel">&#10005;</button>
+          </div>
+          <div id="course-panel-body"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -1708,6 +1868,26 @@ table.mg2-table tr.clickable:hover{background:#FDF4F5;}
   </div>
 </div>
 
+<div id="course-view" style="display:none">
+  <div class="pm-shell">
+    <div class="pm-head">
+      <div class="pm-back" onclick="crsBack()">&#8592; Back</div>
+      <div>
+        <div class="pm-title">Course Database</div>
+        <div class="pm-sub">One record per course delivery &mdash; the source of truth for anything course-related</div>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:8px">
+        <button class="mg2-btn" onclick="crsAddPrompt()">&#43; Add course</button>
+        <button class="mg2-btn" onclick="crsImportFromRepo()">&#8681; Import catalog edition</button>
+        <button class="mg2-btn" onclick="crsLinkMarginAction()">&#128279; Link to Margin Calculator</button>
+        <button class="mg2-btn" onclick="crsFillSchoolsFromMargin()">&#127979; Fill schools</button>
+        <button class="mg2-btn" onclick="crsExportDialog()">&#8681; Export…</button>
+      </div>
+    </div>
+    <div id="course-body"></div>
+  </div>
+</div>
+
 <!-- ========== KNOWLEDGE BASE (grounding for every AI action) ========== -->
 <div id="kb-view" style="display:none">
   <div class="pm-shell">
@@ -1746,6 +1926,7 @@ table.mg2-table tr.clickable:hover{background:#FDF4F5;}
   <div class="pk-item" onclick="addBlock('callout')"><div class="pk-ico">💡</div><div><div class="pk-lbl">Callout</div><div class="pk-desc">Highlight a key insight</div></div></div>
   <div class="pk-item" onclick="addBlock('table')"><div class="pk-ico">📊</div><div><div class="pk-lbl">Table</div><div class="pk-desc">Grid, comparison, matrix</div></div></div>
   <div class="pk-item" onclick="addBlock('costtable')"><div class="pk-ico">🧮</div><div><div class="pk-lbl">Cost / COGS Table</div><div class="pk-desc">Auto-calculates totals &amp; program sum</div></div></div>
+  <div class="pk-item" onclick="document.getElementById('block-picker').classList.remove('show'); crsInsertEntry()"><div class="pk-ico">📋</div><div><div class="pk-lbl">Course Table</div><div class="pk-desc">Tick courses in the database, insert them as a table</div></div></div>
   <div class="pk-item" onclick="document.getElementById('block-picker').classList.remove('show'); openMarginCalc(curProgId);"><div class="pk-ico">📈</div><div><div class="pk-lbl">Margin Calculator</div><div class="pk-desc">Course library, scenarios &amp; margin comparison</div></div></div>
   <div class="pk-item" onclick="addBlock('swot')"><div class="pk-ico">🧭</div><div><div class="pk-lbl">SWOT Analysis</div><div class="pk-desc">Strengths, weaknesses, opportunities, threats</div></div></div>
   <div class="pk-item" onclick="addBlock('timeline')"><div class="pk-ico">📅</div><div><div class="pk-lbl">Timeline</div><div class="pk-desc">Milestones and key dates</div></div></div>
@@ -2303,7 +2484,7 @@ async function ensureProgramLoaded(progId){
 async function pushLocalContentToGithub(){
   if(githubMode() !== 'editor'){ await appAlert('Connect an editor GitHub token first (Export ▾ → Connect to GitHub).'); return; }
   saveCurrentBlocks();
-  const state = { programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, v:2, ts: Date.now() };
+  const state = { programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, courseStore, v:2, ts: Date.now() };
   const ok = await githubCommitFile(GITHUB_CONTENT_PATH, state, 'Push local content');
   if(ok) await appAlert('Current content pushed to GitHub ✓');
   else await appAlert('Push failed. Check that your editor token is still valid and scoped to '+(GITHUB_CONTENT_REPO||'the content repo')+'.');
@@ -2614,6 +2795,892 @@ let knowledgeStore = { entries: [] }; // [{id, cat, title, body, updated}]
 //   progAbbrev:   { progId:    {abbrev, alts:[], confirmed} }
 //   ignored:      { findingKey: true }   -- dismissals persist across checks
 let standardsStore = { courseTitles: {}, progAbbrev: {}, ignored: {} };
+// The course database: ONE record per course-in-a-delivery. `code` is NOT
+// unique -- the five general-education courses and SDI 101 each run in a
+// 5-week and an 8-week format and are separate records -- so everything that
+// joins to a course joins on `id`, never on `code`.
+let courseStore = { courses: [], presets: [], editions: [], categories: [], schools: [] };
+
+// ==================== COURSE DATABASE ====================
+// Field definitions drive the picker, the table columns, the card and every
+// export -- one list, so a new field appears everywhere at once instead of in
+// four places that drift apart.
+const CRS_FIELDS = [
+  { key:'code',               label:'Code',                short:'Code',    type:'text',  numeric:false },
+  { key:'title',              label:'Course Title',        short:'Title',   type:'text',  numeric:false },
+  { key:'deliveryLabel',      label:'Delivery',            short:'Delivery',type:'text',  numeric:false },
+  { key:'credits',            label:'Semester Credit Hours',short:'SCH',    type:'number',numeric:true  },
+  { key:'weeks',              label:'Length in Weeks',     short:'Wks',     type:'number',numeric:true  },
+  { key:'prereqs',            label:'Prerequisites',       short:'Prereq',  type:'list',  numeric:false },
+  { key:'category',           label:'Category',            short:'Category',type:'text',  numeric:false },
+  { key:'genEdArea',          label:'Gen Ed Area',         short:'Gen Ed',  type:'text',  numeric:false },
+  { key:'school',             label:'School',              short:'School',  type:'text',  numeric:false },
+  { key:'status',             label:'Status',              short:'Status',  type:'text',  numeric:false },
+  { key:'description',        label:'Description',         short:'Description',type:'longtext',numeric:false },
+  { key:'learningObjectives', label:'Learning Objectives', short:'Objectives',type:'longtext',numeric:false },
+  { key:'catalogEdition',     label:'Catalog Edition',     short:'Edition', type:'text',  numeric:false },
+];
+const CRS_FIELD = {}; CRS_FIELDS.forEach(f=>{ CRS_FIELD[f.key]=f; });
+const CRS_SCHOOLS = [
+  { id:'SUT',    label:'SUT — Uncrewed' },
+  { id:'SFT',    label:'SFT — Firearms' },
+  // The Margin Calculator's course library has grouped by these three since it
+  // was built ('SUT','SFT','Geneds'), and 5 courses already carry Geneds --
+  // so it belongs in the list rather than being invented as a new category.
+  { id:'Geneds', label:'Geneds — General Education' },
+];
+const CRS_STATUSES = [
+  { id:'active',  label:'Active',  hint:'In a published catalog edition' },
+  { id:'draft',   label:'Draft',   hint:'Ideated here; not yet in the catalog' },
+  { id:'retired', label:'Retired', hint:'No longer offered' },
+];
+
+function crsAll(){ return (courseStore.courses||[]); }
+function crsById(id){ return crsAll().find(c=>c.id===id) || null; }
+// A code can name SEVERAL records (one per delivery), so this returns a list.
+function crsByCode(code){
+  // Reuses the consistency checker's normaliser so "uas234", "UAS  234" and
+  // "UAS 234" all resolve the same way -- one spelling rule across the app.
+  const n = ccNormCode(code);
+  return crsAll().filter(c=>ccNormCode(c.code)===n);
+}
+function crsDisplay(c){
+  if(!c) return '';
+  return c.code + (c.deliveryLabel ? ' · '+c.deliveryLabel : '');
+}
+// Renders one field for display. `prereqs` is a list; empty is ALWAYS '' so an
+// unpopulated field (learningObjectives today) reads as absent rather than as
+// an empty row or a stray heading.
+function crsFieldText(c, key){
+  if(!c) return '';
+  const v = c[key];
+  if(v === null || v === undefined) return '';
+  if(Array.isArray(v)) return v.join(', ');
+  return String(v);
+}
+function crsNextId(code, weeks){
+  const base = 'crs-' + String(code||'new').toLowerCase().replace(/[^a-z0-9]/g,'');
+  let id = weeks ? base+'-'+weeks+'wk' : base;
+  let n = 2;
+  while(crsById(id)) id = (weeks ? base+'-'+weeks+'wk' : base) + '-' + (n++);
+  return id;
+}
+
+// ---- create / update / delete ----------------------------------------------
+function crsAdd(seed){
+  if(viewerModeForced) return null;
+  const c = Object.assign({
+    id:'', code:'NEW 000', title:'', description:'', learningObjectives:'',
+    credits:null, weeks:null, deliveryLabel:'', prereqs:[], prereqNote:null,
+    category:null, genEdArea:null, offerings:[], catalogPrograms:[], programs:[],
+    status:'draft', school:null, marginCourseIds:[], siblingDeliveries:[],
+    provenance:{}, catalogValue:{}, catalogEdition:'', needsReview:[],
+    updated: Date.now()
+  }, seed||{});
+  if(!c.id) c.id = crsNextId(c.code, c.weeks);
+  if(!c.deliveryLabel && c.weeks) c.deliveryLabel = c.weeks+'-week';
+  // Anything created in the app is Playbook-authored until a catalog edition
+  // says otherwise -- that is what makes draft -> active a real transfer of
+  // authority rather than a cosmetic flag.
+  CRS_FIELDS.forEach(f=>{ if(c.provenance[f.key]===undefined) c.provenance[f.key] = 'playbook'; });
+  if(!courseStore.courses) courseStore.courses = [];
+  courseStore.courses.push(c);
+  scheduleSave();
+  return c;
+}
+function crsSetField(id, key, value){
+  if(viewerModeForced) return false;
+  const c = crsById(id); if(!c) return false;
+  const f = CRS_FIELD[key];
+  let v = value;
+  if(f && f.numeric){ v = (String(value).trim()==='') ? null : Number(value); if(v!==null && isNaN(v)) return false; }
+  else if(f && f.type==='list'){ v = String(value||'').split(',').map(x=>x.trim()).filter(Boolean); }
+  c[key] = v;
+  // Editing a catalog-owned field makes it Playbook-owned, and the catalog's
+  // value is kept so the panel can always show both and offer a revert.
+  if(c.provenance && c.provenance[key] === 'catalog') c.provenance[key] = 'playbook';
+  if(key==='weeks') c.deliveryLabel = v ? (v+'-week') : '';
+  c.updated = Date.now();
+  scheduleSave();
+  return true;
+}
+function crsRevertToCatalog(id, key){
+  if(viewerModeForced) return false;
+  const c = crsById(id); if(!c || !c.catalogValue || c.catalogValue[key]===undefined) return false;
+  c[key] = c.catalogValue[key];
+  c.provenance[key] = 'catalog';
+  if(key==='weeks') c.deliveryLabel = c[key] ? (c[key]+'-week') : '';
+  c.updated = Date.now();
+  scheduleSave();
+  return true;
+}
+// Where is this course actually used? Delete must never be a silent surprise.
+function crsReferences(id){
+  const c = crsById(id); if(!c) return [];
+  const hits = [];
+  Object.keys(blockStore||{}).forEach(key=>{
+    const html = blockStore[key] || '';
+    if(html.indexOf('data-course-id="'+id+'"') === -1) return;
+    const progId = key.slice(0, key.indexOf(':'));
+    const secId  = key.slice(key.indexOf(':')+1);
+    const p = programs.find(x=>x.id===progId);
+    hits.push({ progId, secId, progName: p ? p.name : progId, secName: ccSectionName(progId, secId) });
+  });
+  return hits;
+}
+async function crsDelete(id){
+  if(viewerModeForced) return false;
+  const c = crsById(id); if(!c) return false;
+  const refs = crsReferences(id);
+  let msg = 'Delete '+crsDisplay(c)+' — '+(c.title||'untitled')+' from the Course Database?';
+  if(refs.length){
+    msg += '\n\nIt is used in '+refs.length+' place'+(refs.length===1?'':'s')+':\n'
+        +  refs.slice(0,10).map(r=>'  • '+r.progName+' → '+r.secName).join('\n')
+        +  (refs.length>10 ? '\n  …and '+(refs.length-10)+' more' : '')
+        +  '\n\nThose blocks stay exactly as they are — but they will no longer refresh, '
+        +  'because the course they point at will be gone.';
+  }
+  const mLines = crsMarginEntries(id), mScen = crsScenariosUsing(id);
+  if(mLines.length){
+    msg += '\n\nIt is linked to '+mLines.length+' costing line'+(mLines.length===1?'':'s')+
+           ' in the Margin Calculator ('+mLines.map(m=>m.code).join(', ')+').'+
+           '\nThose stay — only the link is lost.';
+  }
+  if(mScen.length){
+    msg += '\nUsed in '+mScen.length+' margin scenario'+(mScen.length===1?'':'s')+': '+
+           mScen.slice(0,4).map(x=>x.progName+' → '+x.scenarioName).join('; ')+
+           (mScen.length>4?'; …':'');
+  }
+  if(c.siblingDeliveries && c.siblingDeliveries.length){
+    msg += '\n\nThe other delivery of this course ('+c.siblingDeliveries.join(', ')+') is NOT deleted.';
+  }
+  msg += '\n\nThis cannot be undone from here.';
+  if(!await appConfirm(msg, 'Delete course', 'Cancel')) return false;
+  (marginStore.courses||[]).forEach(m=>{
+    if(m.courseIds) m.courseIds = m.courseIds.filter(cid=>cid!==id);
+  });
+  courseStore.courses = crsAll().filter(x=>x.id!==id);
+  crsAll().forEach(x=>{
+    if(x.siblingDeliveries) x.siblingDeliveries = x.siblingDeliveries.filter(sid=>sid!==id);
+  });
+  scheduleSave();
+  toast('Deleted '+crsDisplay(c));
+  return true;
+}
+// Promote a Playbook-authored course once it appears in a catalog edition.
+// Reported, never silent: this is the moment authority moves to the catalog.
+function crsPromoteToActive(id, edition){
+  if(viewerModeForced) return false;
+  const c = crsById(id); if(!c) return false;
+  c.status = 'active';
+  c.catalogEdition = edition || c.catalogEdition;
+  c.updated = Date.now();
+  scheduleSave();
+  return true;
+}
+// ==================== LINK TO THE MARGIN CALCULATOR ====================
+// Many-to-many, joined by id. One course has several costing lines
+// (FTE 217 has three kit options); one costing line serves both deliveries of
+// a course (Eng 101 is costed once but runs 5-week and 8-week). Neither side
+// is keyed by code, because code is not unique.
+function crsMarginEntries(courseId){
+  const c = crsById(courseId); if(!c) return [];
+  const ids = new Set(c.marginCourseIds||[]);
+  return (marginStore.courses||[]).filter(m=>ids.has(m.id));
+}
+function crsCoursesForMarginEntry(marginId){
+  const m = (marginStore.courses||[]).find(x=>x.id===marginId);
+  const ids = new Set((m && m.courseIds) || []);
+  return crsAll().filter(c=>ids.has(c.id));
+}
+function crsCostTotal(courseId){
+  return crsMarginEntries(courseId).reduce((n,m)=>n+marginCourseTotalCost(m), 0);
+}
+// Which margin scenarios include this course, via its costing lines.
+function crsScenariosUsing(courseId){
+  const mids = new Set(crsMarginEntries(courseId).map(m=>m.id));
+  if(!mids.size) return [];
+  const out = [];
+  Object.keys(marginStore.scenariosByProgram||{}).forEach(pid=>{
+    const prog = programs.find(x=>x.id===pid);
+    const pm = prog && prog.margin;
+    const inProgram = pm ? [].concat(pm.coreCourseIds||[], pm.electiveCourseIds||[]) : [];
+    (marginStore.scenariosByProgram[pid]||[]).forEach(sc=>{
+      const used = new Set([].concat(inProgram, sc.selectedElectiveCourseIds||[]));
+      if([...mids].some(id=>used.has(id)))
+        out.push({ progId:pid, progName: prog?prog.name:pid, scenarioId:sc.id,
+                   scenarioName: sc.name||'Untitled', isPrimary: !!sc.isPrimary });
+    });
+  });
+  return out;
+}
+// Exact normalised-code matching only. The costing variants
+// ("FTE 217 (opt AR15)") and the four costed-but-unpublished courses are
+// deliberately LEFT for review rather than guessed at.
+function crsLinkAuto(){
+  const byCode = {};
+  crsAll().forEach(c=>{ (byCode[ccNormCode(c.code)] = byCode[ccNormCode(c.code)] || []).push(c); });
+  const rep = { linked:[], variants:[], unmatched:[], alreadyLinked:0 };
+  crsAll().forEach(c=>{ c.marginCourseIds = []; });
+  (marginStore.courses||[]).forEach(m=>{
+    m.courseIds = [];
+    const n = ccNormCode(m.code||'');
+    const hit = byCode[n];
+    if(hit && hit.length){
+      hit.forEach(c=>{ c.marginCourseIds.push(m.id); m.courseIds.push(c.id); });
+      rep.linked.push({ margin:m.code, courses:hit.map(c=>c.id) });
+      return;
+    }
+    // "FTE 217 (opt AR15)" -> the base code is still a real course
+    const base = /^([A-Z]{2,4} \d{3})/.exec(n);
+    if(base && byCode[base[1]]) rep.variants.push({ margin:m.code, base:base[1] });
+    else rep.unmatched.push(m.code);
+  });
+  scheduleSave();
+  return rep;
+}
+// Confirm the costing variants belong to their base course.
+function crsLinkVariants(){
+  const byCode = {};
+  crsAll().forEach(c=>{ (byCode[ccNormCode(c.code)] = byCode[ccNormCode(c.code)] || []).push(c); });
+  let n = 0;
+  (marginStore.courses||[]).forEach(m=>{
+    if((m.courseIds||[]).length) return;
+    const base = /^([A-Z]{2,4} \d{3})/.exec(ccNormCode(m.code||''));
+    const hit = base && byCode[base[1]];
+    if(!hit) return;
+    m.courseIds = hit.map(c=>c.id);
+    hit.forEach(c=>{ if(!(c.marginCourseIds||[]).includes(m.id)) (c.marginCourseIds=c.marginCourseIds||[]).push(m.id); });
+    n++;
+  });
+  scheduleSave();
+  return n;
+}
+// Credit hours live in BOTH stores today. This reports every disagreement and
+// changes nothing -- the numbers feed real revenue arithmetic, so moving one
+// is a decision, not a cleanup.
+function crsCreditConflicts(){
+  const out = [];
+  (marginStore.courses||[]).forEach(m=>{
+    const linked = crsCoursesForMarginEntry(m.id);
+    if(!linked.length || m.creditHours==null) return;
+    const cat = [...new Set(linked.map(c=>c.credits).filter(v=>v!=null))];
+    if(cat.length && !cat.includes(Number(m.creditHours)))
+      out.push({ marginId:m.id, code:m.code, margin:Number(m.creditHours),
+                 catalog:cat, courseIds:linked.map(c=>c.id) });
+  });
+  return out;
+}
+// Fill School from the costing library, where all 37 entries already carry one.
+async function crsFillSchoolsFromMargin(){
+  if(viewerModeForced) return;
+  const plan = [];
+  crsAll().forEach(c=>{
+    if(c.school) return;
+    const sch = [...new Set(crsMarginEntries(c.id).map(m=>m.school).filter(Boolean))];
+    if(sch.length===1) plan.push({ id:c.id, code:crsDisplay(c), school:sch[0] });
+  });
+  if(!plan.length){ await appAlert('Nothing to fill — every linked course already has a school.'); return; }
+  const preview = plan.slice(0,14).map(x=>'  '+x.code+'  →  '+x.school).join('\n')
+                + (plan.length>14 ? '\n  …and '+(plan.length-14)+' more' : '');
+  if(!await appConfirm('Set School on '+plan.length+' course'+(plan.length===1?'':'s')+
+      ' from the Margin Calculator’s course library?\n\n'+preview+
+      '\n\nOnly courses with no school set are touched.', 'Set schools', 'Cancel')) return;
+  plan.forEach(x=>{ const c=crsById(x.id); if(c){ c.school=x.school; c.updated=Date.now(); } });
+  scheduleSave(); crsRender();
+  toast('School set on '+plan.length+' course'+(plan.length===1?'':'s'));
+}
+async function crsLinkMarginAction(){
+  if(viewerModeForced) return;
+  const rep = crsLinkAuto();
+  const conflicts = crsCreditConflicts();
+  let msg = 'Linked the Course Database to the Margin Calculator.\n\n'
+    + rep.linked.length+' costing line'+(rep.linked.length===1?'':'s')+' matched a course by code\n'
+    + rep.variants.length+' look like costing variants of a course\n'
+    + rep.unmatched.length+' matched nothing\n';
+  if(rep.variants.length)
+    msg += '\nVariants (one course, several costing lines):\n  '
+        +  rep.variants.map(v=>v.margin+'  →  '+v.base).join('\n  ')
+        +  '\nThese are NOT linked yet — confirm them below.';
+  if(rep.unmatched.length)
+    msg += '\n\nNo match: '+rep.unmatched.join(', ')
+        +  '\nThese are costed but not in the catalog — add them as draft courses if they are real.';
+  if(conflicts.length)
+    msg += '\n\n⚠ Credit hours disagree on '+conflicts.length+':\n  '
+        +  conflicts.map(c=>c.code+' — margin says '+c.margin+', catalog says '+c.catalog.join('/')).join('\n  ')
+        +  '\nNothing was changed. Fix whichever is wrong.';
+  await appAlert(msg);
+  if(rep.variants.length){
+    if(await appConfirm('Link the '+rep.variants.length+' costing variant'+(rep.variants.length===1?'':'s')+
+        ' to their base course?\n\n'+rep.variants.map(v=>'  '+v.margin+'  →  '+v.base).join('\n')+
+        '\n\nEach stays a separate costing line; they just point at the same course record.',
+        'Link variants', 'Leave unlinked')){
+      const n = crsLinkVariants();
+      toast('Linked '+n+' costing variant'+(n===1?'':'s'));
+    }
+  }
+  crsRender();
+}
+
+// ==================== COURSE TABLE / CARD BLOCKS ====================
+// A bound cell carries data-course-field AND data-db-value. Comparing the
+// cell's text to data-db-value is how a hand edit is detected -- no event
+// handlers needed, and the mark survives save/reload because it is an
+// attribute, not runtime state. Free columns have no data-course-field and are
+// never touched.
+function crsCellText(c, key){
+  const v = crsFieldText(c, key);
+  return v === '' ? '—' : v;
+}
+function crsRowsFor(spec){
+  let rows = [];
+  if(spec.source === 'program' && spec.program){
+    rows = crsAll().filter(c=>(c.catalogPrograms||[]).indexOf(spec.program)>=0);
+  } else if(spec.source === 'ids'){
+    rows = (spec.ids||[]).map(id=>crsById(id)).filter(Boolean);
+  } else if(spec.source === 'status'){
+    rows = crsAll().filter(c=>c.status===spec.status);
+  } else {
+    rows = crsAll().slice();
+  }
+  return rows.sort((a,b)=> a.code===b.code ? (a.weeks||0)-(b.weeks||0) : (a.code<b.code?-1:1));
+}
+function crsTableBlockHTML(data){
+  // Deliberately a STANDARD .block-table, not a bespoke one: the gear menu's
+  // add-column / add-row / formatting / CSV tools then all work on it, and it
+  // looks and behaves like every other table in the Playbook. The only thing
+  // that makes it special is the data-course-field / data-course-id / 
+  // data-db-value attributes, which is what lets ↻ Refresh know which cells
+  // the database owns.
+  // NOT 'tbl-'+(++uid): uid restarts at zero on every page load while blocks
+  // persist, so repeating the same steps in a later session regenerates an id
+  // that already exists in the document -- and getElementById then hands the
+  // table toolbar the WRONG table. Same shape as the block's own bid.
+  const id = 'tbl-c'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+  const fields = (data.fields||['code','title','credits','weeks']).filter(k=>CRS_FIELD[k]);
+  const spec = { source:data.source||'ids', program:data.program||'', ids:data.ids||[], status:data.status||'' };
+  const rows = crsRowsFor(spec);
+  const ed   = data.edition || '';
+
+  const ths = fields.map((k,ci)=>'<th contenteditable="true" spellcheck="false" data-ci="'+ci+'"'
+      + ' data-course-field="'+k+'">'+escapeHtml(CRS_FIELD[k].short)+'</th>').join('');
+  const body = rows.map((c,ri)=>{
+    const tds = fields.map(k=>{
+      const v = crsCellText(c,k);
+      return '<td contenteditable="true" spellcheck="false" data-course-field="'+k+'"'
+           + ' data-db-value="'+escapeHtml(v)+'">'+escapeHtml(v)+'</td>';
+    }).join('');
+    return '<tr data-ri="'+ri+'" data-course-id="'+c.id+'">'+tds
+         + '<td class="tbl-utilcell" style="width:22px;padding:0;border:none;">'+tblDelCellHTML()+'</td></tr>';
+  }).join('') || ('<tr data-ri="0"><td contenteditable="true" spellcheck="false" colspan="'+fields.length+'">'
+      + 'No courses selected.</td><td class="tbl-utilcell" style="width:22px;padding:0;border:none;">'
+      + tblDelCellHTML()+'</td></tr>');
+
+  return '<div class="block-table-wrap" data-course-table="1"'
+    + ' data-course-source="'+escapeHtml(spec.source)+'"'
+    + ' data-course-program="'+escapeHtml(spec.program)+'"'
+    + ' data-course-status="'+escapeHtml(spec.status)+'"'
+    + ' data-course-ids="'+escapeHtml((spec.ids||[]).join(','))+'"'
+    + ' data-course-edition="'+escapeHtml(ed)+'">'
+    + '<button class="tbl-gear" title="Table tools" onclick="this.closest(\'.block-table-wrap\').classList.toggle(\'tools-open\')">⚙</button>'
+    + '<table class="block-table" id="'+id+'">'
+    + '<thead><tr>'+ths+'<th style="width:22px;padding:0;background:#f8fafc;border:none;"></th></tr></thead>'
+    + '<tbody>'+body+'</tbody></table>'
+    + '<div class="tbl-toolbar">'+tblToolbarHTML(id)+'</div>'
+    + '<div class="crs-tbl-foot">'
+    + '<button class="mscn-btn crs-tbl-refresh" onclick="crsRefreshTable(this)">↻ Refresh from Course Database</button>'
+    + (ed?'<span>catalog '+escapeHtml(ed)+'</span>':'')
+    + '</div></div>';
+}
+
+// The refresh contract. Six rules, and it always reports what it did.
+async function crsRefreshTable(btn){
+  if(viewerModeForced) return;
+  const box = btn.closest('[data-course-table]'); if(!box) return;
+  const table = box.querySelector('table.block-table'); if(!table) return;
+  const heads = [...table.querySelectorAll('thead th')];
+  const bound = heads.map(h=>h.getAttribute('data-course-field')||null);
+  // The last header is the table's own delete-button cell, not one of her
+  // columns -- excluded, or the report claims a free column that isn't one.
+  const rep = { updated:[], keptYours:[], unknown:[], missing:[],
+                freeCols: heads.filter(h=>!h.getAttribute('data-course-field')
+                                       && !/^\s*$/.test(h.textContent)).length };
+
+  [...table.querySelectorAll('tbody tr')].forEach(tr=>{
+    if(tr.classList.contains('crs-tr-group') || tr.classList.contains('crs-tr-sub')) return;
+    const id = tr.getAttribute('data-course-id');
+    if(!id){ rep.unknown.push('(row you added)'); return; }
+    const c = crsById(id);
+    if(!c){ rep.unknown.push(id); return; }
+    [...tr.children].forEach(td=>{
+      const key = td.getAttribute('data-course-field');
+      if(!key) return;                                  // free column: never touched
+      const was = td.getAttribute('data-db-value');
+      const now = td.textContent.trim();
+      const fresh = crsCellText(c, key);
+      if(was !== null && now !== was){                  // you edited this cell
+        if(fresh !== now) rep.keptYours.push(crsDisplay(c)+' · '+(CRS_FIELD[key]||{}).short);
+        return;
+      }
+      if(now !== fresh){
+        td.textContent = fresh;
+        rep.updated.push(crsDisplay(c)+' · '+(CRS_FIELD[key]||{}).short);
+      }
+      td.setAttribute('data-db-value', fresh);
+    });
+  });
+
+  // recompute every subtotal from the rows above it
+  [...table.querySelectorAll('tbody tr.crs-tr-sub')].forEach(sub=>{
+    const cells = [...sub.querySelectorAll('[data-course-subtotal-field]')];
+    if(!cells.length) return;
+    const label = sub.getAttribute('data-course-subtotal');
+    let group = [];
+    if(label === 'program'){
+      group = [...table.querySelectorAll('tbody tr[data-course-id]')];
+    } else {
+      let n = sub.previousElementSibling;
+      while(n && n.hasAttribute('data-course-id')){ group.unshift(n); n = n.previousElementSibling; }
+    }
+    cells.forEach(td=>{
+      const key = td.getAttribute('data-course-subtotal-field');
+      const idx = [...sub.children].indexOf(td);
+      const sum = group.reduce((acc,tr)=>{
+        const cell = tr.children[idx];
+        return acc + (Number((cell?cell.textContent:'').replace(/[^0-9.-]/g,'')) || 0);
+      }, 0);
+      const before = td.textContent.trim();
+      td.textContent = String(sum);
+      if(before !== String(sum)) rep.updated.push('subtotal · '+label);
+    });
+  });
+
+  // courses that belong to this table's source but are not in it
+  const spec = { source:box.getAttribute('data-course-source')||'all',
+                 program:box.getAttribute('data-course-program')||'',
+                 status:box.getAttribute('data-course-status')||'',
+                 ids:(box.getAttribute('data-course-ids')||'').split(',').filter(Boolean) };
+  const present = new Set([...table.querySelectorAll('tbody tr[data-course-id]')].map(tr=>tr.getAttribute('data-course-id')));
+  const should  = crsRowsFor(spec).filter(c=>!present.has(c.id));
+  rep.missing = should;
+
+  scheduleSave();
+  await appAlert(crsRefreshReport(rep));
+  if(rep.missing.length){
+    if(await appConfirm('Add '+rep.missing.length+' missing course row'+(rep.missing.length===1?'':'s')+
+        ' to the bottom of this table?\n\n'+rep.missing.slice(0,10).map(c=>'  '+crsDisplay(c)+' — '+(c.title||'')).join('\n')+
+        (rep.missing.length>10?'\n  …':''), 'Add rows', 'Leave them out')){
+      const tbody = table.querySelector('tbody');
+      const fields = bound.filter(Boolean);
+      rep.missing.forEach(c=>{
+        const tr = document.createElement('tr');
+        tr.setAttribute('data-course-id', c.id);
+        heads.forEach(h=>{
+          const key = h.getAttribute('data-course-field');
+          const td = document.createElement('td');
+          td.setAttribute('contenteditable','true'); td.setAttribute('spellcheck','false');
+          if(key){
+            td.setAttribute('data-course-field', key);
+            const v = crsCellText(c,key);
+            td.setAttribute('data-db-value', v); td.textContent = v;
+            if(CRS_FIELD[key].numeric) td.style.textAlign='right';
+          }
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+      scheduleSave();
+      toast('Added '+rep.missing.length+' row'+(rep.missing.length===1?'':'s'));
+    }
+  }
+}
+function crsRefreshReport(rep){
+  const L = ['Refresh complete.', ''];
+  L.push(rep.updated.length+' cell'+(rep.updated.length===1?'':'s')+' updated from the database'
+         + (rep.updated.length ? ':\n  ' + [...new Set(rep.updated)].slice(0,8).join('\n  ')
+            + (rep.updated.length>8?'\n  …':'') : '.'));
+  if(rep.keptYours.length){
+    L.push('');
+    const k = rep.keptYours.length;
+    L.push(k+' cell'+(k===1?'':'s')+' you had edited '+(k===1?'was':'were')+
+           ' LEFT AS IT '+(k===1?'IS':'THEY ARE')+':\n  '+[...new Set(rep.keptYours)].slice(0,8).join('\n  '));
+  }
+  if(rep.freeCols){
+    L.push('');
+    const f = rep.freeCols;
+    L.push(f+' column'+(f===1?'':'s')+' of your own '+(f===1?'was':'were')+' not touched.');
+  }
+  if(rep.unknown.length){
+    L.push('');
+    const u = rep.unknown.length;
+    L.push(u+' row'+(u===1?'':'s')+' not linked to a course '+(u===1?'was':'were')+
+           ' left exactly as typed.');
+  }
+  if(rep.missing.length){
+    L.push('');
+    const m = rep.missing.length;
+    L.push(m+' course'+(m===1?'':'s')+(m===1?' belongs':' belong')+
+           ' to this table but '+(m===1?'is':'are')+' not in it yet.');
+  }
+  return L.join('\n');
+}
+
+// ---- the single-course card ----------------------------------------------
+function crsCardBlockHTML(data){
+  const c = crsById(data.courseId);
+  if(!c) return '<div class="block-course-card"><div class="crs-card-missing">'
+    + 'That course is no longer in the Course Database.</div></div>';
+  const fields = (data.fields||['credits','weeks','prereqs','description']).filter(k=>CRS_FIELD[k]);
+  const ed = c.catalogEdition || '';
+  const meta = fields.filter(k=>!CRS_FIELD[k] || CRS_FIELD[k].type!=='longtext')
+    .map(k=>{ const v=crsFieldText(c,k); return v ? escapeHtml(CRS_FIELD[k].short)+' '+escapeHtml(v) : ''; })
+    .filter(Boolean).join(' &middot; ');
+  const longs = fields.filter(k=>CRS_FIELD[k].type==='longtext')
+    .map(k=>{ const v=crsFieldText(c,k);
+      // an empty field renders as nothing at all -- no heading, no blank row
+      if(!v) return '';
+      return '<div class="crs-card-sec"><div class="crs-card-sec-t">'+escapeHtml(CRS_FIELD[k].label)+'</div>'
+           + '<div contenteditable="true" spellcheck="false">'+escapeHtml(v)+'</div></div>'; })
+    .join('');
+  return '<div class="block-course-card" data-course-card="1" data-course-id="'+escapeHtml(c.id)+'">'
+    + '<div class="crs-card-h">'
+    + '<span class="crs-card-code">'+escapeHtml(c.code)+'</span>'
+    + (c.deliveryLabel ? '<span class="crs-dl crs-dl-'+(c.weeks||'x')+'">'+escapeHtml(c.deliveryLabel)+'</span>' : '')
+    + '<span class="crs-card-t" contenteditable="true" spellcheck="false">'+escapeHtml(c.title||'')+'</span>'
+    + (meta ? '<span class="crs-card-meta">'+meta+'</span>' : '')
+    + '</div>'
+    + longs
+    + '<div class="crs-tbl-foot">'
+    + '<button class="mscn-btn crs-tbl-refresh" onclick="crsRefreshCard(this)">↻ Refresh</button>'
+    + '<span>from the Course Database'+(ed?' · catalog '+escapeHtml(ed):'')+'</span>'
+    + '</div></div>';
+}
+async function crsRefreshCard(btn){
+  if(viewerModeForced) return;
+  const box = btn.closest('.block-course-card'); if(!box) return;
+  const c = crsById(box.getAttribute('data-course-id'));
+  if(!c){ await appAlert('That course is no longer in the Course Database, so there is nothing to refresh from.'); return; }
+  const fresh = document.createElement('div');
+  fresh.innerHTML = crsCardBlockHTML({ courseId:c.id });
+  box.replaceWith(fresh.firstElementChild);
+  scheduleSave();
+  toast('Card refreshed from '+crsDisplay(c));
+}
+
+// ---- insert into a section ----------------------------------------------
+// Deliberately no configuration dialog. Tick courses in the Course Database
+// panel and press Insert; the table lands with sensible columns and is then an
+// ordinary table you edit with the gear menu. An up-front wall of options
+// (row source, grouping, free columns, saved layouts) was the wrong shape for
+// "populate a page for informational purposes".
+function crsInsertEntry(){
+  if(viewerModeForced) return;
+  if(!curProgId){ appAlert('Open a program first — courses are inserted into the section you are viewing.'); return; }
+  crsPanelOpenFor();
+  if(!crsPicked.size) toast('Tick the courses you want, then press Insert');
+}
+// One course as a card, straight in with its useful fields. Empty fields are
+// left out entirely, so the objectives section simply does not appear yet.
+async function crsInsertCard(id){
+  if(viewerModeForced) return;
+  const c = crsById(id || crsSelectedId);
+  if(!c){ await appAlert('Open a course first, then insert it.'); return; }
+  if(!curProgId){ await appAlert('Open a program first — the card goes into the section you are viewing.'); return; }
+  const node = makeBlock({ t:'courseCard', courseId:c.id,
+                           fields:['credits','weeks','prereqs','description','learningObjectives'] });
+  document.getElementById('blocks-root').appendChild(node);
+  initBlockSort();
+  scheduleSave();
+  toast('Inserted '+crsDisplay(c));
+}
+
+// ==================== COURSE DATABASE EXPORTS ====================
+const CRS_EXPORT_FIELDS = ['code','deliveryLabel','title','credits','weeks','prereqs',
+  'category','genEdArea','school','status','description','learningObjectives','catalogEdition'];
+
+function crsExportScope(scope, program){
+  if(scope==='program' && program) return crsAll().filter(c=>(c.catalogPrograms||[]).indexOf(program)>=0);
+  if(scope==='active')  return crsAll().filter(c=>c.status==='active');
+  if(scope==='draft')   return crsAll().filter(c=>c.status==='draft');
+  return crsAll().slice();
+}
+function crsExportRows(list){
+  return list.slice().sort((a,b)=> a.code===b.code ? (a.weeks||0)-(b.weeks||0) : (a.code<b.code?-1:1))
+    .map(c=>CRS_EXPORT_FIELDS.map(k=>crsFieldText(c,k)));
+}
+function crsCsvEscape(v){
+  const t = String(v==null?'':v);
+  return /[",\n]/.test(t) ? '"'+t.replace(/"/g,'""')+'"' : t;
+}
+function crsExportCSV(scope, program){
+  const list = crsExportScope(scope, program);
+  const head = CRS_EXPORT_FIELDS.map(k=>(CRS_FIELD[k]||{}).label||k);
+  const csv = [head, ...crsExportRows(list)].map(r=>r.map(crsCsvEscape).join(',')).join('\r\n');
+  downloadBlob(new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'}),
+    'SDI-Courses-'+scope+'-'+new Date().toISOString().slice(0,10)+'.csv');
+  toast(list.length+' course'+(list.length===1?'':'s')+' exported to CSV ✓');
+}
+function crsExportExcel(scope, program){
+  const list = crsExportScope(scope, program);
+  const head = CRS_EXPORT_FIELDS.map(k=>'<th>'+escapeHtml((CRS_FIELD[k]||{}).label||k)+'</th>').join('');
+  const body = crsExportRows(list).map(r=>'<tr>'+r.map(v=>'<td>'+escapeHtml(v)+'</td>').join('')+'</tr>').join('');
+  const html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">'
+    + '<head><meta charset="utf-8"><style>table{border-collapse:collapse;}td,th{border:1px solid #bbb;'
+    + 'padding:4pt 6pt;font-family:Calibri,sans-serif;font-size:10pt;vertical-align:top;}'
+    + 'th{background:#f0f0f0;font-weight:bold;}</style></head><body>'
+    + '<table><thead><tr>'+head+'</tr></thead><tbody>'+body+'</tbody></table></body></html>';
+  downloadBlob(new Blob([html],{type:'application/vnd.ms-excel'}),
+    'SDI-Courses-'+scope+'-'+new Date().toISOString().slice(0,10)+'.xls');
+  toast(list.length+' course'+(list.length===1?'':'s')+' exported to Excel ✓');
+}
+function crsExportJSON(scope, program){
+  const list = crsExportScope(scope, program);
+  const payload = { edition:(courseStore.editions||[]).slice(-1).map(e=>e.label)[0]||'',
+                    exportedAt:new Date().toISOString(), scope, program:program||null,
+                    keyedBy:'id (code is NOT unique -- one record per delivery)',
+                    courses:list };
+  downloadBlob(new Blob([JSON.stringify(payload,null,1)],{type:'application/json'}),
+    'SDI-Courses-'+scope+'-'+new Date().toISOString().slice(0,10)+'.json');
+  toast(list.length+' course'+(list.length===1?'':'s')+' exported as JSON ✓');
+}
+function crsExportWord(scope, program){
+  const list = crsExportScope(scope, program);
+  const byCat = {};
+  list.forEach(c=>{ const g=c.category||'Other'; (byCat[g]=byCat[g]||[]).push(c); });
+  let body = '<h1>SDI Course Catalog</h1>'
+    + '<p>'+escapeHtml(scope==='program'?program:({all:'All courses',active:'Active courses',draft:'Courses in development'}[scope]||scope))
+    + ' &mdash; '+list.length+' record'+(list.length===1?'':'s')+', generated '
+    + new Date().toLocaleDateString()+'.</p>';
+  Object.keys(byCat).sort().forEach(g=>{
+    body += '<h2>'+escapeHtml(g)+'</h2>';
+    byCat[g].slice().sort((a,b)=>a.code<b.code?-1:1).forEach(c=>{
+      const bits = [];
+      if(c.credits!=null) bits.push(c.credits+' semester credit hour'+(c.credits===1?'':'s'));
+      if(c.weeks!=null)   bits.push(c.weeks+' weeks');
+      if((c.prereqs||[]).length) bits.push('Prerequisite: '+c.prereqs.join(', '));
+      else if(c.prereqNote)      bits.push('Prerequisite: '+c.prereqNote);
+      body += '<h3>'+escapeHtml(c.code)+(c.deliveryLabel?' ('+escapeHtml(c.deliveryLabel)+')':'')
+           +  ': '+escapeHtml(c.title||'')+'</h3>';
+      if(bits.length) body += '<p><i>'+escapeHtml(bits.join(' · '))+'</i></p>';
+      if(c.description) body += '<p>'+escapeHtml(c.description)+'</p>';
+      if(c.learningObjectives) body += '<p><b>Learning objectives:</b> '+escapeHtml(c.learningObjectives)+'</p>';
+    });
+  });
+  downloadBlob(_buildDocx(body), 'SDI-Course-Catalog-'+scope+'-'+new Date().toISOString().slice(0,10)+'.docx');
+  toast(list.length+' course'+(list.length===1?'':'s')+' exported to Word ✓');
+}
+function crsChangeRows(){
+  const out = [];
+  crsAll().forEach(c=>{
+    crsDiffs(c).forEach(k=>out.push([ c.code, c.deliveryLabel||'', (CRS_FIELD[k]||{}).label||k,
+                                String(c.catalogValue[k]), crsFieldText(c,k), c.catalogEdition||'', c.status ]));
+    if(c.status==='draft') out.push([ c.code, c.deliveryLabel||'', 'Whole record',
+                                      '(not in the catalog)', 'Draft in the Playbook', '', 'draft' ]);
+  });
+  return out;
+}
+async function crsExportChangeReport(){
+  const rows = crsChangeRows();
+  if(!rows.length){ await appAlert('Nothing differs from the catalog, and there are no draft courses. No report to produce.'); return; }
+  const ed = (courseStore.editions||[]).slice(-1).map(e=>e.label)[0]||'the imported edition';
+  const body = '<h1>Course changes since catalog '+escapeHtml(ed)+'</h1>'
+    + '<p>'+rows.length+' change'+(rows.length===1?'':'s')+', generated '+new Date().toLocaleDateString()+'.</p>'
+    + '<table><thead><tr><th>Code</th><th>Delivery</th><th>Field</th><th>Catalog</th><th>Now</th><th>Status</th></tr></thead><tbody>'
+    + rows.map(r=>'<tr>'+[r[0],r[1],r[2],r[3],r[4],r[6]].map(v=>'<td>'+escapeHtml(v)+'</td>').join('')+'</tr>').join('')
+    + '</tbody></table>';
+  downloadBlob(_buildDocx(body), 'SDI-Course-Changes-'+new Date().toISOString().slice(0,10)+'.docx');
+  const csv = [['Code','Delivery','Field','Catalog','Now','Edition','Status'], ...rows]
+    .map(r=>r.map(crsCsvEscape).join(',')).join('\r\n');
+  downloadBlob(new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'}),
+    'SDI-Course-Changes-'+new Date().toISOString().slice(0,10)+'.csv');
+  toast(rows.length+' change'+(rows.length===1?'':'s')+' exported (Word + CSV) ✓');
+}
+async function crsExportDialog(){
+  const progs = [...new Set(crsAll().flatMap(c=>c.catalogPrograms||[]))].sort();
+  if(!crsAll().length){ await appAlert('The Course Database is empty — nothing to export yet.'); return; }
+  const body = '<div class="crs-dlg">'
+    + '<div class="crs-dlg-r"><label>Scope</label><select id="crs-x-scope">'
+      + '<option value="all">Whole database ('+crsAll().length+')</option>'
+      + '<option value="active">Active only ('+crsStats().active+')</option>'
+      + '<option value="draft">Drafts only ('+crsStats().draft+')</option>'
+      + (progs.length?'<option value="program">One catalog program</option>':'')
+      + '</select></div>'
+    + (progs.length?'<div class="crs-dlg-r"><label>Program</label><select id="crs-x-prog">'
+      + progs.map(x=>'<option value="'+escapeHtml(x)+'">'+escapeHtml(x)+'</option>').join('')
+      + '</select></div>':'')
+    + '<div class="crs-dlg-f"><label>Format</label><div class="crs-dlg-chks" style="grid-template-columns:1fr">'
+      + '<label class="crs-dlg-chk"><input type="radio" name="crsx" value="xls" checked> Excel — one row per course, for the registrar</label>'
+      + '<label class="crs-dlg-chk"><input type="radio" name="crsx" value="csv"> CSV — the same, plain text</label>'
+      + '<label class="crs-dlg-chk"><input type="radio" name="crsx" value="docx"> Word — a formatted catalog document, for compliance</label>'
+      + '<label class="crs-dlg-chk"><input type="radio" name="crsx" value="json"> JSON — machine-readable</label>'
+      + '<label class="crs-dlg-chk"><input type="radio" name="crsx" value="change"> Change report — what differs from the catalog</label>'
+      + '</div></div></div>';
+  const picked = await appFormDialog('Export the Course Database', body, 'Export', 'Cancel', ov=>({
+    scope: (ov.querySelector('#crs-x-scope')||{}).value || 'all',
+    prog:  (ov.querySelector('#crs-x-prog') ||{}).value || '',
+    fmt:   (ov.querySelector('input[name="crsx"]:checked')||{}).value || 'xls'
+  }));
+  if(!picked) return;
+  if(picked.fmt==='csv')         crsExportCSV(picked.scope, picked.prog);
+  else if(picked.fmt==='docx')   crsExportWord(picked.scope, picked.prog);
+  else if(picked.fmt==='json')   crsExportJSON(picked.scope, picked.prog);
+  else if(picked.fmt==='change') await crsExportChangeReport();
+  else                           crsExportExcel(picked.scope, picked.prog);
+}
+
+function crsStats(){
+  const cs = crsAll();
+  return {
+    total: cs.length,
+    codes: new Set(cs.map(c=>c.code)).size,
+    active: cs.filter(c=>c.status==='active').length,
+    draft: cs.filter(c=>c.status==='draft').length,
+    retired: cs.filter(c=>c.status==='retired').length,
+    needsReview: cs.filter(c=>(c.needsReview||[]).length).length,
+    differsFromCatalog: cs.filter(c=>crsDiffs(c).length).length,
+  };
+}
+// Which fields currently disagree with the catalog's own value.
+// ---- import a catalog edition ---------------------------------------------
+// The seed lives as courses.json in the CONTENT repo (private, read with the
+// token already in hand) rather than baked into this file: 43 courses with
+// full descriptions is ~68KB, and a catalog edition is content, not code.
+const CRS_SEED_PATH = 'courses.json';
+
+// Merge, never clobber. The rules, in one place:
+//   new id                     -> added
+//   existing, field untouched  -> catalog value written, provenance 'catalog'
+//   existing, field you edited -> LEFT ALONE, reported, catalogValue refreshed
+//                                 so the panel can still offer a revert
+//   draft course now in the edition -> promoted to active, and REPORTED,
+//                                 because that is authority changing hands
+function crsMergeEdition(payload){
+  const edition = (payload && payload.edition) || 'unknown';
+  const incoming = (payload && payload.courses) || [];
+  const rep = { edition, added:[], updated:[], keptYours:[], promoted:[], unchanged:0 };
+  incoming.forEach(inc=>{
+    if(!inc || !inc.id) return;
+    const cur = crsById(inc.id);
+    if(!cur){
+      const c = JSON.parse(JSON.stringify(inc));
+      c.status = c.status || 'active';
+      c.updated = Date.now();
+      courseStore.courses.push(c);
+      rep.added.push(c.id);
+      return;
+    }
+    if(cur.status === 'draft'){
+      cur.status = 'active';
+      rep.promoted.push(cur.id);
+    }
+    let touched = false;
+    Object.keys(inc.catalogValue || {}).concat(['description','prereqs','category','genEdArea'])
+      .forEach(k=>{
+        if(inc[k] === undefined) return;
+        const incVal = inc[k];
+        // remember what the catalog says regardless -- that is what powers the diff
+        if(!cur.catalogValue) cur.catalogValue = {};
+        cur.catalogValue[k] = incVal;
+        const owner = (cur.provenance||{})[k];
+        if(owner === 'playbook' || owner === 'manual'){
+          if(String(cur[k]) !== String(incVal)) rep.keptYours.push(cur.id+' · '+k);
+          return;                                   // yours wins; never overwritten
+        }
+        if(String(cur[k]) !== String(incVal)){
+          cur[k] = incVal;
+          if(!cur.provenance) cur.provenance = {};
+          cur.provenance[k] = 'catalog';
+          touched = true;
+        }
+      });
+    cur.offerings       = inc.offerings || cur.offerings;
+    cur.catalogPrograms = inc.catalogPrograms || cur.catalogPrograms;
+    cur.catalogEdition  = edition;
+    cur.needsReview     = inc.needsReview || cur.needsReview;
+    if(touched){ cur.updated = Date.now(); rep.updated.push(cur.id); }
+    else rep.unchanged++;
+  });
+  if(!courseStore.editions) courseStore.editions = [];
+  if(!courseStore.editions.some(e=>e.label===edition))
+    courseStore.editions.push({ label:edition, importedAt:Date.now(), courseCount:incoming.length });
+  scheduleSave();
+  return rep;
+}
+
+function crsEditionReportText(rep){
+  const L = [];
+  L.push('Catalog edition: '+rep.edition);
+  L.push('');
+  L.push(rep.added.length+' course'+(rep.added.length===1?'':'s')+' added');
+  L.push(rep.updated.length+' updated from the catalog');
+  L.push(rep.unchanged+' already matched');
+  if(rep.promoted.length){
+    L.push('');
+    L.push(rep.promoted.length+' draft course'+(rep.promoted.length===1?'':'s')+
+           ' are now in the catalog and became ACTIVE:');
+    L.push('  '+rep.promoted.slice(0,8).join(', ')+(rep.promoted.length>8?' …':''));
+    L.push('The catalog is now the authority for their published fields.');
+  }
+  if(rep.keptYours.length){
+    L.push('');
+    L.push(rep.keptYours.length+' field'+(rep.keptYours.length===1?'':'s')+
+           ' you had edited were LEFT AS THEY ARE:');
+    L.push('  '+rep.keptYours.slice(0,8).join('\n  ')+(rep.keptYours.length>8?'\n  …':''));
+    L.push('Each is flagged in the panel, where you can keep yours or take the catalog’s.');
+  }
+  return L.join('\n');
+}
+
+async function crsImportFromRepo(){
+  if(viewerModeForced) return;
+  if(githubMode() !== 'editor'){
+    await appAlert('Not connected to GitHub as an editor, so there is no content repo to read '+
+      CRS_SEED_PATH+' from.\n\nUse ⚙ Data & Backup → 🐙 Connect to GitHub… first.');
+    return;
+  }
+  toast('Reading '+CRS_SEED_PATH+' from the content repo…');
+  const r = await githubReadFileStatus(CRS_SEED_PATH);
+  if(r.status === 'not_found'){
+    await appAlert('No '+CRS_SEED_PATH+' in the content repo yet.\n\n'+
+      'Commit the course file to '+GITHUB_OWNER+'/'+GITHUB_CONTENT_REPO+' (top level, named '+
+      CRS_SEED_PATH+'), then run this again.');
+    return;
+  }
+  if(r.status !== 'ok'){
+    await appAlert('Could not read '+CRS_SEED_PATH+': '+(ghLastErrorText()||'reason not reported'));
+    return;
+  }
+  const payload = r.json;
+  if(!payload || !Array.isArray(payload.courses) || !payload.courses.length){
+    await appAlert(CRS_SEED_PATH+' does not look like a course file — no "courses" array in it.');
+    return;
+  }
+  const dupIds = payload.courses.map(c=>c && c.id).filter(Boolean);
+  if(new Set(dupIds).size !== dupIds.length){
+    await appAlert('That course file has duplicate ids in it, so it cannot be imported safely.\n\n'+
+      'Every record needs its own id — remember a code can name several deliveries.');
+    return;
+  }
+  const go = await appConfirm(
+    'Import '+payload.courses.length+' courses from edition "'+(payload.edition||'unknown')+'"?\n\n'+
+    'Nothing you have edited will be overwritten — fields you changed are kept and reported.\n'+
+    'You currently have '+crsAll().length+' courses in the database.',
+    'Import', 'Cancel');
+  if(!go) return;
+  const rep = crsMergeEdition(payload);
+  await appAlert(crsEditionReportText(rep));
+  if(typeof crsRender === 'function') crsRender();
+}
+
+function crsDiffs(c){
+  if(!c || !c.catalogValue) return [];
+  return Object.keys(c.catalogValue).filter(k=>{
+    const a = c.catalogValue[k], b = c[k];
+    if(a===null||a===undefined||a==='') return false;
+    return String(a) !== String(b===null||b===undefined?'':b);
+  });
+}
+
 const KB_CATS = [
   { id:'voice',      lbl:'Voice & style',        desc:'How SDI writes. Applied to every draft.' },
   { id:'compliance', lbl:'Compliance & approval', desc:'DEAC, state, FSA/VA, catalog cycle rules.' },
@@ -2645,7 +3712,7 @@ const dirtyPrograms = new Set(); // progId's with real content changes since the
 // fields can hold bulk HTML/images.
 function buildManifest(){
   return { v:3, ts: Date.now(), programs, phases: clonePhases(PHASES), sectionStatus, sectionLocks,
-           sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore };
+           sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, courseStore };
 }
 // Just one program's slice of blockStore, same key shape as the global
 // object (progId:sectionId) so merging it back in is a zero-transform
@@ -2930,6 +3997,13 @@ function applyState(s){
   marginStore = s.marginStore || { courses: [], scenariosByProgram: {} };
   knowledgeStore = (s.knowledgeStore && Array.isArray(s.knowledgeStore.entries))
     ? s.knowledgeStore : { entries: [] };
+  courseStore = (s.courseStore && typeof s.courseStore==='object')
+    ? { courses:    Array.isArray(s.courseStore.courses)    ? s.courseStore.courses    : [],
+        presets:    Array.isArray(s.courseStore.presets)    ? s.courseStore.presets    : [],
+        editions:   Array.isArray(s.courseStore.editions)   ? s.courseStore.editions   : [],
+        categories: Array.isArray(s.courseStore.categories) ? s.courseStore.categories : [],
+        schools:    Array.isArray(s.courseStore.schools)    ? s.courseStore.schools    : [] }
+    : { courses: [], presets: [], editions: [], categories: [], schools: [] };
   standardsStore = (s.standardsStore && typeof s.standardsStore==='object')
     ? { courseTitles: s.standardsStore.courseTitles || {},
         progAbbrev:   s.standardsStore.progAbbrev   || {},
@@ -2970,7 +4044,7 @@ function persistLocalNow(){
   if(window.__skipPersist) return; // guard during restore/reload
   saveCurrentBlocks();
   try{
-    const state = { programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, v:2, ts: Date.now() };
+    const state = { programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, courseStore, v:2, ts: Date.now() };
     const {lean,assets}=dehydrateState(state);
     let ok=false;
     try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(lean)); ok=true; }catch(e){ console.warn('local mirror failed:',e); }
@@ -3100,7 +4174,7 @@ async function persist(){
 async function doPersist(){
   saveCurrentBlocks();
   pushUndo();
-  const state = { programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, v:2, ts: Date.now() };
+  const state = { programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, courseStore, v:2, ts: Date.now() };
   const ind = document.getElementById('save-ind');
 
   // Always keep a local backup (IndexedDB primary, localStorage mirror).
@@ -3509,6 +4583,76 @@ let uiState={lastLoc:{},openPhases:{}};
 try{ uiState=Object.assign(uiState,JSON.parse(localStorage.getItem('sdi_ui_state')||'{}')); }catch(e){}
 function saveUIState(){ try{ localStorage.setItem('sdi_ui_state',JSON.stringify(uiState)); }catch(e){} }
 
+// Program and section were already remembered; the open TOOL and the scroll
+// position were not -- so refreshing while the Course Database (or PM Board,
+// Margin, Consistency) was open dropped you back to the program or the Hub.
+// Read the live state rather than hooking all sixteen open/close functions:
+// the flags and view visibility are the truth, and one reader cannot drift
+// out of step with them.
+function crsViewVisible(id){
+  const e = document.getElementById(id);
+  return !!e && getComputedStyle(e).display !== 'none';
+}
+function rememberUIPosition(){
+  try{
+    let tool='', mode='';
+    if(typeof crsPanelOpen!=='undefined' && crsPanelOpen){ tool='course'; mode='panel'; }
+    else if(crsViewVisible('course-view')){ tool='course'; mode='full'; }
+    else if(typeof pmPanelOpen!=='undefined' && pmPanelOpen){ tool='pm'; mode='panel'; }
+    else if(crsViewVisible('pm-view')){ tool='pm'; mode='full'; }
+    else if(typeof marginPanelOpen!=='undefined' && marginPanelOpen){ tool='margin'; mode='panel'; }
+    else if(crsViewVisible('margin-view')){ tool='margin'; mode='full'; }
+    else if(typeof ccPanelOpen!=='undefined' && ccPanelOpen){ tool='cc'; mode='panel'; }
+    else if(crsViewVisible('cc-view')){ tool='cc'; mode='full'; }
+    else if(crsViewVisible('pm-dash-view')){ tool='dash'; mode='full'; }
+    uiState.lastTool = tool ? { tool, mode } : null;
+    const ca = document.querySelector('.content-area');
+    if(ca && curProgId && curSection && ca.scrollTop > 0)
+      uiState.lastScroll = { key: curProgId+':'+curSection, top: Math.round(ca.scrollTop) };
+    else uiState.lastScroll = null;
+    saveUIState();
+  }catch(e){}
+}
+// Put it back. Called once at boot, after the program has been reopened.
+function restoreUIPosition(){
+  const lt = uiState.lastTool;
+  if(lt && lt.tool){
+    const open = {
+      course: ()=> lt.mode==='panel' ? crsPanelOpenFor() : openCourseDB(),
+      pm:     ()=> lt.mode==='panel' ? pmPanelOpenFor(curProgId) : openPM(curProgId),
+      margin: ()=> lt.mode==='panel' ? marginPanelOpenFor(curProgId) : openMarginCalc(curProgId),
+      cc:     ()=> lt.mode==='panel' ? ccPanelOpenFor() : openConsistency(),
+      dash:   ()=> (typeof openPMDash==='function' ? openPMDash() : null),
+    }[lt.tool];
+    // A docked panel needs a program to sit beside; without one, skip rather
+    // than open a panel against the Hub.
+    const needsProgram = lt.mode==='panel';
+    // A real viewer can only reach the PM Board (and the Dashboard); the Course
+    // Database, Margin Calculator and Consistency live behind the editor-only
+    // Tools menu. Restoring one of those would hand a viewer a tool they have
+    // no way to open or close.
+    const viewerCanOpen = ['pm','dash'].indexOf(lt.tool) >= 0;
+    const allowed = !viewerModeForced || viewerCanOpen;
+    if(open && allowed && (!needsProgram || curProgId)){
+      try{ open(); }catch(e){ console.warn('restore tool failed:', e); }
+    }
+  }
+  const ls = uiState.lastScroll;
+  if(ls && curProgId && curSection && ls.key === curProgId+':'+curSection){
+    const ca = document.querySelector('.content-area');
+    // after the section's content has actually rendered, or there is nothing
+    // to scroll and the position is silently discarded
+    if(ca) setTimeout(()=>{ try{ ca.scrollTop = ls.top; }catch(e){} }, 260);
+  }
+}
+window.addEventListener('beforeunload', rememberUIPosition);
+window.addEventListener('pagehide', rememberUIPosition);
+// A refresh is not the only way to leave; a backgrounded tab may never fire
+// beforeunload on mobile, so snapshot on hide too.
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'hidden') rememberUIPosition();
+});
+
 // forceLoc, when given, skips the last-visited/first-available logic below
 // entirely and goes straight there -- for callers (a deep link) that already
 // know exactly which section they want, so it isn't navigated to once by
@@ -3554,6 +4698,8 @@ function goHub(){
   persist();
   if(pmPanelOpen) pmPanelClose(); // neither docked panel ever makes sense alongside no open program
   if(marginPanelOpen) marginPanelClose();
+  if(typeof ccPanelOpen!=='undefined' && ccPanelOpen) ccPanelClose();
+  if(typeof crsPanelOpen!=='undefined' && crsPanelOpen) crsPanelClose();
   uiState.lastProg=null; saveUIState();
   document.getElementById('prog-view').style.display = 'none';
   document.getElementById('hub-view').style.display = 'block';
@@ -4127,6 +5273,12 @@ function makeBlock(data){
       const pm=programMargin(p);
       const t=marginScenarioTotals(p, scenario);
       wrap.innerHTML=ctrl+marginScenarioBlockInnerHtml(p, pm, scenario, t, data.savedAt||new Date().toISOString());
+      break;}
+    case 'courseTable':{
+      wrap.innerHTML=ctrl+crsTableBlockHTML(data);
+      break;}
+    case 'courseCard':{
+      wrap.innerHTML=ctrl+crsCardBlockHTML(data);
       break;}
     case 'divider':
       wrap.innerHTML=ctrl+`<hr class="block-divider">`;
@@ -7840,6 +8992,38 @@ function appDialog(opts){
     document.addEventListener('keydown',onKey,true);
   });
 }
+// A dialog that can hold a real form. appDialog() sets its message with
+// textContent (deliberately -- it takes untrusted strings), so it cannot host
+// markup; this reuses the same .dlg-ov/.dlg-box styling for the cases where
+// the caller is supplying its own, trusted HTML.
+function appFormDialog(title, bodyHTML, okLabel, cancelLabel, readFn){
+  return new Promise(resolve=>{
+    const old=document.getElementById('app-dialog-ov'); if(old) old.remove();
+    const ov=document.createElement('div'); ov.id='app-dialog-ov'; ov.className='dlg-ov';
+    ov.innerHTML='<div class="dlg-box dlg-box-wide" role="dialog" aria-modal="true">'+
+      '<div class="dlg-title"></div><div class="dlg-body"></div>'+
+      '<div class="dlg-btns"><button class="dlg-btn dlg-cancel"></button>'+
+      '<button class="dlg-btn dlg-ok"></button></div></div>';
+    ov.querySelector('.dlg-title').textContent = title||'';
+    ov.querySelector('.dlg-body').innerHTML = bodyHTML||'';
+    ov.querySelector('.dlg-ok').textContent = okLabel||'OK';
+    ov.querySelector('.dlg-cancel').textContent = cancelLabel||'Cancel';
+    document.body.appendChild(ov);
+    // The caller's fields live INSIDE this overlay, so anything it needs must be
+    // read before the node is removed. Returning after removal is why "pick at
+    // least one column" fired even when columns were picked.
+    function done(v){ document.removeEventListener('keydown',onKey,true); ov.remove(); resolve(v); }
+    function onKey(e){ if(e.key==='Escape'){ e.stopPropagation(); e.preventDefault(); done(false); } }
+    ov.querySelector('.dlg-ok').onclick=()=>{
+      const val = (typeof readFn === 'function') ? readFn(ov) : true;
+      done(val);
+    };
+    ov.querySelector('.dlg-cancel').onclick=()=>done(false);
+    ov.onclick=e=>{ if(e.target===ov) done(false); };
+    document.addEventListener('keydown',onKey,true);
+    setTimeout(()=>{ const f=ov.querySelector('select,input'); if(f) f.focus(); },30);
+  });
+}
 function appPrompt(msg,def){ return appDialog({msg:msg,input:true,def:def,showCancel:true}); }
 function appConfirm(msg,ok,cancel){ return appDialog({msg:msg,showCancel:true,ok:ok,cancel:cancel}); }
 function appAlert(msg){ return appDialog({msg:msg,showCancel:false}); }
@@ -7852,7 +9036,7 @@ function buildBackupJSON(){
   // stale, and reading it would export old work while looking successful.
   try{
     saveCurrentBlocks();
-    space={ programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, v:2, ts: Date.now() };
+    space={ programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, courseStore, v:2, ts: Date.now() };
   }catch(e){ space=null; }
   if(!space){ try{ space=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null'); }catch(e){} }
   try{ tmpls=JSON.parse(localStorage.getItem('sdi_templates')||'[]'); }catch(e){}
@@ -8318,6 +9502,15 @@ async function mergeBundledSnapshot(banner){
   }
   // 7. standards: gap-fill only -- a standard already set here always wins over
   // the snapshot's, same rule as every other merge above.
+  // Courses merge by id, additively -- a snapshot never overwrites a course
+  // that already exists locally, matching how pmStore/standardsStore merge.
+  if(snap.courseStore && Array.isArray(snap.courseStore.courses)){
+    const have = new Set((courseStore.courses||[]).map(c=>c.id));
+    snap.courseStore.courses.forEach(c=>{ if(c && c.id && !have.has(c.id)) courseStore.courses.push(c); });
+    (snap.courseStore.presets||[]).forEach(pr=>{
+      if(pr && pr.id && !(courseStore.presets||[]).some(x=>x.id===pr.id)) courseStore.presets.push(pr);
+    });
+  }
   if(snap.standardsStore && typeof snap.standardsStore==='object'){
     ['courseTitles','progAbbrev','ignored'].forEach(k=>{
       const src = snap.standardsStore[k] || {};
@@ -8328,7 +9521,7 @@ async function mergeBundledSnapshot(banner){
 
   try{
     await saveSpace({ programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks,
-      sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, v:2, ts: Date.now() });
+      sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, courseStore, v:2, ts: Date.now() });
   }catch(err){ await appAlert('Restore failed while writing to browser storage: '+err.message); return; }
   window.__skipPersist=true;
   await appAlert('Restored '+addedBlocks+' section(s), '+addedSecs+' new section entr(ies) and '+addedProgs+
@@ -9234,7 +10427,7 @@ const SAFE_ONCLICK_FNS = new Set(['addApItem','addCostRow','addDlRow','addMilest
   'addTblCol','addTblRow','annotateImage','changeEmbed','changeImage','clearCostTable',
   'copyBlockToProgram','cycleApStatus','cycleDlStatus','delBlock','delCostRow','delTblCol',
   'delTblRow','editFileLink','importTblFile','moveTblCol','moveTblRow','openTblFmt','pickTag',
-  'setEmbedHeight','tableToCSV','tblRowOp','toggleCogsLink','refreshMarginScenario','openMarginCalc']);
+  'setEmbedHeight','tableToCSV','tblRowOp','toggleCogsLink','refreshMarginScenario','openMarginCalc','crsRefreshTable','crsRefreshCard']);
 const SAFE_ONCLICK_ARG='(?:\'[^\'<>]*\'|"[^"<>]*"|-?\\d+(?:\\.\\d+)?|this|event)';
 const SAFE_ONCLICK_CALL_RE=new RegExp('^([A-Za-z_]\\w*)\\((?:'+SAFE_ONCLICK_ARG+'(?:,\\s*'+SAFE_ONCLICK_ARG+')*)?\\)$');
 const SAFE_ONCLICK_TOGGLE_RE=/^this\.closest\('[^'<>]*'\)\.classList\.toggle\('[^'<>]*'\)$/;
@@ -9891,6 +11084,7 @@ function pmPanelHideDom(){
 }
 function pmPanelOpenFor(pid){
   if(typeof ccPanelOpen!=='undefined' && ccPanelOpen) ccPanelClose(); // one docked tool at a time
+  if(typeof crsPanelOpen!=='undefined' && crsPanelOpen) crsPanelClose();
   pmProgId = pid || curProgId;
   if(!pmProgId) return;
   if(marginPanelOpen) marginPanelClose(); // only one docked tool at a time
@@ -9932,6 +11126,7 @@ function marginPanelOpenFor(progId, scenarioId){
   if(!pid) return;
   if(pmPanelOpen) pmPanelClose(); // only one docked tool at a time
   if(typeof ccPanelOpen!=='undefined' && ccPanelOpen) ccPanelClose();
+  if(typeof crsPanelOpen!=='undefined' && crsPanelOpen) crsPanelClose();
   marginPanelOpen=true;
   marginDrafts={};
   marginView='program'; marginCurProgId=pid;
@@ -9976,6 +11171,411 @@ function marginOpenSmart(){
 // panel stays put, so the findings list is still there afterwards and re-running
 // the checks shows fixes landing without leaving the tool.
 let ccPanelOpen=false, ccPanelWasOpen=false;
+let crsPanelOpen = false, crsPanelWasOpen = false, crsOrigin = 'hub';
+let crsView = 'list';
+let crsSelectedId = null;
+let crsFilter = { q:'', status:'', program:'', flagged:false };
+let crsPicked = new Set();          // courses ticked for insertion
+// Which columns go in. Toggled by chips in the insert bar -- no dialog, and it
+// stays put between inserts so a second table matches the first.
+let crsCols = ['code','title','credits','weeks'];
+
+function crsBodyRoot(){
+  return document.getElementById(crsPanelOpen ? 'course-panel-body' : 'course-body');
+}
+function crsPanelHideDom(){
+  const panel=document.getElementById('course-panel'), handle=document.getElementById('course-panel-handle');
+  if(panel) panel.style.display='none';
+  if(handle) handle.style.display='none';
+}
+function crsPanelOpenFor(){
+  if(viewerModeForced) return;
+  if(pmPanelOpen) pmPanelClose();          // only one docked tool at a time
+  if(marginPanelOpen) marginPanelClose();
+  if(typeof ccPanelOpen!=='undefined' && ccPanelOpen) ccPanelClose();
+  crsPanelOpen=true;
+  const panel=document.getElementById('course-panel'), handle=document.getElementById('course-panel-handle');
+  panel.style.flex='0 0 '+(uiState.sidePanelWidth||460)+'px';
+  panel.style.display='flex';
+  handle.style.display='block';
+  crsRender();
+}
+function crsPanelClose(){ crsPanelOpen=false; crsPanelHideDom(); }
+function crsPanelFullScreen(){
+  crsPanelWasOpen = true; crsPanelOpen = false; crsPanelHideDom(); openCourseDB();
+}
+function openCourseDB(){
+  if(viewerModeForced) return;
+  crsOrigin = document.getElementById('prog-view').style.display !== 'none' ? 'prog'
+            : (document.getElementById('pm-dash-view').style.display !== 'none' ? 'dash' : 'hub');
+  document.getElementById('prog-view').style.display='none';
+  document.getElementById('hub-view').style.display='none';
+  const dash=document.getElementById('pm-dash-view'); if(dash) dash.style.display='none';
+  document.getElementById('course-view').style.display='block';
+  crsRender();
+}
+function crsBack(){
+  document.getElementById('course-view').style.display='none';
+  if(crsOrigin==='prog'){
+    document.getElementById('prog-view').style.display='block';
+    if(crsPanelWasOpen){ crsPanelWasOpen=false; crsPanelOpenFor(); return; }
+  } else if(crsOrigin==='dash'){
+    const dash=document.getElementById('pm-dash-view'); if(dash) dash.style.display='block';
+  } else {
+    document.getElementById('hub-view').style.display='block';
+  }
+}
+function crsOpenSmart(){
+  if(viewerModeForced) return;
+  const progVisible = document.getElementById('prog-view').style.display !== 'none';
+  if(progVisible && curProgId){ crsPanelOpenFor(); }
+  else { openCourseDB(); }
+}
+
+// ---- rendering -------------------------------------------------------------
+function crsFiltered(){
+  const q = (crsFilter.q||'').trim().toLowerCase();
+  return crsAll().filter(c=>{
+    if(crsFilter.status && c.status !== crsFilter.status) return false;
+    if(crsFilter.flagged && !(c.needsReview||[]).length && !crsDiffs(c).length) return false;
+    if(crsFilter.program && !(c.catalogPrograms||[]).some(p=>p===crsFilter.program)) return false;
+    if(!q) return true;
+    return (c.code+' '+c.title+' '+(c.category||'')+' '+(c.description||'')).toLowerCase().indexOf(q) >= 0;
+  }).sort((a,b)=> a.code===b.code ? (a.weeks||0)-(b.weeks||0) : (a.code<b.code?-1:1));
+}
+function crsRender(){
+  const root = crsBodyRoot(); if(!root) return;
+  root.innerHTML = (crsView==='detail' && crsById(crsSelectedId))
+    ? crsDetailHTML(crsById(crsSelectedId)) : crsListHTML();
+}
+function crsListHTML(){
+  const st = crsStats();
+  const list = crsFiltered();
+  const progs = [...new Set(crsAll().flatMap(c=>c.catalogPrograms||[]))].sort();
+  const narrow = crsPanelOpen;
+  let h = '<div class="crs-wrap">';
+
+  if(!st.total){
+    h += '<div class="crs-empty"><div class="crs-empty-t">No courses yet</div>'
+      +  '<p>The database is the source of truth for anything course-related. Load the '
+      +  'published catalog to start with real courses, or add one by hand.</p>'
+      +  '<div class="crs-empty-a">'
+      +  '<button class="mg2-btn" onclick="crsImportFromRepo()">&#8681; Import catalog edition</button> '
+      +  '<button class="mg2-btn" onclick="crsAddPrompt()">&#43; Add a course</button></div></div></div>';
+    return h;
+  }
+
+  h += '<div class="crs-stats">'
+    +  '<span><b>'+st.total+'</b> records</span>'
+    +  '<span><b>'+st.codes+'</b> codes</span>'
+    +  '<span><b>'+st.active+'</b> active</span>'
+    +  (st.draft ? '<span class="crs-s-draft"><b>'+st.draft+'</b> draft</span>' : '')
+    +  (st.differsFromCatalog ? '<span class="crs-s-flag"><b>'+st.differsFromCatalog+'</b> differ from catalog</span>' : '')
+    +  (st.needsReview ? '<span class="crs-s-flag"><b>'+st.needsReview+'</b> need review</span>' : '')
+    +  '</div>';
+
+  h += '<div class="crs-filters">'
+    +  '<input class="crs-search" type="text" placeholder="Search code, title, description…" '
+    +  'value="'+escapeHtml(crsFilter.q)+'" oninput="crsFilter.q=this.value; crsRenderList()">'
+    +  '<select class="crs-sel" onchange="crsFilter.status=this.value; crsRenderList()">'
+    +  '<option value="">All statuses</option>'
+    +  CRS_STATUSES.map(x=>'<option value="'+x.id+'"'+(crsFilter.status===x.id?' selected':'')+'>'+x.label+'</option>').join('')
+    +  '</select>';
+  if(!narrow && progs.length){
+    h += '<select class="crs-sel" onchange="crsFilter.program=this.value; crsRenderList()">'
+      +  '<option value="">All programs</option>'
+      +  progs.map(x=>'<option value="'+escapeHtml(x)+'"'+(crsFilter.program===x?' selected':'')+'>'+escapeHtml(x.replace(/^.*? in /,'').replace(/^.*? - /,''))+'</option>').join('')
+      +  '</select>';
+  }
+  h += '<label class="crs-chk"><input type="checkbox"'+(crsFilter.flagged?' checked':'')
+    +  ' onchange="crsFilter.flagged=this.checked; crsRenderList()"> Needs attention</label>'
+    +  '</div>';
+
+  if(crsPicked.size){
+    h += '<div class="crs-pickbar">'
+      +  '<div class="crs-pickbar-top"><span><b>'+crsPicked.size+'</b> ticked</span>'
+      +  '<button class="crs-ins" onclick="crsInsertPicked()">&#8595; Insert</button>'
+      +  '<button class="crs-back" onclick="crsClearPicked()">Clear</button></div>'
+      +  '<div class="crs-colchips">'
+      +  CRS_FIELDS.filter(f=>f.key!=='deliveryLabel').map(f=>
+           '<button class="crs-chip'+(crsCols.indexOf(f.key)>=0?' on':'')+'"'
+           + ' onclick="crsToggleCol(\''+f.key+'\')" title="'+escapeHtml(f.label)+'">'
+           + escapeHtml(f.short)+'</button>').join('')
+      +  '</div></div>';
+  }
+  h += '<div class="crs-rows">';
+  if(!list.length) h += '<div class="crs-none">Nothing matches that.</div>';
+  list.forEach(c=>{
+    const diffs = crsDiffs(c);
+    const flags = (c.needsReview||[]).length;
+    h += '<div class="crs-row" onclick="crsOpenDetail(\''+c.id+'\')">'
+      +  '<input type="checkbox" class="crs-pick"'+(crsPicked.has(c.id)?' checked':'')
+      +  ' title="Tick to insert into the open section"'
+      +  ' onclick="event.stopPropagation(); crsTogglePick(\''+c.id+'\', this.checked)">'
+      +  '<span class="crs-code">'+escapeHtml(c.code)+'</span>'
+      +  (c.deliveryLabel ? '<span class="crs-dl crs-dl-'+(c.weeks||'x')+'">'+escapeHtml(c.deliveryLabel)+'</span>' : '')
+      +  '<span class="crs-title">'+escapeHtml(c.title||'— untitled —')+'</span>'
+      +  '<span class="crs-meta">'+(c.credits!=null?c.credits+'cr':'')+(c.weeks!=null?' · '+c.weeks+'wk':'')+'</span>'
+      +  (c.status!=='active' ? '<span class="crs-badge crs-b-'+c.status+'">'+c.status+'</span>' : '')
+      +  (diffs.length ? '<span class="crs-dot" title="Differs from the catalog: '+escapeHtml(diffs.join(', '))+'"></span>' : '')
+      +  (flags && !diffs.length ? '<span class="crs-dot crs-dot-q" title="'+escapeHtml((c.needsReview||[]).join('; '))+'"></span>' : '')
+      +  '</div>';
+  });
+  h += '</div></div>';
+  return h;
+}
+// Re-renders only the rows, so typing in the search box never loses focus.
+function crsRenderList(){
+  const root = crsBodyRoot(); if(!root) return;
+  const rows = root.querySelector('.crs-rows');
+  if(!rows){ crsRender(); return; }
+  const tmp = document.createElement('div');
+  tmp.innerHTML = crsListHTML();
+  const fresh = tmp.querySelector('.crs-rows');
+  if(fresh) rows.innerHTML = fresh.innerHTML;
+  const stats = root.querySelector('.crs-stats'), freshStats = tmp.querySelector('.crs-stats');
+  if(stats && freshStats) stats.innerHTML = freshStats.innerHTML;
+}
+function crsTogglePick(id, on){
+  if(on) crsPicked.add(id); else crsPicked.delete(id);
+  crsRender();
+}
+function crsClearPicked(){ crsPicked.clear(); crsRender(); }
+function crsToggleCol(key){
+  const i = crsCols.indexOf(key);
+  if(i>=0){ if(crsCols.length===1) return; crsCols.splice(i,1); }   // never zero columns
+  else crsCols.push(key);
+  crsRender();
+}
+// Straight in, no dialog. Default columns cover "what is this course" -- add
+// more with the table's own gear menu afterwards, like any other table.
+async function crsInsertPicked(){
+  if(viewerModeForced) return;
+  if(!crsPicked.size) return;
+  if(!curProgId){ await appAlert('Open a program first — the table goes into the section you are viewing.'); return; }
+  const ids = crsFiltered().filter(c=>crsPicked.has(c.id)).map(c=>c.id);
+  // columns in the canonical field order, whichever chips are lit
+  const fields = CRS_FIELDS.map(f=>f.key).filter(k=>crsCols.indexOf(k)>=0);
+  const node = makeBlock({ t:'courseTable', ids, source:'ids', fields,
+    edition:(courseStore.editions||[]).slice(-1).map(e=>e.label)[0]||'' });
+  document.getElementById('blocks-root').appendChild(node);
+  initBlockSort();
+  scheduleSave();
+  const n = ids.length;
+  crsPicked.clear(); crsRender();
+  toast('Inserted '+n+' course'+(n===1?'':'s')+' — edit it like any table');
+}
+function crsOpenDetail(id){ crsSelectedId=id; crsView='detail'; crsRender(); }
+function crsBackToList(){ crsView='list'; crsSelectedId=null; crsRender(); }
+
+function crsDetailHTML(c){
+  const diffs = crsDiffs(c);
+  let h = '<div class="crs-wrap">'
+    + '<div class="crs-detail-head">'
+    + '<button class="crs-back" onclick="crsBackToList()">&#8592; All courses</button>'
+    + '<span class="crs-code crs-code-lg">'+escapeHtml(c.code)+'</span>'
+    + (c.deliveryLabel ? '<span class="crs-dl crs-dl-'+(c.weeks||'x')+'">'+escapeHtml(c.deliveryLabel)+'</span>' : '')
+    + '<span class="crs-badge crs-b-'+c.status+'">'+escapeHtml(c.status)+'</span>'
+    + '<span style="flex:1"></span>'
+    + '<button class="crs-back" onclick="crsInsertCard(\''+c.id+'\')" title="Insert this course into the open section">&#8595; Insert</button>'
+    + '<button class="crs-del" onclick="crsDeleteFromPanel(\''+c.id+'\')" title="Delete this course">&#10005; Delete</button>'
+    + '</div>';
+
+  if(c.siblingDeliveries && c.siblingDeliveries.length){
+    h += '<div class="crs-sib">Also runs as '
+      +  c.siblingDeliveries.map(id=>{
+           const sib = crsById(id);
+           return sib ? '<a onclick="crsOpenDetail(\''+id+'\')">'+escapeHtml(sib.deliveryLabel||sib.id)+'</a>' : escapeHtml(id);
+         }).join(', ')
+      +  ' — a separate record, edited separately.</div>';
+  }
+
+  if(diffs.length){
+    h += '<div class="crs-diff"><div class="crs-diff-t">Differs from catalog '+escapeHtml(c.catalogEdition||'')+'</div>';
+    diffs.forEach(k=>{
+      h += '<div class="crs-diff-r"><span>'+escapeHtml((CRS_FIELD[k]||{}).short||k)+'</span>'
+        +  '<code class="crs-cat">'+escapeHtml(String(c.catalogValue[k]))+'</code>'
+        +  '<code class="crs-you">'+escapeHtml(crsFieldText(c,k)||'(empty)')+'</code>'
+        +  '<button class="crs-revert" onclick="crsRevertFromPanel(\''+c.id+'\',\''+k+'\')">Use catalog</button></div>';
+    });
+    h += '</div>';
+  }
+  if((c.needsReview||[]).length){
+    h += '<div class="crs-review"><b>Flagged when imported:</b> '+escapeHtml(c.needsReview.join('; '))+'</div>';
+  }
+
+  h += '<div class="crs-fields">';
+  CRS_FIELDS.forEach(f=>{
+    if(f.key==='code' || f.key==='deliveryLabel') return;
+    if(f.key==='category' || f.key==='status' || f.key==='school'){
+      const opts = f.key==='status'
+        ? CRS_STATUSES.map(x=>({v:x.id,l:x.label}))
+        : (f.key==='school' ? crsSchools().map(x=>({v:x.id,l:x.label}))
+                            : crsCategories().map(x=>({v:x,l:x})));
+      h += '<div class="crs-f"><div class="crs-f-l">'+escapeHtml(f.label)+'</div>'
+        +  '<select class="crs-f-in" onchange="crsSelectChange(\''+c.id+'\',\''+f.key+'\',this)">'
+        +  (f.key!=='status' ? '<option value="">— none —</option>' : '')
+        +  opts.map(o=>'<option value="'+escapeHtml(o.v)+'"'
+             +(String(c[f.key]||'')===o.v?' selected':'')+'>'+escapeHtml(o.l)+'</option>').join('')
+        +  (f.key==='category' ? '<option value="__new__">+ New category…</option>' : '')
+        +  (f.key==='school'   ? '<option value="__new__">+ New school…</option>'   : '')
+        +  '</select></div>';
+      return;
+    }
+    // A badge on every field is noise: on a new record everything is
+    // 'playbook', and on an imported one everything is 'catalog'. Show it only
+    // where it carries information -- a field whose value you have overridden
+    // away from what the catalog says.
+    const catHas = c.catalogValue && c.catalogValue[f.key] !== undefined
+                   && c.catalogValue[f.key] !== null && c.catalogValue[f.key] !== '';
+    const ownerRaw = (c.provenance||{})[f.key] || '';
+    const owner = (catHas && (ownerRaw==='playbook' || ownerRaw==='manual')) ? 'edited' : '';
+    const val = crsFieldText(c, f.key);
+    const long = f.type==='longtext';
+    h += '<div class="crs-f'+(long?' crs-f-long':'')+'">'
+      +  '<div class="crs-f-l">'+escapeHtml(f.label)
+      +  (owner ? '<span class="crs-pv crs-pv-'+owner+'">'+escapeHtml(owner)+'</span>' : '')
+      +  '</div>'
+      +  (long
+          ? '<textarea class="crs-f-in" rows="'+(f.key==='learningObjectives'?3:5)+'" '
+            + 'placeholder="'+(f.key==='learningObjectives'?'Not recorded yet':'')+'" '
+            + 'onchange="crsEditFromPanel(\''+c.id+'\',\''+f.key+'\',this.value)">'+escapeHtml(val)+'</textarea>'
+          : '<input class="crs-f-in" type="text" value="'+escapeHtml(val)+'" '
+            + 'onchange="crsEditFromPanel(\''+c.id+'\',\''+f.key+'\',this.value)">')
+      +  '</div>';
+  });
+  h += '</div>';
+
+  if((c.offerings||[]).length){
+    h += '<div class="crs-offer"><div class="crs-offer-t">Where the catalog places this delivery</div><table>'
+      +  '<tr><th>Program</th><th>Category</th><th style="text-align:right">SCH</th><th style="text-align:right">Wks</th></tr>';
+    c.offerings.forEach(o=>{
+      h += '<tr><td>'+escapeHtml(o.program)+'</td><td>'+escapeHtml(o.category||'—')+'</td>'
+        +  '<td style="text-align:right">'+(o.credits!=null?o.credits:'')+'</td>'
+        +  '<td style="text-align:right">'+(o.weeks!=null?o.weeks:'')+'</td></tr>';
+    });
+    h += '</table></div>';
+  }
+  // ---- the costing side, via the margin link ----
+  const mEntries = crsMarginEntries(c.id);
+  const scen = crsScenariosUsing(c.id);
+  if(mEntries.length){
+    const conflict = crsCreditConflicts().filter(x=>x.courseIds.indexOf(c.id)>=0);
+    h += '<div class="crs-offer"><div class="crs-offer-t">Costing &amp; margin</div><table>'
+      +  '<tr><th>Costing line</th><th>School</th><th style="text-align:right">SCH</th><th style="text-align:right">Materials</th></tr>';
+    mEntries.forEach(m=>{
+      const bad = conflict.some(x=>x.marginId===m.id);
+      h += '<tr><td>'+escapeHtml(m.code||'')+'</td><td>'+escapeHtml(m.school||'—')+'</td>'
+        +  '<td style="text-align:right"'+(bad?' class="crs-conflict" title="Disagrees with the catalog"':'')+'>'
+        +  (m.creditHours!=null?m.creditHours:'')+'</td>'
+        +  '<td style="text-align:right">'+_costUSD(marginCourseTotalCost(m))+'</td></tr>';
+    });
+    if(mEntries.length>1)
+      h += '<tr><td colspan="3"><b>'+mEntries.length+' costing lines</b></td>'
+        +  '<td style="text-align:right"><b>'+_costUSD(crsCostTotal(c.id))+'</b></td></tr>';
+    h += '</table>';
+    if(conflict.length){
+      h += '<div class="crs-review">Credit hours disagree: the costing line says '
+        +  conflict[0].margin+', the catalog says '+conflict[0].catalog.join('/')
+        +  '. Nothing has been changed — revenue is calculated from the costing side, '
+        +  'so fix whichever is wrong.</div>';
+    }
+    h += '<table>';
+    if(scen.length){
+      h += '<tr><th>Used in scenario</th></tr>';
+      scen.slice(0,10).forEach(x=>{
+        h += '<tr><td><a onclick="crsOpenScenario(\''+x.progId+'\',\''+x.scenarioId+'\')">'
+          +  escapeHtml(x.progName)+' → '+escapeHtml(x.scenarioName)
+          +  (x.isPrimary?' ★':'')+'</a></td></tr>';
+      });
+    } else {
+      h += '<tr><td style="color:var(--mut)">Not in any margin scenario yet.</td></tr>';
+    }
+    h += '</table></div>';
+  } else if(crsAll().some(x=>(x.marginCourseIds||[]).length)){
+    h += '<div class="crs-review">No costing line is linked to this course. '
+      +  'Run <b>Link to Margin Calculator</b> from the Course Database header, '
+      +  'or add it to the course library in the Margin Calculator.</div>';
+  }
+
+  const refs = crsReferences(c.id);
+  if(refs.length){
+    h += '<div class="crs-offer"><div class="crs-offer-t">Used in '+refs.length+' place'+(refs.length===1?'':'s')+'</div><table>';
+    refs.slice(0,12).forEach(r=>{
+      h += '<tr><td><a onclick="crsGoTo(\''+r.progId+'\',\''+r.secId+'\')">'+escapeHtml(r.progName)+' → '+escapeHtml(r.secName)+'</a></td></tr>';
+    });
+    h += '</table></div>';
+  }
+  return h + '</div>';
+}
+
+// ---- panel actions ---------------------------------------------------------
+// Categories come from whatever is already in the database, so a new one
+// created for one course is offered to every other course afterwards.
+function crsCategories(){
+  const set = new Set();
+  crsAll().forEach(c=>{ if(c.category) set.add(c.category); });
+  (courseStore.categories||[]).forEach(x=>set.add(x));
+  return [...set].sort();
+}
+// SUT and SFT are the two schools today; the list stays open because a third
+// would otherwise mean editing the app rather than the data.
+function crsSchools(){
+  const out = CRS_SCHOOLS.slice();
+  const seen = new Set(out.map(x=>x.id));
+  crsAll().forEach(c=>{ if(c.school && !seen.has(c.school)){ seen.add(c.school); out.push({id:c.school,label:c.school}); } });
+  (courseStore.schools||[]).forEach(x=>{ if(!seen.has(x)){ seen.add(x); out.push({id:x,label:x}); } });
+  return out;
+}
+async function crsSelectChange(id, key, sel){
+  if(sel.value === '__new__'){
+    const v = await appPrompt(key==='school' ? 'Name the new school (short code, e.g. SBT):'
+                                             : 'Name the new category:','');
+    const c = crsById(id);
+    if(v === null || !v.trim()){ sel.value = (c && c[key]) || ''; return; }
+    const bucket = key==='school' ? 'schools' : 'categories';
+    if(!courseStore[bucket]) courseStore[bucket] = [];
+    if(!courseStore[bucket].includes(v.trim())) courseStore[bucket].push(v.trim());
+    crsSetField(id, key, v.trim());
+  } else {
+    crsSetField(id, key, sel.value);
+  }
+  crsRender();
+}
+function crsEditFromPanel(id, key, value){
+  if(crsSetField(id, key, value)) crsRender();
+}
+function crsRevertFromPanel(id, key){
+  if(crsRevertToCatalog(id, key)) crsRender();
+}
+async function crsDeleteFromPanel(id){
+  if(await crsDelete(id)) crsBackToList();
+}
+async function crsAddPrompt(){
+  if(viewerModeForced) return;
+  const code = await appPrompt('Course code for the new course (e.g. UAS 260):','');
+  if(code === null || !code.trim()) return;
+  const c = crsAdd({ code: ccNormCode(code) });
+  crsOpenDetail(c.id);
+  toast('Added '+crsDisplay(c)+' as a draft — fill in the rest below');
+}
+function crsOpenScenario(progId, scenarioId){
+  crsPanelClose();
+  document.getElementById('course-view').style.display='none';
+  openMarginCalc(progId, scenarioId);
+}
+// Navigate to a section that uses this course, leaving the panel docked.
+async function crsGoTo(progId, sectionId){
+  const wasPanel = crsPanelOpen;
+  if(!wasPanel){ document.getElementById('course-view').style.display='none'; }
+  await ensureProgramLoaded(progId);
+  if(curProgId !== progId) openProgram(progId);
+  const p = programs.find(x=>x.id===progId);
+  const ph = p && (p.phases||[]).find(x=>(x.sections||[]).some(sc=>sc.id===sectionId));
+  if(ph) goTo(ph.id, sectionId);
+  if(!wasPanel) crsPanelOpenFor();
+}
+
 function ccBodyRoot(){
   return document.getElementById(ccPanelOpen ? 'cc-panel-body' : 'cc-body');
 }
@@ -9988,6 +11588,7 @@ async function ccPanelOpenFor(){
   if(viewerModeForced) return;
   if(pmPanelOpen) pmPanelClose();          // only one docked tool at a time
   if(marginPanelOpen) marginPanelClose();
+  if(typeof crsPanelOpen!=='undefined' && crsPanelOpen) crsPanelClose();
   ccPanelOpen=true;
   const panel=document.getElementById('cc-panel'), handle=document.getElementById('cc-panel-handle');
   panel.style.flex='0 0 '+(uiState.sidePanelWidth||460)+'px';
@@ -10055,6 +11656,7 @@ function initSidePanelResize(handleId, panelId){
 initSidePanelResize('pm-panel-handle','pm-panel');
 initSidePanelResize('margin-panel-handle','margin-panel');
   initSidePanelResize('cc-panel-handle','cc-panel');
+  initSidePanelResize('course-panel-handle','course-panel');
 function openPMDash(){
   document.getElementById('hub-view').style.display='none';
   document.getElementById('prog-view').style.display='none';
@@ -11090,7 +12692,18 @@ async function marginRemoveCourse(courseId){
 // disagree about what the correct title is.
 function ccStandardTitle(code){
   const rec = standardsStore.courseTitles[ccNormCode(code)];
-  return rec && rec.title ? rec.title : '';
+  if(rec && rec.title) return rec.title;
+  // Fall back to the Course Database, which knows every published title. This
+  // is what makes real course names appear in the Margin Calculator's library
+  // (it has no title field of its own) with no change to its markup.
+  if(typeof crsByCode === 'function'){
+    const hits = crsByCode(code);
+    // Deliveries of one course share a title, so any of them will do -- but if
+    // they ever disagree, say nothing rather than pick one.
+    const titles = [...new Set(hits.map(c=>c.title).filter(Boolean))];
+    if(titles.length === 1) return titles[0];
+  }
+  return '';
 }
 function ccSetTitleFromLibrary(courseId, value){
   if(viewerModeForced) return;
@@ -11798,37 +13411,57 @@ async function init(){
   // An unconditional write here re-stamped and re-flattened whatever was loaded,
   // which turned any bad read into a permanent overwrite.
   if(seededThisBoot)
-  try{ await saveSpace({ programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, v:2, ts: Date.now() }); }catch(e){ console.warn('seed persist failed:', e); }
+  try{ await saveSpace({ programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, courseStore, v:2, ts: Date.now() }); }catch(e){ console.warn('seed persist failed:', e); }
 
   applySidebarRail(); // restore collapsed/expanded from this browser's own preference
   renderHub();
   // Reopen the program you were working in last session -- never for a real viewer, who
   // should always land on the main Portfolio screen, not wherever YOU last happened to be
   // (this is per-browser local state, so it only ever reflects your own editing history).
-  if(!viewerModeForced && uiState.lastProg && programs.some(p=>p.id===uiState.lastProg)) openProgram(uiState.lastProg);
-  if(viewerModeForced){
-    // A deep-linked viewer link points at one specific page. A stale link
-    // (the program got renamed/deleted, or the section moved/was removed)
-    // fails silently back to the normal Hub landing -- the shared content
-    // itself loaded fine, only the deep-link target didn't resolve, and
-    // that's not worth surfacing as an error.
+  const reopenLast = ()=>{
+    if(uiState.lastProg && programs.some(p=>p.id===uiState.lastProg)){
+      openProgram(uiState.lastProg);
+      restoreUIPosition();
+      return true;
+    }
+    return false;
+  };
+
+  if(!viewerModeForced){
+    reopenLast();
+  } else {
+    // A deep-linked viewer link points at one specific page -- but the URL is
+    // unchanged on a REFRESH, so honouring it every boot would drag a viewer
+    // back to the shared page every time they reloaded, discarding wherever
+    // they had navigated to. So the link is honoured ONCE: the target that was
+    // acted on is remembered, and a boot whose link matches it is treated as a
+    // refresh and restores the viewer's own position instead. A genuinely new
+    // or changed link never matches, so it still wins.
     const deepLink = githubViewerDeepLinkFromUrl();
-    if(deepLink){
+    const dlKey = deepLink ? (deepLink.progId+':'+deepLink.secId) : '';
+    const isFreshLink = !!dlKey && uiState.dlDone !== dlKey;
+    let landed = false;
+    if(isFreshLink){
+      // A stale link (program renamed/deleted, section moved or removed) fails
+      // silently back to the normal Hub landing -- the shared content itself
+      // loaded fine, only the target didn't resolve, and that isn't worth
+      // surfacing as an error.
       const p = programs.find(x=>x.id===deepLink.progId);
       if(p){
         const ph = phasesOf(p).find(x=>x.sections.some(s=>s.id===deepLink.secId));
-        if(ph){ openProgram(deepLink.progId, {phid: ph.id, sid: deepLink.secId}); }
+        if(ph){ openProgram(deepLink.progId, {phid: ph.id, sid: deepLink.secId}); landed = true; }
       }
+      uiState.dlDone = dlKey; saveUIState();
     }
+    if(!landed) reopenLast();
     // Belt-and-suspenders on top of the token itself only ever being
     // read-only server-side: lock the UI into view-mode. The actual chrome-hiding
     // (topbar cluster + Hub actions) already happened at the top of init(), the
     // moment the viewer link was detected -- see hideEditorChromeForViewer() --
     // so there's no flash of editor controls while content is still loading.
     setMode('view');
-  } else {
-    showMissingAssetBanner(_lastMissingAssetIds);
   }
+  if(!viewerModeForced) showMissingAssetBanner(_lastMissingAssetIds);
   updateBackupReminder();
   // Skip the daily auto-backup on a boot where the user declined the starter
   // content and is sitting on an empty hub awaiting recovery, or where this
