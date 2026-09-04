@@ -1683,21 +1683,21 @@ table.mg2-table tr.clickable:hover{background:#FDF4F5;}
             <div class="export-wrap" id="tools-wrap">
               <button class="pm-board-btn" id="tools-btn" onclick="toggleToolsMenu(event)">🧰 Tools ▾</button>
               <div class="export-menu" id="tools-menu">
-                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); showShortcutsModal();">❓ Keyboard Shortcuts</div>
-                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); pmOpenSmart();">📋 PM Board</div>
-                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); marginOpenSmart();">💲 Margin Calculator</div>
-                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); togglePanel();">✦ Ask Claude</div>
-                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); openKnowledgeBase();">🧠 Knowledge Base</div>
-                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); ccOpenSmart();">🔍 Consistency</div>
-                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); crsOpenSmart();">📚 Course Database</div>
-                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); crsInsertEntry();">📋 Insert courses…</div>
-                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); copyViewerLinkForCurrentPage();">🔗 Copy link to this page</div>
+                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); togglePanel();">&#10022; Ask Claude</div>
+                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); ccOpenSmart();">&#128269; Consistency</div>
+                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); copyViewerLinkForCurrentPage();">&#128279; Copy link to this page</div>
+                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); crsOpenSmart();">&#128218; Course Database</div>
+                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); crsInsertEntry();">&#128203; Insert courses&hellip;</div>
+                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); showShortcutsModal();">&#10067; Keyboard Shortcuts</div>
+                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); openKnowledgeBase();">&#129504; Knowledge Base</div>
+                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); marginOpenSmart();">&#128178; Margin Calculator</div>
+                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); pmOpenSmart();">&#128203; PM Board</div>
+                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); cycleStatus();">&#127991; Program status</div>
               </div>
             </div>
           </div>
           <button class="tb-more" id="tb-more" onclick="toggleTbExtra(event)" title="More tools">⋯</button>
               <button class="pm-board-btn" id="pm-board-viewer-btn" onclick="pmOpenSmart()" style="display:none">📋 PM Board</button>
-          <button class="status-badge" id="status-btn" onclick="cycleStatus()">In Progress</button>
           <div class="export-wrap">
             <button class="export-btn" onclick="toggleExport(event)">Export ▾</button>
             <div class="export-menu" id="export-menu">
@@ -2476,7 +2476,28 @@ async function ensureProgramLoaded(progId){
   _programLoadPromises[progId] = (async()=>{
     const r = await githubReadFileStatus(githubProgramPath(progId));
     if(r.status==='not_found'){ loadedPrograms.add(progId); return true; } // genuinely brand-new program, nothing to load
-    if(r.status==='ok'){ Object.assign(blockStore, (r.json&&r.json.blockStore)||{}); loadedPrograms.add(progId); return true; }
+    if(r.status==='ok'){
+      const slice = (r.json&&r.json.blockStore)||{};
+      Object.assign(blockStore, slice);
+      // Backfill sections that HAVE content but no timestamp -- written before
+      // the stamping bug above was fixed. Uses the program file's own write
+      // time rather than "now", which would claim the work happened today.
+      // Runs once per program: after this the manifest carries the timestamps.
+      const fileTs = (r.json && typeof r.json.ts === 'number') ? r.json.ts : Date.now();
+      let healed = 0;
+      Object.keys(slice).forEach(key=>{
+        const html = slice[key];
+        if(html && String(html).trim() !== '' && !sectionUpdated[key]){
+          sectionUpdated[key] = fileTs; healed++;
+        }
+      });
+      if(healed){
+        console.info('ensureProgramLoaded: backfilled '+healed+' missing section timestamp(s) for '+progId);
+        scheduleSave();
+      }
+      loadedPrograms.add(progId);
+      return true;
+    }
     return false; // network/auth/server error -- do NOT mark loaded, do NOT proceed
   })();
   try{ return await _programLoadPromises[progId]; }
@@ -4341,7 +4362,13 @@ function saveCurrentBlocks(){
     const cur = clone.innerHTML;
     // Real edit detection: content changed vs. what was stored -> stamp the section
     if(blockStore[renderedKey] !== cur){
-      if(blockStore[renderedKey] !== undefined) sectionUpdated[renderedKey] = Date.now();
+      // Stamp any real change, including the FIRST one. The old guard skipped
+      // sections whose blockStore entry was still undefined -- i.e. the first
+      // time you ever typed into a section -- so a new program written once
+      // per section ended up with no timestamps at all and reported
+      // "0/16 sections started" while full of content. Only a change that
+      // leaves the section genuinely empty is not an update.
+      if(cur && cur.trim() !== '') sectionUpdated[renderedKey] = Date.now();
       // manifestMode: this program's file needs writing next save -- not
       // every program that merely got opened/viewed, only ones that actually
       // changed, so an autosave never re-uploads programs nothing happened to.
@@ -4679,9 +4706,13 @@ function openProgram(id, forceLoc){
   document.getElementById('prog-nm').textContent = p.name;
   const si = STATUSES.findIndex(s=>s.lbl===p.status);
   statusIdx = si < 0 ? 1 : si;
+  // The topbar status badge was removed; statusIdx is still tracked because
+  // cycleStatus() (now in Tools) steps through STATUSES from it.
   const btn = document.getElementById('status-btn');
-  const s = STATUSES[statusIdx];
-  btn.textContent = s.lbl; btn.style.background=s.bg; btn.style.color=s.color;
+  if(btn){
+    const s = STATUSES[statusIdx];
+    btn.textContent = s.lbl; btn.style.background=s.bg; btn.style.color=s.color;
+  }
   renderSidebar();
   uiState.lastProg=id; saveUIState();
   if(forceLoc){ goTo(forceLoc.phid, forceLoc.sid); return; }
@@ -6260,14 +6291,21 @@ function setMode(m){
 }
 
 // ==================== STATUS ====================
+// The topbar badge that used to drive this is gone, so it no longer assumes a
+// button exists -- and it says what it changed, since there is now no visible
+// badge to read the new value off.
 function cycleStatus(){
+  if(viewerModeForced) return;
+  const p=programs.find(x=>x.id===curProgId);
+  if(!p){ toast('Open a program first.'); return; }
   statusIdx=(statusIdx+1)%STATUSES.length;
   const s=STATUSES[statusIdx];
-  const btn=document.getElementById('status-btn');
-  btn.textContent=s.lbl; btn.style.background=s.bg; btn.style.color=s.color;
-  const p=programs.find(x=>x.id===curProgId);
-  if(p) p.status=s.lbl;
+  const btn=document.getElementById('status-btn');   // absent now; kept for safety
+  if(btn){ btn.textContent=s.lbl; btn.style.background=s.bg; btn.style.color=s.color; }
+  p.status=s.lbl;
   scheduleSave();
+  renderHub();                                       // the Hub card is where status shows now
+  toast('Status: '+s.lbl);
 }
 
 // ==================== EXPORT ====================
