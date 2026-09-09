@@ -1996,7 +1996,8 @@ table.mg2-table tr.clickable:hover{background:#FDF4F5;}
     <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--mut);margin-bottom:8px;">Backup &amp; Restore</div>
     <div class="export-opt" onclick="closeDataBackupModal(); exportBackup();">💾 Backup all data (.json)</div>
     <div class="export-opt" onclick="closeDataBackupModal(); backupToGithubNow();">⬆🐙 Back up to GitHub now</div>
-    <div class="export-opt" onclick="toggleAutoBackup()" id="auto-bk-opt">⏱ Auto-backup: On</div>
+    <div class="export-opt" onclick="toggleAutoBackup()" id="auto-bk-opt">⏱ Daily backup file: On</div>
+    <div class="export-opt" onclick="toggleGhBackup()" id="auto-gh-bk-opt">🐙 Daily GitHub backup: On</div>
     <div class="export-opt" onclick="closeDataBackupModal(); triggerRestore();">⤴ Restore from backup…</div>
     <div class="export-opt" onclick="closeDataBackupModal(); loadBundledSnapshot();">📦 Load bundled snapshot…</div>
     <div class="export-opt" onclick="closeDataBackupModal(); recoverPrevVersion();">↺ Recover previous version…</div>
@@ -9219,15 +9220,17 @@ async function backupToGithubNow(){
         'Sections with content: '+(cov.blocks||0)+'\n\n'+
         (cov.complete===false ? '\u26a0 This snapshot is PARTIAL -- some programs were not loaded.'
                               : 'This is a complete snapshot.'));
+      stampGhBackup();
       setHubSyncStatus('github');
     } else {
       await appAlert('GitHub backup FAILED.\n\n'+(ghLastErrorText()||'reason not reported')+'\n\n'+
         'Your local backup file (\ud83d\udcbe Backup all data) is unaffected and still works.');
       setHubSyncStatus('warn');
     }
-    // Deliberately does NOT touch sdi_last_backup_ts. That timestamp gates the
-    // DAILY LOCAL FILE download too, so stamping it here would silently cancel
-    // today's local backup as a side effect of asking for a GitHub one.
+    // Stamps the GITHUB clock only -- this genuinely is an off-machine backup,
+    // so the daily need not repeat it hours later. It deliberately leaves the
+    // LOCAL clock alone: asking for a GitHub copy must not cancel today's
+    // local file.
   } finally {
     _ghBackupRunning = false;
   }
@@ -9235,6 +9238,14 @@ async function backupToGithubNow(){
 
 // ---- Auto-backup: once per day, downloads a backup file shortly after load ----
 function autoBackupEnabled(){ try{ return localStorage.getItem('sdi_auto_backup')!=='off'; }catch(e){ return true; } }
+// The off-machine daily is a SEPARATE setting with its own clock. One switch
+// used to gate both, so turning the local download off to save disk space also
+// silently stopped the GitHub copy -- which is exactly what happened between
+// 4 and 9 September 2026: no daily file, and nothing new in backups/ either.
+// Saving disk must never cost the off-machine copy.
+function ghBackupEnabled(){ try{ return localStorage.getItem('sdi_auto_gh_backup')!=='off'; }catch(e){ return true; } }
+function lastGhBackupTs(){ const n=parseInt(localStorage.getItem('sdi_last_gh_backup_ts')||'0',10); return isNaN(n)?0:n; }
+function stampGhBackup(){ try{ localStorage.setItem('sdi_last_gh_backup_ts', String(Date.now())); }catch(e){} }
 // One-time re-enable after the save-loss fix (Aug 3, 2026): daily file backups
 // are the only defense against browser storage being cleared.
 try{ if(localStorage.getItem('sdi_auto_backup_forced')!=='1'){ localStorage.setItem('sdi_auto_backup','on'); localStorage.setItem('sdi_auto_backup_forced','1'); } }catch(e){}
@@ -9242,13 +9253,24 @@ function toggleAutoBackup(){
   const on=!autoBackupEnabled();
   try{ localStorage.setItem('sdi_auto_backup', on?'on':'off'); }catch(e){}
   updateBackupReminder();
-  toast(on?'Auto-backup on: a backup file downloads once a day \u2713':'Auto-backup turned off');
+  toast(on ? 'Daily file on: a backup downloads once a day \u2713'
+           : 'Daily file off \u2014 the GitHub backup is unaffected');
+}
+function toggleGhBackup(){
+  const on=!ghBackupEnabled();
+  try{ localStorage.setItem('sdi_auto_gh_backup', on?'on':'off'); }catch(e){}
+  updateBackupReminder();
+  toast(on ? 'Daily GitHub backup on \u2713'
+           : '\u26a0 Daily GitHub backup off \u2014 nothing will be copied off this machine automatically');
 }
 function lastBackupTs(){ const n=parseInt(localStorage.getItem('sdi_last_backup_ts')||'0',10); return isNaN(n)?0:n; }
 async function maybeAutoBackup(){
-  if(!autoBackupEnabled()) return;
   const DAY=24*60*60*1000;
-  if(Date.now()-lastBackupTs() < DAY) return;
+  // Each destination has its own switch AND its own clock, so a manual local
+  // backup can no longer push the GitHub daily out by 24 hours, and vice versa.
+  const wantFile = autoBackupEnabled() && (Date.now()-lastBackupTs()   >= DAY);
+  const wantGh   = ghBackupEnabled()   && (Date.now()-lastGhBackupTs() >= DAY);
+  if(!wantFile && !wantGh) return;
   // Never back up the starter seed. 35 of the 56 files found in Downloads were
   // the embedded 3-program sample, written by boots with no token or storage --
   // pure noise, and a restore hazard sitting next to the real backups.
@@ -9263,12 +9285,19 @@ async function maybeAutoBackup(){
     toast('\u26a0 Daily backup skipped \u2014 could not load all programs. Will retry.');
     return;
   }
-  if(downloadBackup('SDI-Product-Space-AutoBackup-')) toast('Daily auto-backup downloaded \u2713 (check your Downloads folder)');
+  if(wantFile && downloadBackup('SDI-Product-Space-AutoBackup-'))
+    toast('Daily backup file downloaded \u2713');
   // Off-machine, versioned copy alongside the local download, when an editor
   // token is connected -- independent of any one device. Also becomes a real
   // git commit in the content repo's history, on top of the app's own
   // version-history feature.
-  if(githubMode()==='editor'){
+  if(wantGh && githubMode()!=='editor'){
+    // Worth saying out loud: the off-machine daily is ON but cannot run,
+    // which otherwise looks identical to it working.
+    console.warn('maybeAutoBackup: GitHub daily is on but no editor token is connected.');
+    toast('\u26a0 Daily GitHub backup needs a GitHub connection \u2014 nothing copied off this machine.');
+  }
+  if(wantGh && githubMode()==='editor'){
     const backup=buildBackupJSON();
     if(backup){
       const d=new Date(), pad=n=>String(n).padStart(2,'0');
@@ -9277,6 +9306,12 @@ async function maybeAutoBackup(){
       // which is why staging showed no GitHub backup for a week while looking fine.
       githubCommitFile('backups/'+stamp+'.json', backup, 'Daily backup '+stamp)
         .then(ok=>{
+          if(ok){
+            // Only a CONFIRMED commit consumes the day, so a failure retries on
+            // the next boot instead of going quiet for 24 hours.
+            stampGhBackup();
+            toast('Daily GitHub backup \u2713');
+          }
           if(!ok){
             // ghLastErrorText() is '' when no error was recorded -- never show a
             // bare "failed:" with nothing after it.
@@ -9302,9 +9337,22 @@ function updateBackupReminder(){
   if(ts && partial) label += ' (PARTIAL)';
   const overdue=!ts||days>=3||(ts&&partial);
   const meta=document.getElementById('backup-meta');
-  if(meta){ meta.textContent='\ud83d\udcbe '+label; meta.style.color=overdue?'#D50032':''; }
+  // Two destinations, two ages -- one combined figure hid the fact that the
+  // off-machine copy had gone stale while the local one looked fine.
+  const gts=lastGhBackupTs();
+  const gdays=gts? Math.floor((Date.now()-gts)/(24*60*60*1000)) : null;
+  const glabel = !ghBackupEnabled() ? 'GitHub: off'
+    : (gts ? (gdays===0?'GitHub: today':gdays===1?'GitHub: yesterday':'GitHub: '+gdays+'d ago')
+           : 'GitHub: never');
+  const ghStale = ghBackupEnabled() && (!gts || gdays>=3);
+  if(meta){
+    meta.textContent='\ud83d\udcbe '+label+'  \u00b7  '+glabel;
+    meta.style.color=(overdue||ghStale)?'#D50032':'';
+  }
   const opt=document.getElementById('auto-bk-opt');
-  if(opt) opt.textContent='\u23f1 Auto-backup: '+(autoBackupEnabled()?'On':'Off');
+  if(opt) opt.textContent='\u23f1 Daily backup file: '+(autoBackupEnabled()?'On':'Off');
+  const ghOpt=document.getElementById('auto-gh-bk-opt');
+  if(ghOpt) ghOpt.textContent='\ud83d\udc19 Daily GitHub backup: '+(ghBackupEnabled()?'On':'Off');
   let pill=document.getElementById('backup-pill');
   if(!pill){
     const ind=document.getElementById('save-ind');
