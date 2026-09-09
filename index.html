@@ -54,6 +54,58 @@ body{font-family:var(--font-body);background:var(--page);color:var(--txt);height
 .hub-body{max-width:1100px;margin:0 auto;padding:40px 32px;}
 .hub-section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--mut);margin-bottom:18px;}
 .prog-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px;}
+/* ---------- Hub shelves ---------- */
+/* #prog-grid is now a column of shelves; the CARD grid lives inside each one. */
+#prog-grid{display:flex;flex-direction:column;gap:16px;}
+.hub-shelf{background:transparent;border:1px solid var(--bdr);border-radius:8px;overflow:hidden;}
+.hub-shelf.sortable-ghost{opacity:.4;}
+.hub-shelf-head{display:flex;align-items:center;gap:10px;padding:8px 13px;background:#F6F3F1;
+  border-bottom:1px solid var(--bdr);flex-wrap:wrap;}
+.hub-shelf-head{cursor:pointer;}
+.hub-shelf-arr{font-size:9px;color:var(--mut);transition:transform .18s;flex:0 0 auto;line-height:1;}
+.hub-shelf-arr.open{transform:rotate(90deg);}
+/* Collapsed: the body is gone but the header keeps its rolled-up counts, so a
+   closed shelf still tells you what is inside it. */
+.hub-shelf.collapsed .hub-shelf-body{display:none;}
+.hub-shelf.collapsed .hub-shelf-head{border-bottom:none;}
+.hub-shelf-grip{color:var(--mut);cursor:grab;user-select:none;font-size:13px;line-height:1;}
+.hub-shelf-grip:hover{color:var(--acc);}
+.hub-shelf-name{font-family:var(--font-cond);font-size:14px;font-weight:700;letter-spacing:.07em;
+  text-transform:uppercase;color:var(--ink);border:1px solid transparent;border-radius:3px;
+  padding:1px 6px;outline:none;min-width:2em;}
+.hub-shelf-name[contenteditable]:hover{border-color:var(--bdr);background:#fff;}
+.hub-shelf-name:focus{border-color:var(--acc);background:#fff;}
+.hub-shelf-def{font-family:var(--font-cond);font-size:9px;font-weight:700;letter-spacing:.09em;
+  text-transform:uppercase;color:#2F6B4F;background:#EDF5F0;border:1px solid #BFDCCB;
+  border-radius:2px;padding:1px 5px;}
+.hub-shelf-sum{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;color:var(--mut);}
+.hub-shelf-acts{margin-left:auto;display:flex;gap:5px;opacity:0;transition:opacity .12s;}
+.hub-shelf-head:hover .hub-shelf-acts{opacity:1;}
+.hub-shelf-btn{font-family:var(--font-cond);font-size:10px;font-weight:700;letter-spacing:.07em;
+  text-transform:uppercase;border:1px solid var(--bdr);background:#fff;color:var(--mut);
+  border-radius:3px;padding:2px 7px;cursor:pointer;}
+.hub-shelf-btn:hover{border-color:var(--acc);color:var(--acc);}
+.hub-shelf-x:hover{border-color:#D50032;color:#D50032;background:#FDF2F4;}
+.hub-shelf-body{padding:14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
+  gap:18px;min-height:110px;align-content:start;}
+.hub-drop-hint{grid-column:1/-1;border:1.5px dashed var(--bdr);border-radius:8px;
+  display:flex;align-items:center;justify-content:center;min-height:84px;
+  font-family:var(--font-cond);font-size:12px;font-weight:600;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--mut);}
+.pc2-grip{position:absolute;top:8px;left:9px;color:rgba(255,255,255,.6);font-size:14px;cursor:grab;
+  padding:2px 5px;border-radius:3px;line-height:1;user-select:none;z-index:3;}
+.pc2-grip:hover{background:rgba(255,255,255,.22);color:#fff;}
+.hub-foot{display:flex;gap:18px;align-items:stretch;flex-wrap:wrap;}
+.hub-foot .add-card{flex:1 1 300px;max-width:420px;}
+.hub-newshelf{flex:0 0 auto;align-self:stretch;min-height:96px;padding:0 26px;
+  border:1.5px dashed var(--bdr);border-radius:8px;background:transparent;color:var(--mut);
+  font-family:var(--font-cond);font-size:13px;font-weight:700;letter-spacing:.09em;
+  text-transform:uppercase;cursor:pointer;}
+.hub-newshelf:hover{border-color:var(--acc);color:var(--acc);}
+/* a real viewer sees the shelves and their contents, and can rearrange nothing */
+body.view-mode .pc2-grip,body.view-mode .hub-shelf-grip,
+body.view-mode .hub-shelf-acts,body.view-mode .hub-newshelf{display:none!important;}
+
 /* recent strip + nav history */
 #recent-strip{margin-bottom:26px;}
 #recent-strip:empty{display:none;}
@@ -1244,8 +1296,11 @@ body.view-mode .wysiwyg-bar{display:none!important;}
 .pc2-mi.danger:hover{background:#FDF4F5;}
 .pc2-msep{height:1px;background:var(--bdr);margin:5px 2px;}
 .pc2-mlbl{font-family:var(--font-cond);text-transform:uppercase;letter-spacing:0.14em;font-size:10.5px;color:#8A8377;padding:4px 10px 6px;}
-.pc2-swatches{display:flex;flex-wrap:wrap;gap:6px;padding:0 10px 6px;}
-.pc2-sw{width:22px;height:22px;border-radius:3px;cursor:pointer;border:2px solid transparent;}
+.pc2-swatches{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;padding:0 10px 6px;}
+.pc2-mlbl-sub{opacity:.8;}
+.pc2-sw{width:100%;height:24px;border-radius:3px;cursor:pointer;border:2px solid transparent;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,0.10);}
+.pc2-sw:hover{border-color:var(--bdr);}
 .pc2-sw.sel{border-color:var(--ink);}
 .add-card{min-height:200px;}
 
@@ -2512,7 +2567,7 @@ async function ensureProgramLoaded(progId){
 async function pushLocalContentToGithub(){
   if(githubMode() !== 'editor'){ await appAlert('Connect an editor GitHub token first (Export ▾ → Connect to GitHub).'); return; }
   saveCurrentBlocks();
-  const state = { programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, courseStore, v:2, ts: Date.now() };
+  const state = { programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, courseStore, shelfStore, v:2, ts: Date.now() };
   const ok = await githubCommitFile(GITHUB_CONTENT_PATH, state, 'Push local content');
   if(ok) await appAlert('Current content pushed to GitHub ✓');
   else await appAlert('Push failed. Check that your editor token is still valid and scoped to '+(GITHUB_CONTENT_REPO||'the content repo')+'.');
@@ -2828,6 +2883,11 @@ let standardsStore = { courseTitles: {}, progAbbrev: {}, ignored: {} };
 // 5-week and an 8-week format and are separate records -- so everything that
 // joins to a course joins on `id`, never on `code`.
 let courseStore = { courses: [], presets: [], editions: [], categories: [], schools: [] };
+// Hub shelves. A program belongs to exactly ONE shelf (p.shelf), and its
+// position inside that shelf is just its position in `programs` -- the array
+// order has always been the display order, so nothing new is needed to store
+// "where in the row". Shelf ORDER is the order of this array.
+let shelfStore = { shelves: [], defaultShelfId: '' };
 
 // ==================== COURSE DATABASE ====================
 // Field definitions drive the picker, the table columns, the card and every
@@ -3740,7 +3800,7 @@ const dirtyPrograms = new Set(); // progId's with real content changes since the
 // fields can hold bulk HTML/images.
 function buildManifest(){
   return { v:3, ts: Date.now(), programs, phases: clonePhases(PHASES), sectionStatus, sectionLocks,
-           sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, courseStore };
+           sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, courseStore, shelfStore };
 }
 // Just one program's slice of blockStore, same key shape as the global
 // object (progId:sectionId) so merging it back in is a zero-transform
@@ -4025,6 +4085,10 @@ function applyState(s){
   marginStore = s.marginStore || { courses: [], scenariosByProgram: {} };
   knowledgeStore = (s.knowledgeStore && Array.isArray(s.knowledgeStore.entries))
     ? s.knowledgeStore : { entries: [] };
+  shelfStore = (s.shelfStore && typeof s.shelfStore==='object')
+    ? { shelves: Array.isArray(s.shelfStore.shelves) ? s.shelfStore.shelves : [],
+        defaultShelfId: s.shelfStore.defaultShelfId || '' }
+    : { shelves: [], defaultShelfId: '' };
   courseStore = (s.courseStore && typeof s.courseStore==='object')
     ? { courses:    Array.isArray(s.courseStore.courses)    ? s.courseStore.courses    : [],
         presets:    Array.isArray(s.courseStore.presets)    ? s.courseStore.presets    : [],
@@ -4072,7 +4136,7 @@ function persistLocalNow(){
   if(window.__skipPersist) return; // guard during restore/reload
   saveCurrentBlocks();
   try{
-    const state = { programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, courseStore, v:2, ts: Date.now() };
+    const state = { programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, courseStore, shelfStore, v:2, ts: Date.now() };
     const {lean,assets}=dehydrateState(state);
     let ok=false;
     try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(lean)); ok=true; }catch(e){ console.warn('local mirror failed:',e); }
@@ -4202,7 +4266,7 @@ async function persist(){
 async function doPersist(){
   saveCurrentBlocks();
   pushUndo();
-  const state = { programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, courseStore, v:2, ts: Date.now() };
+  const state = { programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, courseStore, shelfStore, v:2, ts: Date.now() };
   const ind = document.getElementById('save-ind');
 
   // Always keep a local backup (IndexedDB primary, localStorage mirror).
@@ -4414,17 +4478,235 @@ function findSection(sid, phid){
 }
 
 // ==================== HUB ====================
+// ==================== HUB SHELVES ====================
+const SHELF_SEED = [
+  { name:'Launching 2027', re:/cut-?mt|cut-?f\b/i },
+  { name:'Uncrewed',       re:/uncrewed|uas|sut\b|asut|drone|manufactur/i },
+  { name:'Firearms',       re:/firearm|gunsmith|handgun|asft|cftg|ballist|rifle/i },
+  { name:'Exploratory',    re:null },     // the catch-all, and the default for new programs
+];
+// Collapsed state lives in uiState, which is per-browser localStorage -- so an
+// editor and a viewer each remember their own arrangement, and neither
+// overwrites the other's. Same store the sidebar's collapsed phases use.
+function shelfCollapsed(id){
+  try{ return !!(uiState.shelfCollapsed||{})[id]; }catch(e){ return false; }
+}
+function shelfToggle(id){
+  if(!uiState.shelfCollapsed) uiState.shelfCollapsed = {};
+  uiState.shelfCollapsed[id] = !uiState.shelfCollapsed[id];
+  saveUIState();
+  const wrap = document.querySelector('#prog-grid .hub-shelf[data-shelf="'+id+'"]');
+  if(wrap){
+    const on = uiState.shelfCollapsed[id];
+    wrap.classList.toggle('collapsed', on);
+    const arr = wrap.querySelector('.hub-shelf-arr');
+    if(arr) arr.classList.toggle('open', !on);
+  }
+}
+function shelfById(id){ return (shelfStore.shelves||[]).find(x=>x.id===id) || null; }
+function shelfDefault(){
+  let d = shelfById(shelfStore.defaultShelfId);
+  if(d) return d;
+  d = (shelfStore.shelves||[])[ (shelfStore.shelves||[]).length-1 ] || null;
+  if(d) shelfStore.defaultShelfId = d.id;
+  return d;
+}
+// Creates the shelves on first use and gives every unshelved program a home.
+// Runs on every hub render, so a program created by ANY route -- new, template,
+// duplicate, or restored from a snapshot -- can never end up on no shelf and
+// therefore render nowhere.
+function shelvesEnsure(){
+  if(!shelfStore.shelves) shelfStore.shelves = [];
+  let changed = false;
+  if(!shelfStore.shelves.length){
+    SHELF_SEED.forEach((sd,i)=>{
+      shelfStore.shelves.push({ id:'shelf-'+Date.now()+'-'+i, name:sd.name });
+    });
+    shelfStore.defaultShelfId = shelfStore.shelves[shelfStore.shelves.length-1].id;
+    // First-run placement mirrors how the app already guesses a program's icon
+    // from its name -- a starting point to drag from, not a decision.
+    programs.forEach(p=>{
+      const hit = SHELF_SEED.findIndex(sd=>sd.re && sd.re.test(p.name||''));
+      const idx = hit >= 0 ? hit : SHELF_SEED.length-1;
+      p.shelf = shelfStore.shelves[idx].id;
+    });
+    changed = true;
+  }
+  const def = shelfDefault();
+  programs.forEach(p=>{
+    if(!p.shelf || !shelfById(p.shelf)){ p.shelf = def ? def.id : ''; changed = true; }
+  });
+  if(changed) scheduleSave();
+}
+function shelfPrograms(id){ return programs.filter(p=>p.shelf===id); }
+function shelfSummary(id){
+  const list = shelfPrograms(id);
+  if(!list.length) return '';
+  let tot=0, st=0;
+  list.forEach(p=>{ const s=progStats(p); tot+=s.total; st+=s.done; });
+  return list.length+' program'+(list.length===1?'':'s')+' · '+st+'/'+tot+' sections';
+}
+function shelfRename(el, id){
+  if(viewerModeForced) return;
+  const sh = shelfById(id); if(!sh) return;
+  const v = (el.textContent||'').trim();
+  if(!v){ el.textContent = sh.name; return; }   // never allow a nameless shelf
+  if(v === sh.name) return;
+  sh.name = v;
+  scheduleSave();
+}
+async function shelfAdd(){
+  if(viewerModeForced) return;
+  const name = await appPrompt('Name the new shelf:','');
+  if(name===null || !name.trim()) return;
+  shelfStore.shelves.push({ id:'shelf-'+Date.now(), name:name.trim() });
+  scheduleSave();
+  renderHub();
+}
+async function shelfDelete(id){
+  if(viewerModeForced) return;
+  const sh = shelfById(id); if(!sh) return;
+  if((shelfStore.shelves||[]).length <= 1){
+    await appAlert('This is the only shelf, so it cannot be removed — every program needs somewhere to sit.');
+    return;
+  }
+  const moving = shelfPrograms(id);
+  const def = (shelfStore.shelves||[]).find(x=>x.id!==id);
+  const isDefault = shelfStore.defaultShelfId === id;
+  let msg = 'Remove the shelf "'+sh.name+'"?';
+  if(moving.length) msg += '\n\n'+moving.length+' program'+(moving.length===1?'':'s')+
+    ' will move to "'+def.name+'". Nothing is deleted.';
+  if(isDefault) msg += '\n\n"'+def.name+'" will become the shelf new programs land on.';
+  if(!await appConfirm(msg, 'Remove shelf', 'Cancel')) return;
+  moving.forEach(p=>{ p.shelf = def.id; });
+  shelfStore.shelves = shelfStore.shelves.filter(x=>x.id!==id);
+  if(isDefault) shelfStore.defaultShelfId = def.id;
+  scheduleSave();
+  renderHub();
+}
+// No longer surfaced as a button (it cluttered every shelf header for a setting
+// that changes once a year). Still here as the only way to move the "new" badge,
+// callable from the console if the default shelf ever needs changing.
+async function shelfSetDefault(id){
+  if(viewerModeForced) return;
+  const sh = shelfById(id); if(!sh) return;
+  shelfStore.defaultShelfId = id;
+  scheduleSave(); renderHub();
+  toast('New programs will land on "'+sh.name+'"');
+}
+// Rebuilds `programs` from the on-screen order, so a drag writes both which
+// shelf a program is on AND where it sits in the row, using the array order
+// the hub has always rendered from.
+function shelvesCommitOrder(){
+  if(viewerModeForced) return;
+  const order = [];
+  document.querySelectorAll('#prog-grid .hub-shelf').forEach(sh=>{
+    const sid = sh.getAttribute('data-shelf');
+    sh.querySelectorAll('.pc2[data-pid]').forEach(card=>{
+      const p = programs.find(x=>x.id===card.getAttribute('data-pid'));
+      if(p){ p.shelf = sid; order.push(p); }
+    });
+  });
+  // anything not on screen (shouldn't happen) keeps its place at the end
+  programs.forEach(p=>{ if(order.indexOf(p)<0) order.push(p); });
+  programs.length = 0; order.forEach(p=>programs.push(p));
+  scheduleSave();
+  document.querySelectorAll('#prog-grid .hub-shelf').forEach(sh=>{
+    const sid = sh.getAttribute('data-shelf');
+    const sum = sh.querySelector('.hub-shelf-sum');
+    if(sum) sum.textContent = shelfSummary(sid);
+  });
+}
+function shelvesCommitShelfOrder(){
+  if(viewerModeForced) return;
+  const ids = [...document.querySelectorAll('#prog-grid .hub-shelf')].map(e=>e.getAttribute('data-shelf'));
+  shelfStore.shelves.sort((a,b)=>ids.indexOf(a.id)-ids.indexOf(b.id));
+  scheduleSave();
+}
+let _hubSortables = [];
+function shelvesInitDrag(){
+  _hubSortables.forEach(s=>{ try{ s.destroy(); }catch(e){} });
+  _hubSortables = [];
+  if(viewerModeForced) return;               // viewers see the shelves, cannot rearrange them
+  const grid = document.getElementById('prog-grid');
+  if(!grid || typeof Sortable === 'undefined') return;
+  _hubSortables.push(new Sortable(grid,{ animation:150, handle:'.hub-shelf-grip',
+    draggable:'.hub-shelf', ghostClass:'sortable-ghost', onEnd:shelvesCommitShelfOrder }));
+  grid.querySelectorAll('.hub-shelf-body').forEach(b=>{
+    _hubSortables.push(new Sortable(b,{ group:'hub-cards', animation:150, handle:'.pc2-grip',
+      draggable:'.pc2', ghostClass:'sortable-ghost', onEnd:shelvesCommitOrder }));
+  });
+}
+
 function renderHub(){
   const grid = document.getElementById('prog-grid');
+  shelvesEnsure();
   grid.innerHTML = '';
-  programs.forEach(p => grid.appendChild(makeProgCard(p)));
+  const viewer = viewerModeForced;
+  const def = shelfDefault();
+  (shelfStore.shelves||[]).forEach(sh=>{
+    const wrap = document.createElement('div');
+    wrap.className = 'hub-shelf';
+    wrap.setAttribute('data-shelf', sh.id);
+    const isDef = def && def.id===sh.id;
+    const collapsed = shelfCollapsed(sh.id);
+    if(collapsed) wrap.classList.add('collapsed');
+    wrap.innerHTML =
+      '<div class="hub-shelf-head">'
+      + '<span class="hub-shelf-arr'+(collapsed?'':' open')+'" title="Collapse or expand">▶</span>'
+      + (viewer ? '' : '<span class="hub-shelf-grip" title="Drag to move this shelf">⠿</span>')
+      + '<span class="hub-shelf-name"'+(viewer?'':' contenteditable="true" spellcheck="false"')+'>'
+      +   escapeHtml(sh.name)+'</span>'
+      + (isDef ? '<span class="hub-shelf-def" title="New programs land here">new</span>' : '')
+      + '<span class="hub-shelf-sum">'+escapeHtml(shelfSummary(sh.id))+'</span>'
+      + (viewer ? '' :
+          '<span class="hub-shelf-acts">'
+        + '<button class="hub-shelf-btn hub-shelf-x" title="Remove this shelf">&#10005;</button>'
+        + '</span>')
+      + '</div>'
+      + '<div class="hub-shelf-body"></div>';
+    const body = wrap.querySelector('.hub-shelf-body');
+    const list = shelfPrograms(sh.id);
+    list.forEach(p=>body.appendChild(makeProgCard(p)));
+    if(!list.length){
+      const hint=document.createElement('div');
+      hint.className='hub-drop-hint';
+      hint.textContent = viewer ? 'No programs on this shelf' : 'Drop a program here';
+      body.appendChild(hint);
+    }
+    const head = wrap.querySelector('.hub-shelf-head');
+    head.addEventListener('click', e=>{
+      if(e.target.closest('.hub-shelf-name, .hub-shelf-grip, .hub-shelf-btn')) return;
+      shelfToggle(sh.id);
+    });
+    if(!viewer){
+      const nameEl = wrap.querySelector('.hub-shelf-name');
+      nameEl.addEventListener('blur', ()=>shelfRename(nameEl, sh.id));
+      nameEl.addEventListener('keydown', e=>{
+        if(e.key==='Enter'){ e.preventDefault(); nameEl.blur(); }
+        if(e.key==='Escape'){ nameEl.textContent = sh.name; nameEl.blur(); }
+      });
+      const del = wrap.querySelector('.hub-shelf-x');
+      if(del) del.addEventListener('click', ()=>shelfDelete(sh.id));
+    }
+    grid.appendChild(wrap);
+  });
+  if(!viewer){
+    const foot = document.createElement('div');
+    foot.className = 'hub-foot';
+    const add = document.createElement('div');
+    add.className = 'add-card';
+    add.onclick = newProgram;
+    add.innerHTML = '<div class="add-card-icon">+</div><div class="add-card-label">New Program</div>';
+    const newShelf = document.createElement('button');
+    newShelf.className = 'hub-newshelf';
+    newShelf.textContent = '+ New shelf';
+    newShelf.onclick = shelfAdd;
+    foot.appendChild(add); foot.appendChild(newShelf);
+    grid.appendChild(foot);
+  }
   renderRecentStrip();
-  // Add card
-  const add = document.createElement('div');
-  add.className = 'add-card';
-  add.onclick = newProgram;
-  add.innerHTML = '<div class="add-card-icon">+</div><div class="add-card-label">New Program</div>';
-  grid.appendChild(add);
+  shelvesInitDrag();
 }
 
 // ---- Recently edited strip on the hub ----
@@ -4508,6 +4790,7 @@ function progStats(p){
 function makeProgCard(p){
   const card=document.createElement('div');
   card.className='pc2';
+  card.setAttribute('data-pid', p.id);
   const nm=splitProgName(p.name);
   const st=progStats(p);
   const ic=progIcon(p);
@@ -4516,6 +4799,7 @@ function makeProgCard(p){
   card.innerHTML=`
     <div class="pc2-head" style="background:${p.color}">
       <svg class="pc2-mono" style="${ic.off}" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ic.p}</svg>
+      ${githubMode()==='viewer' ? '' : '<span class="pc2-grip" title="Drag to move between shelves">⠿</span>'}
       <div class="pc2-code" style="font-size:${cs}px">${escapeHtml(nm.code)}</div>
     </div>
     <div class="pc2-body">
@@ -4541,14 +4825,51 @@ function progMenuOutside(e){
   const m=document.getElementById('pc2-menu');
   if(m && !m.contains(e.target)) closeProgMenu();
 }
+// Program colours: six hue families, four shades each, so programs can be
+// colour-coded in shades within a family (all the uncrewed work in blues, all
+// the firearms work in ambers, and so on).
+//
+// Two constraints shaped this, both measured rather than eyeballed:
+//   1. Every shade must carry WHITE text. The card header and the whole topbar
+//      use the program colour as their background with white content on it, so
+//      a light tint is not merely ugly, it is unreadable. Each shade here sits
+//      at a chosen white-on-colour contrast ratio (12.5 / 9.5 / 7.0 / 5.2 : 1),
+//      the lowest still clearing WCAG AA at 4.5:1.
+//   2. A fifth, darker step was dropped: above about 13:1 every hue is
+//      effectively black, so the families stopped being tellable apart --
+//      which defeats the point of having families.
+//
+// The old set offered to new programs (#6366f1, #f59e0b, #14b8a6 …) failed the
+// first constraint outright -- all seven were between 2.1:1 and 4.5:1, which is
+// why a new program could come out with white text on pale teal.
+const PROG_COLORS = [
+  // Red
+  '#67111A', '#8A1622', '#AE1C2B', '#D22234',
+  // Amber
+  '#47300C', '#5F4010', '#795014', '#946218',
+  // Teal
+  '#0F3B30', '#144E41', '#196453', '#1F7A65',
+  // Blue
+  '#12374D', '#184A67', '#1F5E83', '#25739F',
+  // Indigo
+  '#292E63', '#373E86', '#4650AB', '#5B65BC',
+  // Graphite
+  '#313437', '#424649', '#55595E', '#686D73'
+];
+const PROG_COLORS_PER_ROW = 4;          // one hue family per row
+function progColorPick(i){ return PROG_COLORS[(i*7) % PROG_COLORS.length]; }
+
 function progMenu(ev,id){
   ev.stopPropagation();
   const open=document.getElementById('pc2-menu');
   closeProgMenu();
   if(open && open.dataset.pid===id) return;
   const p=programs.find(x=>x.id===id); if(!p) return;
-  const colors=['#1A4A6B','#C0202A','#1B6B5A','#6B4A1B','#4F0A12','#3B4A6B','#8A5A12','#101820'];
   const cur=progIcon(p).key;
+  const same = c => String(p.color||'').toLowerCase() === String(c).toLowerCase();
+  // A colour set before this palette existed is shown on its own row and marked
+  // selected, so the current choice is never invisible and never silently lost.
+  const offPalette = p.color && !PROG_COLORS.some(same);
   const m=document.createElement('div');
   m.className='pc2-menu'; m.id='pc2-menu'; m.dataset.pid=id;
   m.innerHTML=`
@@ -4559,7 +4880,9 @@ function progMenu(ev,id){
     <div class="pc2-icons">${ICON_ORDER.map(k=>`<div class="pc2-ic${cur===k?' sel':''}" title="${PROG_ICONS[k].n}" onclick="setProgIcon('${id}','${k}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${PROG_ICONS[k].p}</svg></div>`).join('')}<div class="pc2-ic pc2-ic-auto${p.icon?'':' sel'}" title="Match the program name" onclick="setProgIcon('${id}','')">Auto</div></div>
     <div class="pc2-msep"></div>
     <div class="pc2-mlbl">Color</div>
-    <div class="pc2-swatches">${colors.map(c=>`<div class="pc2-sw${String(p.color).toLowerCase()===c.toLowerCase()?' sel':''}" style="background:${c}" title="${c}" onclick="setProgColor('${id}','${c}')"></div>`).join('')}</div>
+    <div class="pc2-swatches">${PROG_COLORS.map(c=>`<div class="pc2-sw${same(c)?' sel':''}" style="background:${c}" title="${c}" onclick="setProgColor('${id}','${c}')"></div>`).join('')}</div>
+    ${offPalette ? `<div class="pc2-mlbl pc2-mlbl-sub">Current</div>
+    <div class="pc2-swatches"><div class="pc2-sw sel" style="background:${p.color}" title="${p.color} — set before the shade palette" onclick="setProgColor('${id}','${p.color}')"></div></div>` : ''}
     <div class="pc2-msep"></div>
     <div class="pc2-mi danger" onclick="closeProgMenu();deleteProgram('${id}')">Delete program</div>`;
   document.body.appendChild(m);
@@ -4597,14 +4920,14 @@ async function deleteProgram(id){
 async function newProgram(){
   const name = await appPrompt('Program name:');
   if(!name||!name.trim()) return;
-  const colors = ['#6366f1','#8b5cf6','#0ea5e9','#f59e0b','#10b981','#ec4899','#14b8a6'];
   const p = {
     id: 'prog-'+Date.now(),
     name: name.trim(),
     status: 'Draft',
-    color: colors[programs.length % colors.length],
+    color: progColorPick(programs.length),
     created: new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}),
-    phases: clonePhases(DEFAULT_PHASES)
+    phases: clonePhases(DEFAULT_PHASES),
+    shelf: (shelfDefault()||{}).id || ''
   };
   programs.push(p);
   scheduleSave();
@@ -4613,7 +4936,7 @@ async function newProgram(){
 }
 
 // ==================== UI STATE (remembers where you were) ====================
-let uiState={lastLoc:{},openPhases:{}};
+let uiState={lastLoc:{},openPhases:{},shelfCollapsed:{}};
 try{ uiState=Object.assign(uiState,JSON.parse(localStorage.getItem('sdi_ui_state')||'{}')); }catch(e){}
 function saveUIState(){ try{ localStorage.setItem('sdi_ui_state',JSON.stringify(uiState)); }catch(e){} }
 
@@ -8637,9 +8960,9 @@ async function createFromTemplate(tid){
   const name=await appPrompt('Program name:',tmpl.name);
   if(!name||!name.trim()) return;
   closeTemplateModal();
-  const colors=['#1A4A6B','#C0202A','#1B6B5A','#6366f1','#f59e0b','#8b5cf6','#10b981'];
+
   const pid='prog-'+Date.now();
-  programs.push({id:pid,name:name.trim(),status:'Draft',color:colors[programs.length%colors.length],
+  programs.push({id:pid,name:name.trim(),status:'Draft',color:progColorPick(programs.length),
     created:new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}),
     phases: clonePhases(tmpl.phases)});
   scheduleSave();
@@ -9081,7 +9404,7 @@ function buildBackupJSON(){
   // stale, and reading it would export old work while looking successful.
   try{
     saveCurrentBlocks();
-    space={ programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, courseStore, v:2, ts: Date.now() };
+    space={ programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, courseStore, shelfStore, v:2, ts: Date.now() };
   }catch(e){ space=null; }
   if(!space){ try{ space=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null'); }catch(e){} }
   try{ tmpls=JSON.parse(localStorage.getItem('sdi_templates')||'[]'); }catch(e){}
@@ -9594,6 +9917,13 @@ async function mergeBundledSnapshot(banner){
   }
   // 7. standards: gap-fill only -- a standard already set here always wins over
   // the snapshot's, same rule as every other merge above.
+  // Shelves merge additively by id, like every other side table.
+  if(snap.shelfStore && Array.isArray(snap.shelfStore.shelves)){
+    const have = new Set((shelfStore.shelves||[]).map(x=>x.id));
+    snap.shelfStore.shelves.forEach(sh=>{ if(sh && sh.id && !have.has(sh.id)) shelfStore.shelves.push(sh); });
+    if(!shelfStore.defaultShelfId && snap.shelfStore.defaultShelfId)
+      shelfStore.defaultShelfId = snap.shelfStore.defaultShelfId;
+  }
   // Courses merge by id, additively -- a snapshot never overwrites a course
   // that already exists locally, matching how pmStore/standardsStore merge.
   if(snap.courseStore && Array.isArray(snap.courseStore.courses)){
@@ -9613,7 +9943,7 @@ async function mergeBundledSnapshot(banner){
 
   try{
     await saveSpace({ programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks,
-      sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, courseStore, v:2, ts: Date.now() });
+      sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, courseStore, shelfStore, v:2, ts: Date.now() });
   }catch(err){ await appAlert('Restore failed while writing to browser storage: '+err.message); return; }
   window.__skipPersist=true;
   await appAlert('Restored '+addedBlocks+' section(s), '+addedSecs+' new section entr(ies) and '+addedProgs+
@@ -13517,7 +13847,7 @@ async function init(){
   // An unconditional write here re-stamped and re-flattened whatever was loaded,
   // which turned any bad read into a permanent overwrite.
   if(seededThisBoot)
-  try{ await saveSpace({ programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, courseStore, v:2, ts: Date.now() }); }catch(e){ console.warn('seed persist failed:', e); }
+  try{ await saveSpace({ programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, courseStore, shelfStore, v:2, ts: Date.now() }); }catch(e){ console.warn('seed persist failed:', e); }
 
   applySidebarRail(); // restore collapsed/expanded from this browser's own preference
   renderHub();
