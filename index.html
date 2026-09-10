@@ -3312,6 +3312,29 @@ function crsBindRow(tr, c, heads){
     td.textContent = v;
   });
 }
+// Where two strings part company, so a long description reports the words that
+// changed instead of printing two paragraphs. Same idea as the changelog's
+// excerpt: trim the shared head and tail.
+function crsWordDelta(before, after){
+  const a = String(before||'').split(' ').filter(Boolean);
+  const b = String(after||'').split(' ').filter(Boolean);
+  let st = 0; while(st < a.length && st < b.length && a[st] === b[st]) st++;
+  let en = 0; while(en < a.length-st && en < b.length-st && a[a.length-1-en] === b[b.length-1-en]) en++;
+  return { was: a.slice(st, a.length-en).join(' '), now: b.slice(st, b.length-en).join(' '),
+           trimmedHead: st > 0, trimmedTail: en > 0 };
+}
+// One line per cell, focused on the difference. A short value prints in full;
+// a long one prints only the part that differs, with ellipses marking the
+// wording both sides share. 63 lines of paired paragraphs is unreadable, and
+// unusable once a block holds a lot of rows.
+function crsChangeLine(x){
+  const clip = (t,n) => { t = String(t==null?'':t); return t.length>n ? t.slice(0,n-1)+'…' : (t||'(empty)'); };
+  if(String(x.now).length <= 44 && String(x.fresh).length <= 44)
+    return x.field+': '+clip(x.now,44)+'  →  '+clip(x.fresh,44);
+  const d = crsWordDelta(x.now, x.fresh);
+  const e = t => (d.trimmedHead?'…':'') + clip(t,40) + (d.trimmedTail?'…':'');
+  return x.field+': '+e(d.was)+'  →  '+e(d.now);
+}
 // The refresh contract. Six rules, and it always reports what it did.
 async function crsRefreshTable(btn){
   if(viewerModeForced) return;
@@ -3321,7 +3344,7 @@ async function crsRefreshTable(btn){
   const bound = heads.map(h=>h.getAttribute('data-course-field')||null);
   // The last header is the table's own delete-button cell, not one of her
   // columns -- excluded, or the report claims a free column that isn't one.
-  const rep = { updated:[], keptYours:[], unknown:[], missing:[], linkable:[],
+  const rep = { updated:[], keptYours:[], unknown:[], missing:[], linkable:[], misbound:[],
                 freeCols: heads.filter(h=>!h.getAttribute('data-course-field')
                                        && !/^\s*$/.test(h.textContent)).length };
 
@@ -3339,6 +3362,15 @@ async function crsRefreshTable(btn){
       else rep.unknown.push(label + (guess.length>1 ? ' — matches '+guess.length+' deliveries' : ''));
       return;
     }
+    // Before judging any cell: does the row's own Code cell name a DIFFERENT
+    // course than the row is linked to? Then the link is wrong, not the cells,
+    // and taking the database's values would overwrite this row with another
+    // course's data. That has to be offered as a re-link, never as an edit.
+    const shown = crsGuessCourseForRow(tr);
+    if(shown.length === 1 && shown[0].id !== c.id){
+      rep.misbound.push({ tr, from:c, to:shown[0] });
+      return;
+    }
     [...tr.children].forEach(td=>{
       const key = td.getAttribute('data-course-field');
       if(!key) return;                                  // free column: never touched
@@ -3352,6 +3384,7 @@ async function crsRefreshTable(btn){
       if(was !== null && crsCmp(now) !== crsCmp(was)){   // you edited this cell
         if(crsCmp(fresh) !== crsCmp(now))
           rep.keptYours.push({ td, fresh, now: crsCmp(now),
+                               row: crsDisplay(c), field: (CRS_FIELD[key]||{}).short,
                                label: crsDisplay(c)+' · '+(CRS_FIELD[key]||{}).short });
         return;
       }
@@ -3399,6 +3432,30 @@ async function crsRefreshTable(btn){
 
   scheduleSave();
   await appAlert(crsRefreshReport(rep));
+
+  // Offered before the value override on purpose: if a row is linked to the
+  // wrong course, re-linking is the repair. Overwriting it from the database
+  // would replace a real course's row with another course's data -- which is
+  // exactly what happened to the CUT-MT catalog table on 2026-09-10.
+  if(rep.misbound.length){
+    const n = rep.misbound.length;
+    if(await appConfirm('Re-link '+(n===1?'that row':'those '+n+' rows')+
+        ' to the course '+(n===1?'it shows':'they show')+'?\n\n'+
+        rep.misbound.slice(0,10).map(x=>'  '+crsDisplay(x.to)+'  (was linked to '+crsDisplay(x.from)+')').join('\n')+
+        (n>10?'\n  …':'')+
+        '\n\nThis keeps what the rows display and corrects the link. It does not '+
+        'overwrite the row with another course.',
+        'Re-link the rows', 'Leave them alone')){
+      rep.misbound.forEach(x=>crsBindRow(x.tr, x.to, heads));
+      if((box.getAttribute('data-course-source')||'') === 'ids'){
+        const ids = new Set((box.getAttribute('data-course-ids')||'').split(',').filter(Boolean));
+        rep.misbound.forEach(x=>{ ids.delete(x.from.id); ids.add(x.to.id); });
+        box.setAttribute('data-course-ids', [...ids].join(','));
+      }
+      scheduleSave();
+      toast('Re-linked '+n+' row'+(n===1?'':'s'));
+    }
+  }
 
   // The escape hatch that was missing. A cell judged hand-edited used to be
   // pinned for good: refresh named it and then offered nothing, so there was
@@ -3468,21 +3525,33 @@ function crsRefreshReport(rep){
   L.push(rep.updated.length+' cell'+(rep.updated.length===1?'':'s')+' updated from the database'
          + (rep.updated.length ? ':\n  ' + [...new Set(rep.updated)].slice(0,8).join('\n  ')
             + (rep.updated.length>8?'\n  …':'') : '.'));
+  // Mis-bindings first: they are the serious case, and 'use the database
+  // value' is the WRONG answer for them -- it would overwrite the row with a
+  // different course's data.
+  if(rep.misbound.length){
+    L.push('');
+    const n = rep.misbound.length;
+    L.push('\u26a0 '+n+' row'+(n===1?'':'s')+' '+(n===1?'is':'are')+' linked to a different course than '+
+           (n===1?'it shows':'they show')+', so nothing in '+(n===1?'it':'them')+' was touched:');
+    rep.misbound.slice(0,6).forEach(x=>
+      L.push('  shows '+crsDisplay(x.to)+'   linked to '+crsDisplay(x.from)));
+    if(n>6) L.push('  … and '+(n-6)+' more');
+  }
   if(rep.keptYours.length){
     L.push('');
     const k = rep.keptYours.length;
-    // Show the two values. 'N cells you had edited' on its own is unreadable:
-    // it names the field but never what the table says versus what the
-    // database says, so there is no way to tell a real edit from a false one.
-    const clip = t => { t = String(t==null?'':t); return t.length>70 ? t.slice(0,68)+'…' : (t||'(empty)'); };
-    L.push(k+' cell'+(k===1?'':'s')+' look'+(k===1?'s':'')+' hand-edited, so '+(k===1?'it was':'they were')+
-           ' left alone:');
-    rep.keptYours.slice(0,8).forEach(x=>{
-      L.push('  '+x.label);
-      L.push('     table:    '+clip(x.now));
-      L.push('     database: '+clip(x.fresh));
+    L.push(k+' cell'+(k===1?'':'s')+' differ'+(k===1?'s':'')+' from the database, so '+
+           (k===1?'it was':'they were')+' left alone:');
+    // Grouped by row and capped, so a block with many rows stays readable.
+    const byRow = new Map();
+    rep.keptYours.forEach(x=>{ if(!byRow.has(x.row)) byRow.set(x.row, []); byRow.get(x.row).push(x); });
+    [...byRow.keys()].slice(0,4).forEach(row=>{
+      const cells = byRow.get(row);
+      L.push('  '+row);
+      cells.slice(0,4).forEach(x=>L.push('     '+crsChangeLine(x)));
+      if(cells.length>4) L.push('     … and '+(cells.length-4)+' more column'+(cells.length-4===1?'':'s'));
     });
-    if(k>8) L.push('  … and '+(k-8)+' more');
+    if(byRow.size>4) L.push('  … and '+(byRow.size-4)+' more row'+(byRow.size-4===1?'':'s'));
   }
   if(rep.linkable.length){
     L.push('');
@@ -10339,6 +10408,23 @@ function moveRowRel(row,dir){
   }
   if(!pairs.length){ toast('This row can\u2019t be moved here.'); return false; }
   pairs.forEach(([a,b])=>swapCellContent(a,b));
+  // Identity has to travel with the content. This moves TEXT between two <tr>
+  // elements that stay where they are, so anything describing WHAT the text is
+  // must move with it, while anything describing the COLUMN must not:
+  //   data-course-id  (row -> which course this row stands for)   MOVES
+  //   data-db-value   (cell -> the value the database filled in)  MOVES
+  //   data-course-field (cell -> which column this is)            STAYS
+  // Without this, reordering a Course Database table with the up/down buttons
+  // silently left every row pointing at another course and every cell looking
+  // hand-edited, so a refresh reported dozens of false conflicts and changed
+  // nothing. Found on 2026-09-10 in the CUT-MT catalog table.
+  const swapAttr = (x,y,attr)=>{
+    const vx=x.getAttribute(attr), vy=y.getAttribute(attr);
+    if(vy===null) x.removeAttribute(attr); else x.setAttribute(attr,vy);
+    if(vx===null) y.removeAttribute(attr); else y.setAttribute(attr,vx);
+  };
+  swapAttr(row, rows[r2], 'data-course-id');
+  pairs.forEach(([a,b])=>swapAttr(a,b,'data-db-value'));
   return true;
 }
 
