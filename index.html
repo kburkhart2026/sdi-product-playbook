@@ -4286,6 +4286,10 @@ function getEmbeddedSeed(){
 }
 
 function scheduleSave(){
+  // Nothing in a read-only session is ever saved, so do not arm the timer and
+  // above all do not announce 'Saving...' -- the downstream guards return
+  // early, which used to leave that word sitting in a viewer's topbar forever.
+  if(viewerModeForced) return;
   clearTimeout(saveTimer);
   const ind = document.getElementById('save-ind');
   if(ind) ind.textContent = 'Saving...';
@@ -4301,6 +4305,7 @@ function scheduleSave(){
 // write off without awaiting (unload can't wait on async storage).
 function persistLocalNow(){
   if(window.__skipPersist) return; // guard during restore/reload
+  if(viewerModeForced) return;     // read-only session: nothing to mirror
   saveCurrentBlocks();
   try{
     const state = { programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, courseStore, shelfStore, v:2, ts: Date.now() };
@@ -4431,6 +4436,10 @@ async function persist(){
 }
 
 async function doPersist(){
+  // Belt and braces, and it has to be BEFORE the local write: the mode check
+  // further down only skipped the GitHub commit, so a viewer still paid for
+  // the local mirror and still grew an undo stack they can never use.
+  if(viewerModeForced) return;
   saveCurrentBlocks();
   pushUndo();
   const state = { programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, courseStore, shelfStore, v:2, ts: Date.now() };
@@ -4578,6 +4587,12 @@ function syncSectionTitle(){
 }
 
 function saveCurrentBlocks(){
+  // A read-only session never contributes content. Without this, an edit that
+  // somehow reached a block (focus can be forced even though clicks are
+  // blocked and Tab cannot reach it) would land in blockStore and in the
+  // viewer's own local copy, leaving them looking at a Playbook that quietly
+  // disagrees with everyone else's.
+  if(viewerModeForced) return;
   // Save the section that is ACTUALLY rendered in #blocks-root -- never
   // curProgId:curSection, because during navigation those are updated before
   // the new content loads, which would write the old (or empty) DOM into the
@@ -5222,8 +5237,11 @@ function openProgram(id, forceLoc){
 }
 
 function goHub(){
-  saveCurrentBlocks();
-  persist();
+  // A viewer has nothing to save. This used to serialise the whole Playbook
+  // into their browser on every trip to the Hub -- 9.5 MB and ~95ms of their
+  // time, for a copy nobody reads -- and flash them a '\u2713 Saved' they should
+  // never see. Measured 2026-09-10.
+  if(!viewerModeForced){ saveCurrentBlocks(); persist(); }
   if(pmPanelOpen) pmPanelClose(); // neither docked panel ever makes sense alongside no open program
   if(marginPanelOpen) marginPanelClose();
   if(typeof ccPanelOpen!=='undefined' && ccPanelOpen) ccPanelClose();
@@ -5631,6 +5649,11 @@ async function loadContent(sid){
   try{ upgradeTableRowOps(root); }catch(e){}
   // Re-baseline: structural upgrades above must not count as user edits
   if(blockStore[key]!==undefined) blockStore[key] = root.innerHTML;
+  // Stored block HTML carries contenteditable="true", so every section load
+  // handed a viewer editable blocks again -- setMode('view') only ran once at
+  // boot. Until now the sole thing stopping them typing was one CSS rule
+  // (pointer-events:none), which does not cover a focused element.
+  if(viewerModeForced) lockBlocksForViewer(root);
   // Update comment count label without expanding
   const cnt = (sectionComments[curProgId+':'+sid]||[]).length;
   const lbl = document.getElementById('comments-count-label');
@@ -5683,6 +5706,48 @@ function attachAutoSave(){
 }
 
 // ==================== BLOCK FACTORY ====================
+// Ids baked into a block's own onclick strings must be unique for the life of
+// the CONTENT, not of the page. 'tbl-'+(++uid) was not: uid restarts at zero
+// every load while blocks persist, so a table created in a later session could
+// be handed an id already present in the document -- and every toolbar button
+// resolves its table with getElementById, which returns the FIRST match. Two
+// tables in CUT-MT > Positioning & Audience both ended up as 'tbl-2010', so
+// the second table's + Column, Move Col, Format and CSV all silently operated
+// on the first one. Found 2026-09-10.
+function newBlockId(prefix){
+  return prefix+'-'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+}
+function healDuplicateBlockIds(root){
+  if(!root) return;
+  const seen = new Set();
+  root.querySelectorAll('table.block-table[id]').forEach(tbl=>{
+    if(!seen.has(tbl.id)){ seen.add(tbl.id); return; }
+    const old = tbl.id, fresh = newBlockId('tbl');
+    tbl.id = fresh; seen.add(fresh);
+    // The toolbar's buttons hold the id as a literal inside their onclick, so
+    // rebuilding it from the new id is what actually reconnects them.
+    const wrap = tbl.closest('.block-table-wrap');
+    const bar = wrap && wrap.querySelector('.tbl-toolbar');
+    if(bar) bar.innerHTML = tblToolbarHTML(fresh);
+    console.warn('healed duplicate table id', old, '->', fresh);
+  });
+  const seenTl = new Set();
+  root.querySelectorAll('.tl-list[id]').forEach(list=>{
+    if(!seenTl.has(list.id)){ seenTl.add(list.id); return; }
+    const fresh = newBlockId('tl');
+    list.id = fresh; seenTl.add(fresh);
+    const btn = list.closest('.block-timeline');
+    const add = btn && btn.querySelector('.tl-add-btn');
+    if(add) add.setAttribute('onclick', "addMilestone('"+fresh+"')");
+  });
+}
+// Third layer, alongside the body.view-mode CSS and the guard in
+// saveCurrentBlocks: take the editability away outright.
+function lockBlocksForViewer(root){
+  if(!root) return;
+  root.querySelectorAll('[contenteditable="true"]').forEach(el=>{ el.contentEditable='false'; });
+  const t=document.getElementById('page-title'); if(t) t.contentEditable='false';
+}
 function makeBlock(data){
   const wrap = document.createElement('div');
   wrap.className = 'block';
@@ -5714,7 +5779,7 @@ function makeBlock(data){
       wrap.innerHTML = ctrl+`<div class="block-callout"><div class="ci">${data.icon||'💡'}</div><div class="ct" contenteditable="true" spellcheck="false">${data.txt||''}</div></div>`;
       break;
     case 'table':{
-      const id='tbl-'+(++uid);
+      const id=newBlockId('tbl');
       const hdrs=data.headers||['Col 1','Col 2','Col 3'];
       const ths=hdrs.map((h,ci)=>`<th contenteditable="true" spellcheck="false" data-ci="${ci}">${h}</th>`).join('');
       const rows=(data.rows||[['','',''],['','','']]).map((r,ri)=>`<tr data-ri="${ri}">${r.map(c=>`<td contenteditable="true" spellcheck="false">${c}</td>`).join('')}<td class="tbl-utilcell" style="width:22px;padding:0;border:none;">${tblDelCellHTML()}</td></tr>`).join('');
@@ -5728,7 +5793,7 @@ function makeBlock(data){
       </div>`;
       break;}
     case 'timeline':{
-      const lid='tl-'+(++uid);
+      const lid=newBlockId('tl');
       const items=tlSortItems(data.items||[]).map(i=>tlItem(i.m,i.date,i.note)).join('');
       wrap.innerHTML=ctrl+`<div class="block-timeline"><div class="tl-lbl">${data.lbl||'Timeline'}</div><div class="tl-list" id="${lid}">${items}</div><button class="tl-add-btn" onclick="addMilestone('${lid}')">+ Add milestone</button></div>`;
       break;}
@@ -8780,7 +8845,9 @@ function applyLockState(){
     if(btn){btn.textContent='🔓';btn.classList.remove('locked');}
     if(banner) banner.style.display='none';
     if(addBar) addBar.style.display='flex';
-    document.getElementById('page-title').contentEditable='true';
+    // Unlocking a section must not hand a viewer the title. This runs on every
+    // section load, so it was undoing the view-mode lockdown each time.
+    document.getElementById('page-title').contentEditable = viewerModeForced ? 'false' : 'true';
   }
 }
 
@@ -10204,8 +10271,13 @@ function upgradeBlocks(root){
       if(del) ctrl.insertBefore(b,del); else ctrl.appendChild(b);
     }
   });
+  // Rename ids that collide INSIDE this section, and repoint the controls that
+  // carry them. Only same-section duplicates matter: one section renders at a
+  // time, so the same id in two different sections is harmless. Runs before
+  // anything resolves an id, and is a no-op once the content is clean.
+  healDuplicateBlockIds(root);
   root.querySelectorAll('.block-table').forEach(tbl=>{
-    if(!tbl.id) tbl.id='tbl-'+(++uid);
+    if(!tbl.id) tbl.id=newBlockId('tbl');
     // Tables saved before the wrapper existed have no .block-table-wrap, so the
     // gear had nowhere to anchor. Wrap them now.
     let wrap=tbl.closest('.block-table-wrap');
