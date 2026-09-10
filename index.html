@@ -3281,6 +3281,37 @@ function crsTableBlockHTML(data){
     + '</div></div>';
 }
 
+// Cosmetic differences must never count as a hand edit: a non-breaking space
+// (contenteditable inserts them freely), collapsed runs of whitespace and
+// leading/trailing space all compare equal. Real differences survive.
+function crsCmp(s){ return String(s==null?'':s).replace(/\u00a0/g,' ').replace(/\s+/g,' ').trim(); }
+// The code a row displays, whether or not the row is bound to a course.
+function crsRowCodeText(tr){
+  const bound = tr.querySelector('[data-course-field="code"]');
+  const cell = bound || tr.querySelector('td');
+  return cell ? crsCmp(cell.textContent) : '';
+}
+// Resolve a row to a course by the code it shows, so 'UAS 208: Component
+// Diagnostics' resolves to UAS 208. Returns every matching delivery, so a
+// split course is reported as ambiguous rather than bound to the wrong one.
+function crsGuessCourseForRow(tr){
+  const m = crsRowCodeText(tr).toUpperCase().match(/([A-Z]{2,4})\s*(\d{3})/);
+  return m ? crsByCode(m[1]+' '+m[2]) : [];
+}
+// Adopt a row into the database: bind the course, then give each cell the
+// field its own COLUMN HEADER declares, so a hand-typed row becomes
+// refreshable without rebuilding the table.
+function crsBindRow(tr, c, heads){
+  tr.setAttribute('data-course-id', c.id);
+  [...tr.children].forEach((td,i)=>{
+    const h = heads[i]; if(!h) return;
+    const key = h.getAttribute('data-course-field'); if(!key) return;
+    const v = crsCellText(c, key);
+    td.setAttribute('data-course-field', key);
+    td.setAttribute('data-db-value', v);
+    td.textContent = v;
+  });
+}
 // The refresh contract. Six rules, and it always reports what it did.
 async function crsRefreshTable(btn){
   if(viewerModeForced) return;
@@ -3290,27 +3321,41 @@ async function crsRefreshTable(btn){
   const bound = heads.map(h=>h.getAttribute('data-course-field')||null);
   // The last header is the table's own delete-button cell, not one of her
   // columns -- excluded, or the report claims a free column that isn't one.
-  const rep = { updated:[], keptYours:[], unknown:[], missing:[],
+  const rep = { updated:[], keptYours:[], unknown:[], missing:[], linkable:[],
                 freeCols: heads.filter(h=>!h.getAttribute('data-course-field')
                                        && !/^\s*$/.test(h.textContent)).length };
 
   [...table.querySelectorAll('tbody tr')].forEach(tr=>{
     if(tr.classList.contains('crs-tr-group') || tr.classList.contains('crs-tr-sub')) return;
     const id = tr.getAttribute('data-course-id');
-    if(!id){ rep.unknown.push('(row you added)'); return; }
-    const c = crsById(id);
-    if(!c){ rep.unknown.push(id); return; }
+    const c  = id ? crsById(id) : null;
+    if(!c){
+      // A row typed by hand, or one whose course id no longer resolves. Both
+      // used to be reported and then abandoned, so a row could never be
+      // adopted by the database. Resolve it from the code the row shows.
+      const guess = crsGuessCourseForRow(tr);
+      const label = crsRowCodeText(tr) || '(row you added)';
+      if(guess.length === 1) rep.linkable.push({ tr, course:guess[0], label });
+      else rep.unknown.push(label + (guess.length>1 ? ' — matches '+guess.length+' deliveries' : ''));
+      return;
+    }
     [...tr.children].forEach(td=>{
       const key = td.getAttribute('data-course-field');
       if(!key) return;                                  // free column: never touched
       const was = td.getAttribute('data-db-value');
-      const now = td.textContent.trim();
+      const now = td.textContent;
       const fresh = crsCellText(c, key);
-      if(was !== null && now !== was){                  // you edited this cell
-        if(fresh !== now) rep.keptYours.push(crsDisplay(c)+' · '+(CRS_FIELD[key]||{}).short);
+      // Compare NORMALISED. contenteditable turns a typed space into a
+      // non-breaking space and a save/reload round-trip can collapse runs of
+      // whitespace; either one used to read as a hand edit and pinned the cell
+      // for good. Only a real difference counts now.
+      if(was !== null && crsCmp(now) !== crsCmp(was)){   // you edited this cell
+        if(crsCmp(fresh) !== crsCmp(now))
+          rep.keptYours.push({ td, fresh, now: crsCmp(now),
+                               label: crsDisplay(c)+' · '+(CRS_FIELD[key]||{}).short });
         return;
       }
-      if(now !== fresh){
+      if(crsCmp(now) !== crsCmp(fresh)){
         td.textContent = fresh;
         rep.updated.push(crsDisplay(c)+' · '+(CRS_FIELD[key]||{}).short);
       }
@@ -3354,6 +3399,42 @@ async function crsRefreshTable(btn){
 
   scheduleSave();
   await appAlert(crsRefreshReport(rep));
+
+  // The escape hatch that was missing. A cell judged hand-edited used to be
+  // pinned for good: refresh named it and then offered nothing, so there was
+  // no way to say 'the database is right, take its value'.
+  if(rep.keptYours.length){
+    const k = rep.keptYours.length;
+    if(await appConfirm('Use the database value for '+(k===1?'that cell':'those '+k+' cells')+
+        '?\n\nThis overwrites what the table currently shows. Anything you meant to keep by hand '+
+        'will be replaced, so say no if even one of them is a deliberate edit.',
+        'Use database values', 'Keep the table as it is')){
+      rep.keptYours.forEach(x=>{ x.td.textContent = x.fresh; x.td.setAttribute('data-db-value', x.fresh); });
+      scheduleSave();
+      toast(k+' cell'+(k===1?'':'s')+' taken from the database');
+    }
+  }
+
+  // Adopt hand-typed rows, so a row can be linked instead of rebuilt.
+  if(rep.linkable.length){
+    const n = rep.linkable.length;
+    if(await appConfirm('Link '+(n===1?'that row':'those '+n+' rows')+
+        ' to '+(n===1?'its':'their')+' course and fill from the database?\n\n'+
+        rep.linkable.slice(0,10).map(x=>'  '+x.label+'  →  '+crsDisplay(x.course)).join('\n')+
+        (n>10?'\n  …':''), 'Link and fill', 'Leave as typed')){
+      rep.linkable.forEach(x=>crsBindRow(x.tr, x.course, heads));
+      // Keep them in the table's source, or the next refresh offers to add
+      // them back as duplicates.
+      if((box.getAttribute('data-course-source')||'') === 'ids'){
+        const ids = new Set((box.getAttribute('data-course-ids')||'').split(',').filter(Boolean));
+        rep.linkable.forEach(x=>ids.add(x.course.id));
+        box.setAttribute('data-course-ids', [...ids].join(','));
+      }
+      scheduleSave();
+      toast('Linked '+n+' row'+(n===1?'':'s'));
+    }
+  }
+
   if(rep.missing.length){
     if(await appConfirm('Add '+rep.missing.length+' missing course row'+(rep.missing.length===1?'':'s')+
         ' to the bottom of this table?\n\n'+rep.missing.slice(0,10).map(c=>'  '+crsDisplay(c)+' — '+(c.title||'')).join('\n')+
@@ -3390,8 +3471,25 @@ function crsRefreshReport(rep){
   if(rep.keptYours.length){
     L.push('');
     const k = rep.keptYours.length;
-    L.push(k+' cell'+(k===1?'':'s')+' you had edited '+(k===1?'was':'were')+
-           ' LEFT AS IT '+(k===1?'IS':'THEY ARE')+':\n  '+[...new Set(rep.keptYours)].slice(0,8).join('\n  '));
+    // Show the two values. 'N cells you had edited' on its own is unreadable:
+    // it names the field but never what the table says versus what the
+    // database says, so there is no way to tell a real edit from a false one.
+    const clip = t => { t = String(t==null?'':t); return t.length>70 ? t.slice(0,68)+'…' : (t||'(empty)'); };
+    L.push(k+' cell'+(k===1?'':'s')+' look'+(k===1?'s':'')+' hand-edited, so '+(k===1?'it was':'they were')+
+           ' left alone:');
+    rep.keptYours.slice(0,8).forEach(x=>{
+      L.push('  '+x.label);
+      L.push('     table:    '+clip(x.now));
+      L.push('     database: '+clip(x.fresh));
+    });
+    if(k>8) L.push('  … and '+(k-8)+' more');
+  }
+  if(rep.linkable.length){
+    L.push('');
+    const n = rep.linkable.length;
+    L.push(n+' row'+(n===1?'':'s')+' '+(n===1?'is':'are')+' not linked to a course but '+
+           (n===1?'looks':'look')+' like '+
+           [...new Set(rep.linkable.map(x=>crsDisplay(x.course)))].slice(0,6).join(', ')+'.');
   }
   if(rep.freeCols){
     L.push('');
