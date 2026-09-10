@@ -2062,6 +2062,7 @@ table.mg2-table tr.clickable:hover{background:#FDF4F5;}
     <div class="export-opt" onclick="closeDataBackupModal(); connectGithubViewerToken();">🔗 Update viewer link token…</div>
     <div class="export-opt" onclick="closeDataBackupModal(); setViewerPassword();">🔐 Set the viewer password…</div>
     <div class="export-opt" onclick="closeDataBackupModal(); pushLocalContentToGithub();">⬆🐙 Push local content to GitHub</div>
+    <div class="export-opt" onclick="closeDataBackupModal(); optimizeStoredImages();">&#128444; Shrink images already in content&hellip;</div>
     <div class="export-opt" onclick="closeDataBackupModal(); migrateContentToPerProgramFiles();">🗂️🐙 Migrate content to per-program files</div>
     <div class="backup-meta" id="backup-meta"></div>
   </div>
@@ -6328,14 +6329,173 @@ async function setImage(ph){
   } else {
     const inp=document.createElement('input');
     inp.type='file'; inp.accept='image/*';
-    inp.onchange=e=>{
+    inp.onchange=async e=>{
       const f=e.target.files[0]; if(!f) return;
-      const r=new FileReader();
-      r.onload=ev=>showImage(wrap,ev.target.result);
-      r.readAsDataURL(f);
+      showImage(wrap, await imgPrepareFile(f));
     };
     inp.click();
   }
+}
+// ---- image sizing on the way in ------------------------------------------
+// Section content is stored as HTML, so a pasted image lives INSIDE the text
+// as a base64 data URI. That is why one program reached 5.39 MB of which 4.96
+// was seven screenshots, and why a viewer waited for all of it before a single
+// word appeared. Measured 2026-09-10: the largest was 3144x460 and 1.14 MB;
+// at 1600px wide as JPEG it is 0.10 MB and still perfectly legible.
+const IMG_MAX_EDGE   = 1600;     // plenty for a ~800px column on a retina screen
+const IMG_JPEG_Q     = 0.82;
+const IMG_SKIP_BELOW = 250000;   // already small and within size: leave it alone
+
+function imgReadFile(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=e=>res(e.target.result);
+    r.onerror=()=>rej(new Error('could not read that file'));
+    r.readAsDataURL(file);
+  });
+}
+function imgLoad(src){
+  return new Promise((res,rej)=>{
+    const im=new Image();
+    im.onload=()=>res(im);
+    im.onerror=()=>rej(new Error('that file is not an image the browser can read'));
+    im.src=src;
+  });
+}
+// JPEG cannot carry transparency, so anything with a transparent pixel stays
+// PNG (a logo, a cut-out diagram) and only gets resized.
+function imgHasAlpha(canvas){
+  try{
+    const d=canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data;
+    for(let i=3;i<d.length;i+=4) if(d[i]<250) return true;
+  }catch(e){ return true; }   // tainted or unreadable: assume it needs PNG
+  return false;
+}
+// Returns { src, before, after, w, h, ow, oh, changed }. Never returns
+// something larger than what it was given.
+async function imgShrinkDataURL(src, srcType){
+  const before = src.length;
+  const im = await imgLoad(src);
+  const ow = im.naturalWidth, oh = im.naturalHeight;
+  const scale = Math.min(1, IMG_MAX_EDGE/Math.max(ow,oh));
+  if(scale === 1 && before <= IMG_SKIP_BELOW)
+    return { src, before, after:before, w:ow, h:oh, ow, oh, changed:false };
+  const w = Math.max(1, Math.round(ow*scale)), h = Math.max(1, Math.round(oh*scale));
+  const c = document.createElement('canvas'); c.width=w; c.height=h;
+  const ctx = c.getContext('2d');
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(im, 0, 0, w, h);
+  const isPng = /image\/png/i.test(srcType || src.slice(0,30));
+  let out;
+  if(isPng && imgHasAlpha(c)){
+    out = c.toDataURL('image/png');
+  } else {
+    out = c.toDataURL('image/jpeg', IMG_JPEG_Q);
+    // A drawing or flat diagram can compress better as PNG than as JPEG.
+    const asPng = c.toDataURL('image/png');
+    if(asPng.length < out.length) out = asPng;
+  }
+  // Refuse to make anything bigger or to re-encode for no gain.
+  if(out.length >= before) return { src, before, after:before, w:ow, h:oh, ow, oh, changed:false };
+  return { src:out, before, after:out.length, w, h, ow, oh, changed:true };
+}
+function imgSavingNote(r){
+  const mb = n => n>1048576 ? (n/1048576).toFixed(2)+' MB' : Math.round(n/1024)+' KB';
+  if(!r.changed) return '';
+  const dims = (r.w!==r.ow||r.h!==r.oh) ? '  \u00b7  '+r.ow+'\u00d7'+r.oh+' \u2192 '+r.w+'\u00d7'+r.h : '';
+  return 'Image stored at '+mb(r.after)+', down from '+mb(r.before)+dims;
+}
+// The single path every picked or dropped image goes through.
+async function imgPrepareFile(file){
+  const raw = await imgReadFile(file);
+  try{
+    const r = await imgShrinkDataURL(raw, file.type);
+    if(r.changed) toast(imgSavingNote(r));
+    return r.src;
+  }catch(e){
+    console.warn('image resize skipped:', e.message);
+    return raw;              // never lose the picture because resizing failed
+  }
+}
+// ---- the one-time cleanup for images already embedded in content ---------
+// Deliberately manual, never automatic: it rewrites real content, so it shows
+// exactly what it would do and only proceeds when Karen says so. Measured on
+// production 2026-09-10: 12 occurrences, only 8 distinct pictures (one stored
+// three times), 7.83 MB stored against 2.81 MB of unique pixels.
+const IMG_DATA_RE = /data:image\/[a-z0-9.+-]+;base64,[A-Za-z0-9+/=]+/gi;
+function imgFmtMB(n){ return (n/1048576).toFixed(2)+' MB'; }
+
+async function optimizeStoredImages(){
+  if(viewerModeForced) return;
+  // Only loaded programs are in memory under manifestMode, and a partial pass
+  // would quietly leave the biggest program untouched. Load everything first
+  // and say so, the same way the first search of a session does.
+  if(typeof manifestMode!=='undefined' && manifestMode){
+    const missing = programs.filter(p=>!loadedPrograms.has(p.id));
+    if(missing.length){
+      toast('Loading all '+programs.length+' programs first\u2026 (once per session)');
+      await Promise.all(programs.map(p=>ensureProgramLoaded(p.id)));
+    }
+  }
+  // Group occurrences by the image itself, so a picture used in three
+  // sections is re-encoded once and all three get the same smaller copy.
+  const byImage = new Map();
+  Object.keys(blockStore).forEach(key=>{
+    const html = blockStore[key]; if(!html) return;
+    (html.match(IMG_DATA_RE)||[]).forEach(uri=>{
+      if(!byImage.has(uri)) byImage.set(uri, []);
+      byImage.get(uri).push(key);
+    });
+  });
+  if(!byImage.size){ await appAlert('No embedded images found \u2014 nothing to do.'); return; }
+
+  const occurrences = [...byImage.values()].reduce((a,b)=>a+b.length,0);
+  const storedBefore = [...byImage.entries()].reduce((a,[uri,keys])=>a+uri.length*keys.length,0);
+  toast('Checking '+byImage.size+' image'+(byImage.size===1?'':'s')+'\u2026');
+
+  const plan = [];
+  for(const [uri, keys] of byImage){
+    let r; try{ r = await imgShrinkDataURL(uri, uri.slice(0,30)); }catch(e){ continue; }
+    if(r.changed) plan.push({ uri, keys, next:r.src, r });
+  }
+  if(!plan.length){
+    await appAlert('All '+byImage.size+' image'+(byImage.size===1?' is':'s are')+
+      ' already a sensible size \u2014 nothing changed.');
+    return;
+  }
+  const storedAfter = storedBefore
+    - plan.reduce((a,x)=>a + (x.uri.length - x.next.length)*x.keys.length, 0);
+
+  const lines = plan.slice(0,10).map(x=>
+    '  '+imgFmtMB(x.r.before)+' \u2192 '+imgFmtMB(x.r.after)+
+    (x.r.w!==x.r.ow ? '   ('+x.r.ow+'\u00d7'+x.r.oh+' \u2192 '+x.r.w+'\u00d7'+x.r.h+')' : '') +
+    (x.keys.length>1 ? '   used in '+x.keys.length+' sections' : ''));
+  const ok = await appConfirm(
+    'Re-save '+plan.length+' image'+(plan.length===1?'':'s')+' at a sensible size?\n\n'+
+    lines.join('\n') + (plan.length>10 ? '\n  \u2026and '+(plan.length-10)+' more' : '') +
+    '\n\nStored in your content: '+imgFmtMB(storedBefore)+' \u2192 '+imgFmtMB(storedAfter)+
+    '\n('+occurrences+' place'+(occurrences===1?'':'s')+' across '+byImage.size+' distinct image'+
+    (byImage.size===1?'':'s')+')\n\nThis REPLACES the originals in your content. Take a backup first if you '+
+    'have not today \u2014 \u2699 Data & Backup \u2192 Backup all data. Check the pictures still look right '+
+    'before your next save reaches GitHub.',
+    'Re-save the images', 'Leave them as they are');
+  if(!ok) return;
+
+  const touched = new Set();
+  plan.forEach(x=>{
+    x.keys.forEach(key=>{
+      blockStore[key] = blockStore[key].split(x.uri).join(x.next);
+      touched.add(key.split(':',1)[0]);
+    });
+  });
+  touched.forEach(pid=>dirtyPrograms.add(pid));
+  // Re-render whatever is on screen so she can look at the result immediately.
+  if(curSection) await loadContent(curSection);
+  persist();
+  await appAlert('Done. '+plan.length+' image'+(plan.length===1?'':'s')+' re-saved, '+
+    imgFmtMB(storedBefore)+' \u2192 '+imgFmtMB(storedAfter)+' of stored content across '+
+    touched.size+' program'+(touched.size===1?'':'s')+'.\n\nHave a look at the pictures now. If any '+
+    'looks wrong, use \u2699 Data & Backup \u2192 Recover previous version before saving again.');
 }
 function showImage(wrap,src){
   // Preserve existing caption if there is one
@@ -6361,11 +6521,9 @@ async function changeImage(btn){
   } else {
     const inp = document.createElement('input');
     inp.type='file'; inp.accept='image/*';
-    inp.onchange = e => {
+    inp.onchange = async e => {
       const f = e.target.files[0]; if(!f) return;
-      const r = new FileReader();
-      r.onload = ev => showImage(wrap, ev.target.result);
-      r.readAsDataURL(f);
+      showImage(wrap, await imgPrepareFile(f));
     };
     inp.click();
   }
@@ -11339,9 +11497,7 @@ function addDroppedFile(f, ref){
   if(f.type && f.type.startsWith('image/')){
     const b=makeBlock({t:'image'});
     insertDropped(b, ref);
-    const r=new FileReader();
-    r.onload=ev=>showImage(b.querySelector('.block-image'), ev.target.result);
-    r.readAsDataURL(f);
+    imgPrepareFile(f).then(src=>showImage(b.querySelector('.block-image'), src));
     return b;
   }
   const b=makeBlock({t:'file'});
