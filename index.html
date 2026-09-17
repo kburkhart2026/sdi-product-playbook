@@ -1138,7 +1138,16 @@ body.is-staging::before{content:'';position:fixed;top:0;left:0;right:0;height:3p
 .pc2-rev:hover{border-color:var(--acc);color:var(--acc);}
 #rev-panel{display:none;flex-direction:column;min-width:320px;background:#fff;border-left:1px solid var(--bdr);overflow:hidden;}
 #rev-panel-body{flex:1;overflow-y:auto;padding:10px 12px 20px;}
-.rev-sec{margin:8px 0 4px;}
+.rev-sec{display:flex;align-items:center;gap:4px;margin:10px 0 4px;}
+.rev-sec-tog{flex:1;display:flex;align-items:center;gap:6px;min-width:0;border:none;background:none;
+  padding:4px 2px;cursor:pointer;font-family:inherit;font-size:12.5px;color:var(--ink);text-align:left;}
+.rev-sec-tog:hover .rev-sec-nm{color:var(--acc);}
+.rev-chev{font-size:9px;color:var(--mut);flex-shrink:0;}
+.rev-sec-nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;}
+.rev-sec-n{font-size:10px;font-weight:700;color:var(--mut);border:1px solid var(--bdr);
+  border-radius:8px;padding:0 6px;flex-shrink:0;}
+.rev-sec-n.hot{background:var(--acc);border-color:var(--acc);color:#fff;}
+.rev-sec-go{flex-shrink:0;font-size:13px;text-decoration:none;padding:2px 4px;}
 .rev-item{border:1px solid var(--bdr);border-radius:6px;padding:8px 10px;margin-bottom:6px;background:#fff;}
 .rev-item.resolved{opacity:.6;background:#FBFAF9;}
 .rev-who{font-size:11px;font-weight:700;color:var(--mut);display:flex;align-items:center;gap:6px;}
@@ -1782,6 +1791,7 @@ table.mg2-table tr.clickable:hover{background:#FDF4F5;}
           </div>
           <button class="tb-more" id="tb-more" onclick="toggleTbExtra(event)" title="More tools">⋯</button>
               <button class="pm-board-btn" id="pm-board-viewer-btn" onclick="pmOpenSmart()" style="display:none">📋 PM Board</button>
+              <button class="pm-board-btn" id="rev-viewer-btn" onclick="revPanelOpenFor()" style="display:none" title="See every comment on this program">&#128172; Comments</button>
           <div class="export-wrap">
             <button class="export-btn" onclick="toggleExport(event)">Export ▾</button>
             <div class="export-menu" id="export-menu">
@@ -1887,6 +1897,8 @@ table.mg2-table tr.clickable:hover{background:#FDF4F5;}
         <div id="rev-panel" style="display:none">
           <div class="pmp-head">
             <div class="pmp-title">Review</div>
+            <button class="pmp-dashbtn" onclick="revExpandAll()" title="Expand every section">&#8964; Expand All</button>
+            <button class="pmp-dashbtn" onclick="revCollapseAll()" title="Collapse every section">&#8963; Collapse All</button>
             <button class="pmp-dashbtn" onclick="revRefresh()" title="Check for new comments">&#8635;</button>
             <button class="pmp-iconbtn" onclick="revPanelClose()" title="Close panel">&#10005;</button>
           </div>
@@ -9455,20 +9467,33 @@ function cmtCountForProgram(progId){
     .reduce((a,k)=>a+t[k].length,0);
 }
 // Fetch the bodies for one section. Cached, so re-opening a section is free.
+const _cmtFetching = {};
 async function cmtFetchSection(progId, secId){
   const key = progId+':'+secId;
   if(_cmtRemote[key]) return _cmtRemote[key];
-  const tree = await cmtTreeLoad();
-  const entries = (tree && tree[key]) || [];
-  const out = [];
-  for(const e of entries){
-    const r = await cmtApi('/git/blobs/'+e.sha);
-    if(r.status!=='ok' || !r.json || !r.json.content) continue;
-    try{ const c = cmtNormalize(JSON.parse(base64ToUtf8(r.json.content)), key); if(c) out.push(c); }
-    catch(err){}
-  }
-  _cmtRemote[key] = out;
-  return out;
+  // Two callers can want the same section at once -- priming a program and
+  // the background pull when that section renders. Without this they both
+  // run, and whichever finishes LAST wins; if that one started before the
+  // file listing was ready it caches an empty list and the section stays
+  // empty for the whole session. Found 2026-09-17.
+  if(_cmtFetching[key]) return _cmtFetching[key];
+  _cmtFetching[key] = (async ()=>{
+    const tree = await cmtTreeLoad();
+    const entries = (tree && tree[key]) || [];
+    const out = [];
+    for(const e of entries){
+      const r = await cmtApi('/git/blobs/'+e.sha);
+      if(r.status!=='ok' || !r.json || !r.json.content) continue;
+      try{ const c = cmtNormalize(JSON.parse(base64ToUtf8(r.json.content)), key); if(c) out.push(c); }
+      catch(err){}
+    }
+    // Only remember the answer if the listing was actually readable. Caching
+    // "nothing" after a failed listing hides real comments until a reload.
+    if(tree) _cmtRemote[key] = out;
+    delete _cmtFetching[key];
+    return out;
+  })();
+  return _cmtFetching[key];
 }
 // Write one comment as its own file. Append-only, so two reviewers commenting
 // at the same moment write different paths and can never collide.
@@ -9542,6 +9567,7 @@ async function cmtPrimeProgram(progId, force){
   renderSidebar();
   cmtRefreshUI();
   if(typeof revPanelOpen!=='undefined' && revPanelOpen) revRender();
+  revRefreshViewerBtn();
 }
 // A comment left in another browser (or by a reviewer five minutes ago) is
 // invisible until the listing is re-read. Re-read it when this tab comes back
@@ -9574,6 +9600,8 @@ function revPanelOpenFor(){
   const panel=document.getElementById('rev-panel'), handle=document.getElementById('rev-panel-handle');
   panel.style.flex='0 0 '+(uiState.sidePanelWidth||460)+'px';
   panel.style.display='flex'; handle.style.display='block';
+  const t=document.querySelector('#rev-panel .pmp-title');
+  if(t) t.textContent = viewerModeForced ? 'Comments' : 'Review';
   revRender();
   revLoadAll();
 }
@@ -9584,6 +9612,25 @@ function revPanelClose(){
   if(handle) handle.style.display='none';
 }
 function revSetFilter(f){ revFilter=f; revRender(); }
+// Section groups start CLOSED, so opening the panel shows the shape of the
+// review -- which sections were commented on and how many -- rather than a
+// wall of text. Same idea, and the same Expand/Collapse All, as the sidebar.
+// Remembered per browser in uiState, so a reviewer's choice survives a reload.
+function revSecOpen(key){
+  try{ return !!(uiState.revOpen||{})[key]; }catch(e){ return false; }
+}
+function revToggleSec(key){
+  if(!uiState.revOpen) uiState.revOpen={};
+  if(uiState.revOpen[key]) delete uiState.revOpen[key];
+  else uiState.revOpen[key]=1;
+  saveUIState(); revRender();
+}
+function revExpandAll(){
+  if(!uiState.revOpen) uiState.revOpen={};
+  revAllComments().filter(c=>!c.replyTo).forEach(c=>{ uiState.revOpen[c.progId+':'+c.secId]=1; });
+  saveUIState(); revRender();
+}
+function revCollapseAll(){ uiState.revOpen={}; saveUIState(); revRender(); }
 async function revRefresh(){
   _cmtTree=null; _cmtPrimed={}; _cmtLastSync=Date.now();
   Object.keys(_cmtRemote).forEach(k=>delete _cmtRemote[k]);
@@ -9594,38 +9641,63 @@ async function revRefresh(){
 async function revLoadAll(){
   const tree = await cmtTreeLoad();
   if(!tree) { revRender(); return; }
-  const keys = Object.keys(tree);
+  // Scoped for a viewer: the program they are on, which opening it has
+  // already pulled, so the panel opens with no extra requests at all.
+  const keys = Object.keys(tree).filter(k=>
+    !viewerModeForced || k.slice(0, k.indexOf(':')) === curProgId);
   for(const k of keys){
     if(_cmtRemote[k]) continue;
     await cmtFetchSection(k.slice(0,k.indexOf(':')), k.slice(k.indexOf(':')+1));
   }
   revRender();
   renderSidebar();
+  revRefreshViewerBtn();
 }
 function revAllComments(){
   const out=[];
-  Object.keys(_cmtRemote).forEach(k=>{ (_cmtRemote[k]||[]).forEach(c=>out.push(c)); });
+  // A viewer can browse the whole Playbook from one link, so over a session
+  // _cmtRemote accumulates programs they were never asked to review. Their
+  // panel is scoped to the program in front of them; the editor's is not.
+  const only = viewerModeForced ? curProgId : null;
+  Object.keys(_cmtRemote).forEach(k=>{
+    if(only && k.slice(0, k.indexOf(':')) !== only) return;
+    (_cmtRemote[k]||[]).forEach(c=>out.push(c));
+  });
   return out.sort((a,b)=>b.ts-a.ts);
+}
+// The count a reviewer sees on the button: everything on this program,
+// resolved included, because a resolved finding is still theirs to check.
+function revRefreshViewerBtn(){
+  const b=document.getElementById('rev-viewer-btn'); if(!b) return;
+  if(!viewerModeForced){ return; }
+  const n=revAllComments().filter(c=>!c.replyTo).length;
+  b.innerHTML='&#128172; Comments'+(n?' ('+n+')':'');
 }
 function revRender(){
   const root=document.getElementById('rev-panel-body'); if(!root) return;
   const all=revAllComments();
   const tops=all.filter(c=>!c.replyTo);
   const open=tops.filter(c=>c.status!=='resolved');
-  const shown=(revFilter==='open'?open:tops);
+  // 'Everyone sees everything' -- and for a reviewer that includes resolved
+  // ones, so returning after the findings have been worked through shows what
+  // was changed rather than an empty list.
+  const shown = viewerModeForced ? tops : (revFilter==='open'?open:tops);
+  const viewer = viewerModeForced;
   let h='<div class="clog-wrap">'
-    + '<div class="clog-tabs">'
+    + (viewer ? '' : '<div class="clog-tabs">'
     + '<button class="clog-tab'+(revFilter==='open'?' on':'')+'" onclick="revSetFilter(\'open\')">Open '
     + (open.length?'<span class="clog-n hot">'+open.length+'</span>':'<span class="clog-n">0</span>')+'</button>'
     + '<button class="clog-tab'+(revFilter==='all'?' on':'')+'" onclick="revSetFilter(\'all\')">Everything '
     + '<span class="clog-n">'+tops.length+'</span></button>'
-    + '</div>';
+    + '</div>');
   if(!shown.length){
     h += '<div class="clog-empty"><div class="clog-empty-t">'
-      + (revFilter==='open'?'Nothing open':'No comments yet')+'</div>'
-      + '<p>'+(revFilter==='open'
-          ? 'Every comment raised so far has been resolved.'
-          : 'Comments left by reviewers on the viewer link appear here, section by section.')
+      + (viewer ? 'No comments yet' : (revFilter==='open'?'Nothing open':'No comments yet'))+'</div>'
+      + '<p>'+(viewer
+          ? 'To leave one, open any section and scroll to <b>Comments</b> at the bottom of the page.'
+          : (revFilter==='open'
+              ? 'Every comment raised so far has been resolved.'
+              : 'Comments left by reviewers on the viewer link appear here, section by section.'))
       + '</p></div></div>';
     root.innerHTML=h; return;
   }
@@ -9636,14 +9708,25 @@ function revRender(){
     const prog=programs.find(x=>x.id===pid);
     const colour=prog?prog.color:'var(--mut)';
     const label=prog?splitProgName(prog.name).code:'(removed program)';
-    h += '<div class="clog-grp"><span class="clog-sw" style="background:'+colour+'"></span>'
+    if(!viewer) h += '<div class="clog-grp"><span class="clog-sw" style="background:'+colour+'"></span>'
       +  escapeHtml(label)+'<span class="clog-grp-n">'+byProg[pid].length+'</span></div>';
     const bySec={};
     byProg[pid].forEach(c=>{ (bySec[c.secId]=bySec[c.secId]||[]).push(c); });
     Object.keys(bySec).forEach(sid=>{
       const name=(typeof ccSectionName==='function' ? ccSectionName(pid,sid) : '') || sid;
-      h += '<div class="rev-sec"><a class="clog-goto" onclick="revGoTo(\''+pid+'\',\''+sid+'\')">'
-        +  escapeHtml(name)+' &rarr;</a></div>';
+      const key = pid+':'+sid, open = revSecOpen(key);
+      const unresolved = bySec[sid].filter(c=>c.status!=='resolved').length;
+      h += '<div class="rev-sec'+(open?' open':'')+'">'
+        +   '<button class="rev-sec-tog" onclick="revToggleSec(\''+key+'\')" '
+        +     'title="'+(open?'Collapse':'Expand')+' this section" aria-expanded="'+open+'">'
+        +     '<span class="rev-chev">'+(open?'\u25be':'\u25b8')+'</span>'
+        +     '<span class="rev-sec-nm">'+escapeHtml(name)+'</span>'
+        +     '<span class="rev-sec-n'+(unresolved?' hot':'')+'">'+bySec[sid].length+'</span>'
+        +   '</button>'
+        +   '<a class="clog-goto rev-sec-go" onclick="revGoTo(\''+pid+'\',\''+sid+'\')" '
+        +     'title="Open this section">&rarr;</a>'
+        + '</div>';
+      if(!open) return;                       // closed: the header tells the story
       bySec[sid].forEach(c=>{
         const replies=all.filter(x=>x.replyTo===c.id).length;
         h += '<div class="rev-item'+(c.status==='resolved'?' resolved':'')+'">'
@@ -9780,7 +9863,19 @@ function cmtNormalize(c, key){
     ts, by,
     replyTo: c.replyTo || null,
     status:  c.status  || 'open',
-    pending: !!c.pending
+    pending: !!c.pending,
+    // Carried through explicitly. This function rebuilds a comment from a
+    // fixed field list, and every comment READ BACK FROM THE REPO passes
+    // through it -- so anything omitted here is silently discarded on load.
+    // The resolution fields were being dropped, which meant a resolution note
+    // showed while it sat in memory and disappeared on the next fresh load.
+    // The data was never lost; the app was throwing it away on the way in.
+    resolution:   c.resolution || '',
+    resolvedBy:   c.resolvedBy || null,
+    resolvedAt:   c.resolvedAt || 0,
+    reopenedBy:   c.reopenedBy || null,
+    reopenedAt:   c.reopenedAt || 0,
+    sectionEditedAfter: !!c.sectionEditedAfter
   };
 }
 function cmtKey(progId, secId){ return progId+':'+secId; }
@@ -10546,6 +10641,7 @@ function downloadBackup(prefix){
   return true;
 }
 async function exportBackup(){
+  if(viewerModeForced) return;          // never hand the raw state to a reader
   const em=document.getElementById('export-menu'); if(em) em.classList.remove('show');
   // Pull in every program's content BEFORE snapshotting. Without this, a
   // manual backup taken right after boot holds only whatever happened to be
@@ -10730,6 +10826,16 @@ async function maybeAutoBackup(){
   }
 }
 function updateBackupReminder(){
+  // A viewer has nothing to back up, so their browser's backup clock is always
+  // zero and this pill read "No backup yet" permanently in the topbar of a
+  // read-only link. Worse, it is a button: clicking it ran exportBackup and
+  // handed over the entire raw state -- including marginStore, the tuition and
+  // COGS model. Export for viewers is meant to be documents, not the data.
+  if(viewerModeForced){
+    const old=document.getElementById('backup-pill');
+    if(old) old.style.display='none';
+    return;
+  }
   const ts=lastBackupTs();
   const days=ts? Math.floor((Date.now()-ts)/(24*60*60*1000)) : null;
   let partial=false; try{ partial = localStorage.getItem('sdi_last_backup_partial')==='1'; }catch(e){}
@@ -14801,6 +14907,11 @@ function hideEditorChromeForViewer(){
   // gives a viewer a direct way back to the read-only PM board from inside
   // an open program, not just from the Hub.
   const pmViewerBtn=document.getElementById('pm-board-viewer-btn'); if(pmViewerBtn) pmViewerBtn.style.display='inline-block';
+  // A reviewer's way into every comment on the program they were sent. Also
+  // how they discover commenting exists at all -- the box itself is at the
+  // bottom of a section, which is easy to never scroll to.
+  const revBtn=document.getElementById('rev-viewer-btn'); if(revBtn) revBtn.style.display='inline-block';
+  const bkPill=document.getElementById('backup-pill'); if(bkPill) bkPill.style.display='none';
   // Shown only for password-unlocked viewers (set in init) -- lets someone clear
   // the saved token from a shared or public machine without digging through
   // browser settings.
