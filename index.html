@@ -826,6 +826,11 @@ body.view-mode [contenteditable] a{pointer-events:auto;}
 .lp-btn:hover{background:#334155;color:#fff;}
 
 /* view mode */
+/* A reviewer may comment and nothing else: the box stays, the editor-only
+   controls inside it go. */
+body.view-mode .cmt-resolve,
+body.view-mode .cmt-reopen,
+body.view-mode .cmt-del,
 body.view-mode .locked-banner,
 body.view-mode .bctrl,
 body.view-mode .add-block-area,
@@ -834,7 +839,6 @@ body.view-mode .dph,
 body.view-mode .dsec,
 body.view-mode .sec-del,
 body.view-mode .ph-del,
-body.view-mode #comments-area,
 body.view-mode .vid-change-bar,
 body.view-mode .tl-add-btn,
 body.view-mode .tl-del,
@@ -1119,6 +1123,30 @@ body.is-staging::before{content:'';position:fixed;top:0;left:0;right:0;height:3p
 .comments-body{margin-top:12px;}
 .comment-item{padding:10px 0;border-bottom:1px solid var(--bdr);font-size:13px;}
 .comment-author{font-weight:600;font-size:11px;color:var(--mut);margin-bottom:3px;}
+.cmt-flag{font-weight:600;font-size:9.5px;letter-spacing:.04em;text-transform:uppercase;border:1px solid #E3D5B4;background:#F6EFDF;color:#6B5A33;border-radius:3px;padding:0 4px;margin-left:5px;}
+.cmt-flag.pend{border-color:#BFD9E8;background:#EAF2F7;color:#1F5B7A;}
+.comment-item.resolved{opacity:.62;}
+.comment-item.reply{margin-left:18px;border-left:2px solid var(--bdr);padding-left:10px;border-bottom:none;}
+.cmt-acts{display:flex;gap:6px;margin-top:6px;}
+.cmt-act{border:1px solid var(--bdr);background:#fff;color:var(--mut);font-size:11px;padding:2px 8px;border-radius:4px;cursor:pointer;font-family:inherit;}
+.cmt-act:hover{border-color:var(--acc);color:var(--acc);}
+.cmt-res{margin-top:6px;font-size:12px;color:#1F5B3C;background:#EDF5F0;border:1px solid #BFDCCB;border-radius:5px;padding:6px 9px;}
+.cmt-res-note{color:#334155;margin-top:3px;}
+.cmt-res-ev{color:var(--mut);font-size:11px;margin-top:3px;}
+.sec-cmt{font-size:10px;font-weight:700;background:var(--acc);color:#fff;border-radius:8px;padding:0 5px;margin-left:5px;}
+.pc2-rev{align-self:flex-start;font-family:var(--font-cond);font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border:1px solid #E3D5B4;background:#F6EFDF;color:#6B5A33;border-radius:3px;padding:1px 6px;margin-top:4px;cursor:pointer;}
+.pc2-rev:hover{border-color:var(--acc);color:var(--acc);}
+#rev-panel{display:none;flex-direction:column;min-width:320px;background:#fff;border-left:1px solid var(--bdr);overflow:hidden;}
+#rev-panel-body{flex:1;overflow-y:auto;padding:10px 12px 20px;}
+.rev-sec{margin:8px 0 4px;}
+.rev-item{border:1px solid var(--bdr);border-radius:6px;padding:8px 10px;margin-bottom:6px;background:#fff;}
+.rev-item.resolved{opacity:.6;background:#FBFAF9;}
+.rev-who{font-size:11px;font-weight:700;color:var(--mut);display:flex;align-items:center;gap:6px;}
+.rev-when{margin-left:auto;font-weight:400;}
+.rev-text{font-size:12.5px;line-height:1.5;margin-top:3px;word-break:break-word;}
+.rev-meta{font-size:11px;color:var(--mut);margin-top:4px;}
+body.view-mode .pc2-rev{display:none!important;}
+.comment-item.resolved .comment-author::after{content:' \2713 resolved';color:#1F5B3C;font-weight:700;}
 .comment-input-row{display:flex;gap:8px;margin-top:12px;}
 .comment-input-row input{flex:1;padding:7px 10px;border:1px solid var(--bdr);border-radius:6px;font-size:13px;font-family:inherit;outline:none;}
 .comment-input-row input:focus{border-color:var(--acc);}
@@ -1748,6 +1776,7 @@ table.mg2-table tr.clickable:hover{background:#FDF4F5;}
                 <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); marginOpenSmart();">&#128178; Margin Calculator</div>
                 <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); pmOpenSmart();">&#128203; PM Board</div>
                 <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); cycleStatus();">&#127991; Program status</div>
+                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); revPanelOpenFor();">&#128172; Review comments</div>
               </div>
             </div>
           </div>
@@ -1853,6 +1882,15 @@ table.mg2-table tr.clickable:hover{background:#FDF4F5;}
             <button class="pmp-iconbtn" onclick="crsPanelClose()" title="Close panel">&#10005;</button>
           </div>
           <div id="course-panel-body"></div>
+        </div>
+        <div class="pm-panel-handle" id="rev-panel-handle" title="Drag to resize" style="display:none"></div>
+        <div id="rev-panel" style="display:none">
+          <div class="pmp-head">
+            <div class="pmp-title">Review</div>
+            <button class="pmp-dashbtn" onclick="revRefresh()" title="Check for new comments">&#8635;</button>
+            <button class="pmp-iconbtn" onclick="revPanelClose()" title="Close panel">&#10005;</button>
+          </div>
+          <div id="rev-panel-body"></div>
         </div>
       </div>
     </div>
@@ -2061,6 +2099,7 @@ table.mg2-table tr.clickable:hover{background:#FDF4F5;}
     <div class="export-opt" onclick="closeDataBackupModal(); connectGithubEditor();">🐙 Connect to GitHub…</div>
     <div class="export-opt" onclick="closeDataBackupModal(); connectGithubViewerToken();">🔗 Update viewer link token…</div>
     <div class="export-opt" onclick="closeDataBackupModal(); setViewerPassword();">🔐 Set the viewer password…</div>
+    <div class="export-opt" onclick="closeDataBackupModal(); setCommentPassword();">&#128172;&#128274; Set the comment key&hellip;</div>
     <div class="export-opt" onclick="closeDataBackupModal(); pushLocalContentToGithub();">⬆🐙 Push local content to GitHub</div>
     <div class="export-opt" onclick="closeDataBackupModal(); optimizeStoredImages();">&#128444; Shrink images already in content&hellip;</div>
     <div class="export-opt" onclick="closeDataBackupModal(); migrateContentToPerProgramFiles();">🗂️🐙 Migrate content to per-program files</div>
@@ -2154,6 +2193,11 @@ const GITHUB_EDITOR_KEY = 'sdi_github_editor_pat'; // localStorage key, this bro
 // "Copy link to this page" doesn't require retyping your read-only PAT
 // every time. Same token you'd otherwise paste into a link by hand.
 const GITHUB_VIEWER_LINK_KEY = 'sdi_github_viewer_link_pat';
+// Comments live in their OWN repo, written with their own token. A leaked
+// comment credential must not be able to touch a single program, so this is a
+// different repo and a different PAT -- not a path inside the content repo,
+// because a fine-grained PAT cannot be scoped to a path.
+const GITHUB_COMMENTS_REPO = 'sdi-playbook-comments';
 const GITHUB_API = 'https://api.github.com';
 // Staging wears a different skin so it can never be mistaken for production at
 // a glance. Deliberately derived from GITHUB_CONTENT_REPO -- the single line
@@ -2286,6 +2330,11 @@ function vkPromptUnlock(){
       try{
         const token = await vkDecryptToken(v, record);
         try{ localStorage.setItem(VK_TOKEN_KEY, token); }catch(e){}
+        // The same password also unlocks the comment token, so a reviewer
+        // types one password and not two. Deliberately best-effort: if there
+        // is no comment key deployed, or it was encrypted under a different
+        // password, reading still works and commenting simply stays off.
+        try{ await ckUnlockWith(v); }catch(e){}
         msg.className='vk-msg ok'; msg.textContent='Unlocked ✓';
         setTimeout(()=>{ ov.remove(); resolve(true); }, 220);
       }catch(e){
@@ -2678,6 +2727,66 @@ async function connectGithubViewerToken(){
 // Deliberately paste-and-commit rather than writing it automatically -- that
 // would mean giving the app write access to its own source, for something that
 // only happens when the password changes.
+// Encrypts the COMMENT token under the same password viewers already type,
+// and hands back one file to commit. Mirrors setViewerPassword deliberately:
+// same vault, same iteration count, same paste-and-commit flow, so there is
+// one thing to understand rather than two.
+async function setCommentPassword(){
+  if(viewerModeForced) return;
+  if(!cmtRepoSane()){
+    await appAlert('This build is '+(IS_STAGING?'STAGING':'PRODUCTION')+' but its comments repo is '
+      + GITHUB_COMMENTS_REPO + '.\n\nThose disagree, so nothing will be written. Fix '
+      + 'GITHUB_COMMENTS_REPO before setting a comment password.');
+    return;
+  }
+  const t = await appPrompt('Paste the GitHub COMMENT token — fine-grained, Contents: Read and write, '
+    + 'scoped ONLY to ' + GITHUB_COMMENTS_REPO + '.\n\nIt is encrypted with the password below and '
+    + 'never written into the app file in the clear. Do not paste a token that can reach '
+    + GITHUB_CONTENT_REPO + '.', '');
+  if(t===null || !t.trim()) return;
+  const token = t.trim();
+
+  const p1 = await appPrompt('Password reviewers will type.\n\nUse the SAME password as your viewer '
+    + 'links unless you have a reason not to — a reviewer types one password, not two.', '');
+  if(p1===null || !p1.trim()) return;
+  if(p1.trim().length < 12){
+    if(!await appConfirm('That password is only '+p1.trim().length+' characters. The encrypted file is '
+      + 'public, so it can be attacked offline at the attacker\'s own pace.\n\nUse it anyway?',
+      'Use it anyway', 'Let me pick a better one')) return;
+  }
+  const p2 = await appPrompt('Type the same password again to confirm:', '');
+  if(p2===null) return;
+  if(p1.trim() !== p2.trim()){ await appAlert('Those did not match — nothing was changed.'); return; }
+
+  let rec;
+  try{ rec = await vkEncryptToken(p1.trim(), token); }
+  catch(e){ await appAlert('Could not encrypt: '+e.message); return; }
+  const json = JSON.stringify(rec, null, 2);
+  const appRepo = IS_STAGING ? 'sdi-product-playbook-staging' : 'sdi-product-playbook';
+
+  const ov = document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;z-index:16000;background:rgba(16,24,32,0.6);display:flex;align-items:center;justify-content:center;padding:20px;';
+  ov.innerHTML =
+    '<div style="background:#fff;max-width:640px;width:100%;max-height:86vh;overflow:auto;border-radius:8px;padding:22px 24px;box-shadow:0 20px 60px rgba(0,0,0,0.35)">'
+    + '<div style="font:700 15px/1.2 var(--font-cond,system-ui);text-transform:uppercase;letter-spacing:.06em;color:#101820;border-bottom:3px solid #D50032;padding-bottom:9px;margin-bottom:14px">Comment key &mdash; one file to commit</div>'
+    + '<ol style="font-size:13.5px;line-height:1.65;color:#334155;padding-left:20px;margin:0 0 14px">'
+    +   '<li>Copy the text below.</li>'
+    +   '<li>In the <b>'+appRepo+'</b> repo, create a file named exactly <b>comment-key.json</b> at the top level, next to index.html and viewer-key.json.</li>'
+    +   '<li>Paste, commit, and wait for Pages to redeploy.</li>'
+    + '</ol>'
+    + '<textarea readonly style="width:100%;height:200px;font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;border:1px solid #cbd5e1;border-radius:6px;padding:10px">'+escapeHtml(json)+'</textarea>'
+    + '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">'
+    +   '<button id="ck-copy" class="pc2-btn">Copy</button>'
+    +   '<button id="ck-close" class="pc2-btn">Done</button>'
+    + '</div></div>';
+  document.body.appendChild(ov);
+  ov.querySelector('#ck-copy').onclick=()=>{ navigator.clipboard.writeText(json).then(()=>toast('Copied')); };
+  ov.querySelector('#ck-close').onclick=()=>ov.remove();
+  // Cache it here too, so Karen's own browser can read and write comments
+  // immediately without waiting for Pages to redeploy.
+  try{ localStorage.setItem(CK_TOKEN_KEY, token); }catch(e){}
+  _cmtTree=null;
+}
 async function setViewerPassword(){
   if(viewerModeForced) return;
   let token = '';
@@ -4987,6 +5096,8 @@ function makeProgCard(p){
     </div>
     <div class="pc2-body">
       <div class="pc2-full">${escapeHtml(nm.full)}</div>
+      ${(()=>{ const n=(typeof cmtOpenCountForProgram==='function')?cmtOpenCountForProgram(p.id):0;
+        return n?`<div class="pc2-rev" onclick="event.stopPropagation();revPanelOpenFor()" title="${n} open review ${n===1?'comment':'comments'}">${n} to review</div>`:''; })()}
       <div class="pc2-meta"><span>${st.done}/${st.total} sections started</span><span>${st.last?fmtAgo(st.last):p.created}</span></div>
       <div class="pc2-bar"><div class="pc2-fill" style="width:${st.pct}%;background:${p.color}"></div></div>
       <div class="pc2-actions">
@@ -5221,6 +5332,10 @@ function openProgram(id, forceLoc){
     btn.textContent = s.lbl; btn.style.background=s.bg; btn.style.color=s.color;
   }
   renderSidebar();
+  // Before any of the early returns below: pull this program's comment counts
+  // so the sidebar badges are right straight away, not only for the sections
+  // that happen to get opened.
+  cmtPrimeProgram(id);
   uiState.lastProg=id; saveUIState();
   if(forceLoc){ goTo(forceLoc.phid, forceLoc.sid); return; }
   const last=uiState.lastLoc[id];
@@ -5269,7 +5384,8 @@ function renderSidebar(){
       return `
       <div class="sec-item ${s.id===curSection?'active':''}" data-sid="${s.id}" data-pid="${ph.id}" onclick="goTo('${ph.id}','${s.id}')">
         <span class="dsec" title="Drag">⠿</span>
-        <span class="sec-nm">${s.name}</span>
+        <span class="sec-nm">${s.name}</span>${(()=>{ const n=(typeof cmtOpenCount==='function'&&curProgId)?cmtOpenCount(curProgId,s.id):0;
+          return n?`<span class="sec-cmt" title="${n} open review ${n===1?'comment':'comments'}">${n}</span>`:''; })()}
         <span class="sec-status" data-s="${stat}" title="Status: ${stat}" onclick="cycleSectionStatus('${s.id}',event)"></span>
         <span class="sec-del" title="Delete section" onclick="deleteSection('${ph.id}','${s.id}',event)">✕</span>
       </div>`;}).join('');
@@ -5655,6 +5771,18 @@ async function loadContent(sid){
   // boot. Until now the sole thing stopping them typing was one CSS rule
   // (pointer-events:none), which does not cover a focused element.
   if(viewerModeForced) lockBlocksForViewer(root);
+  // Pull this section's comments in the background; renderComments re-runs
+  // when they land, so opening a section never waits on the network.
+  if(curProgId && sid && cmtToken()){
+    cmtFetchSection(curProgId, sid).then(list=>{
+      if(curProgId && curSection===sid && list && list.length){
+        cmtRefreshUI();
+        // ...and the sidebar, or this section's own badge stays stale until
+        // something else happens to re-render it.
+        renderSidebar();
+      }
+    }).catch(()=>{});
+  }
   // Update comment count label without expanding
   const cnt = (sectionComments[curProgId+':'+sid]||[]).length;
   const lbl = document.getElementById('comments-count-label');
@@ -9250,27 +9378,584 @@ function toggleComments(){
   if(chev) chev.textContent=open?'▶':'▼';
   if(!open) renderComments();
 }
+// ==================== COMMENTS: the comments repo ====================
+// Step 4. Files here are ~200 bytes, so this uses the simple Contents API
+// (one request per write) rather than the blob/tree/commit/ref dance the
+// content saves need for multi-megabyte files.
+const CK_FILE      = 'comment-key.json';            // beside index.html, fetched with no auth
+const CK_TOKEN_KEY = 'sdi_comment_vault_token';     // decrypted comment PAT, this browser only
+const GITHUB_COMMENT_EDITOR_KEY = 'sdi_comment_editor_pat';  // Karen's own, if she keeps one
+
+// A staging build writing into the production comments repo would put test
+// comments inside a compliance record, and nobody would notice until it
+// mattered. The two must agree, and if they do not, nothing is written.
+function cmtRepoSane(){
+  return /staging/i.test(GITHUB_COMMENTS_REPO||'') === !!IS_STAGING;
+}
+function cmtRepoUrl(path){
+  return GITHUB_API+'/repos/'+GITHUB_OWNER+'/'+GITHUB_COMMENTS_REPO+path;
+}
+// Karen writes with her own editor token (which she has granted access to the
+// comments repo); a reviewer writes with the token from comment-key.json.
+function cmtToken(){
+  if(!viewerModeForced){
+    try{ const t=localStorage.getItem(GITHUB_EDITOR_KEY)||''; if(t) return t; }catch(e){}
+  }
+  try{ return localStorage.getItem(CK_TOKEN_KEY)||''; }catch(e){ return ''; }
+}
+function cmtCanWrite(){ return !!cmtToken() && cmtRepoSane(); }
+
+async function cmtApi(path, opts){
+  const token = cmtToken(); if(!token) return { status:'no_token' };
+  try{
+    const r = await fetch(cmtRepoUrl(path), Object.assign({ cache:'no-store',
+      headers: githubHeaders(token) }, opts||{}));
+    if(r.status===404) return { status:'not_found' };
+    if(!r.ok) return { status:'error', code:r.status };
+    return { status:'ok', json: await r.json() };
+  }catch(e){ return { status:'error', code:0 }; }
+}
+
+// One recursive tree read tells us which sections hold comments and how many,
+// without downloading a single comment body -- that is what feeds the counts
+// on the hub and in the sidebar. Bodies are fetched only for the section
+// actually being read.
+let _cmtTree = null, _cmtTreePromise = null;
+const _cmtRemote = {};            // 'progId:secId' -> [comment]  (bodies, once fetched)
+function cmtPathFor(c){ return 'comments/'+c.progId+'/'+c.secId+'/'+c.id+'.json'; }
+async function cmtTreeLoad(force){
+  if(_cmtTree && !force) return _cmtTree;
+  if(_cmtTreePromise) return _cmtTreePromise;
+  _cmtTreePromise = (async ()=>{
+    const r = await cmtApi('/git/trees/'+GITHUB_BRANCH+'?recursive=1');
+    const map = {};
+    if(r.status==='ok' && r.json && Array.isArray(r.json.tree)){
+      r.json.tree.forEach(n=>{
+        if(n.type!=='blob' || n.path.indexOf('comments/')!==0 || !/\.json$/.test(n.path)) return;
+        const parts = n.path.split('/');            // comments / progId / secId / id.json
+        if(parts.length!==4) return;
+        const key = parts[1]+':'+parts[2];
+        (map[key] = map[key] || []).push({ path:n.path, sha:n.sha });
+      });
+    }
+    // An empty repo 404s on the tree -- that is "no comments yet", not a fault.
+    _cmtTree = (r.status==='ok' || r.status==='not_found') ? map : null;
+    _cmtTreePromise = null;
+    return _cmtTree;
+  })();
+  return _cmtTreePromise;
+}
+function cmtCountFor(progId, secId){
+  const t=_cmtTree; if(!t) return 0;
+  return (t[progId+':'+secId]||[]).length;
+}
+function cmtCountForProgram(progId){
+  const t=_cmtTree; if(!t) return 0;
+  return Object.keys(t).filter(k=>k.slice(0,k.indexOf(':'))===progId)
+    .reduce((a,k)=>a+t[k].length,0);
+}
+// Fetch the bodies for one section. Cached, so re-opening a section is free.
+async function cmtFetchSection(progId, secId){
+  const key = progId+':'+secId;
+  if(_cmtRemote[key]) return _cmtRemote[key];
+  const tree = await cmtTreeLoad();
+  const entries = (tree && tree[key]) || [];
+  const out = [];
+  for(const e of entries){
+    const r = await cmtApi('/git/blobs/'+e.sha);
+    if(r.status!=='ok' || !r.json || !r.json.content) continue;
+    try{ const c = cmtNormalize(JSON.parse(base64ToUtf8(r.json.content)), key); if(c) out.push(c); }
+    catch(err){}
+  }
+  _cmtRemote[key] = out;
+  return out;
+}
+// Write one comment as its own file. Append-only, so two reviewers commenting
+// at the same moment write different paths and can never collide.
+async function cmtWriteRemote(c){
+  if(!cmtRepoSane()){
+    console.warn('comments: refusing to write -- '+(IS_STAGING?'staging':'production')+
+                 ' app pointed at '+GITHUB_COMMENTS_REPO);
+    return false;
+  }
+  const r = await cmtApi('/contents/'+cmtPathFor(c), {
+    method:'PUT',
+    body: JSON.stringify({
+      message: 'Comment on '+c.progId+'/'+c.secId+' by '+(c.by&&c.by.name||'unknown'),
+      content: utf8ToBase64(JSON.stringify(c, null, 2)),
+      branch: GITHUB_BRANCH })
+  });
+  if(r.status==='ok'){
+    const key = c.progId+':'+c.secId;
+    if(_cmtRemote[key] && !_cmtRemote[key].some(x=>x.id===c.id)) _cmtRemote[key].push(c);
+    if(_cmtTree) (_cmtTree[key] = _cmtTree[key]||[]).push({ path:cmtPathFor(c), sha:'' });
+    return true;
+  }
+  return false;
+}
+
+// Fetch comment-key.json and decrypt it with the password the viewer just
+// used. Returns true if commenting is now possible on this device.
+async function ckUnlockWith(password){
+  let rec;
+  try{
+    const r = await fetch(CK_FILE, { cache:'no-store' });
+    if(!r.ok) return false;
+    rec = await r.json();
+  }catch(e){ return false; }
+  try{
+    const token = await vkDecryptToken(password, rec);
+    try{ localStorage.setItem(CK_TOKEN_KEY, token); }catch(e){}
+    return true;
+  }catch(e){ return false; }          // wrong password for this file
+}
+// The roster turns a per-person link into a name. Read from the comments repo
+// so a reviewer holding only the content token cannot enumerate the others.
+async function cmtRosterLoad(){
+  if(_cmtRoster) return _cmtRoster;
+  const r = await cmtApi('/contents/reviewers.json');
+  if(r.status==='ok' && r.json && r.json.content){
+    try{ _cmtRoster = JSON.parse(base64ToUtf8(r.json.content)); }catch(e){ _cmtRoster = {reviewers:[]}; }
+  } else if(r.status==='not_found'){ _cmtRoster = {reviewers:[]}; }
+  return _cmtRoster;
+}
+// ---- keeping the counts honest ------------------------------------------
+// The badge on a section counts OPEN comments, and "open" lives inside the
+// comment body -- so a count cannot be derived from the file listing alone.
+// Bodies load lazily per section, which meant a section you had not opened
+// showed no badge even when it held findings. Fix: when a program opens, use
+// the listing to find which of ITS sections have comments and fetch just
+// those. A handful of requests, not one per section.
+let _cmtPrimed = {};
+async function cmtPrimeProgram(progId, force){
+  if(!progId || !cmtToken()) return;
+  if(_cmtPrimed[progId] && !force) return;
+  _cmtPrimed[progId] = true;
+  const tree = await cmtTreeLoad(force);
+  if(!tree) return;
+  const mine = Object.keys(tree).filter(k=>k.slice(0,k.indexOf(':'))===progId);
+  for(const k of mine){
+    if(_cmtRemote[k] && !force) continue;
+    if(force) delete _cmtRemote[k];
+    await cmtFetchSection(progId, k.slice(k.indexOf(':')+1));
+  }
+  renderSidebar();
+  cmtRefreshUI();
+  if(typeof revPanelOpen!=='undefined' && revPanelOpen) revRender();
+}
+// A comment left in another browser (or by a reviewer five minutes ago) is
+// invisible until the listing is re-read. Re-read it when this tab comes back
+// to the front, which is exactly when someone returns to check.
+let _cmtLastSync = 0;
+async function cmtResync(){
+  if(!cmtToken()) return;
+  if(Date.now() - _cmtLastSync < 60000) return;      // not on every tab flick
+  _cmtLastSync = Date.now();
+  _cmtTree = null; _cmtPrimed = {};
+  Object.keys(_cmtRemote).forEach(k=>delete _cmtRemote[k]);
+  if(curProgId) await cmtPrimeProgram(curProgId, true);
+  else { await cmtTreeLoad(true); renderHub(); }
+}
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'visible') cmtResync();
+});
+window.addEventListener('focus', ()=>cmtResync());
+// ---- the review panel: every finding in one place ------------------------
+// Comments are useless if they have to be hunted for section by section. This
+// is the working list: what is still open, where, and who raised it.
+let revPanelOpen = false, revFilter = 'open';
+function revPanelOpenFor(){
+  if(typeof pmPanelOpen!=='undefined' && pmPanelOpen) pmPanelClose();
+  if(typeof marginPanelOpen!=='undefined' && marginPanelOpen) marginPanelClose();
+  if(typeof ccPanelOpen!=='undefined' && ccPanelOpen) ccPanelClose();
+  if(typeof crsPanelOpen!=='undefined' && crsPanelOpen) crsPanelClose();
+  if(typeof clogPanelOpen!=='undefined' && clogPanelOpen) clogPanelClose();
+  revPanelOpen = true;
+  const panel=document.getElementById('rev-panel'), handle=document.getElementById('rev-panel-handle');
+  panel.style.flex='0 0 '+(uiState.sidePanelWidth||460)+'px';
+  panel.style.display='flex'; handle.style.display='block';
+  revRender();
+  revLoadAll();
+}
+function revPanelClose(){
+  revPanelOpen=false;
+  const panel=document.getElementById('rev-panel'), handle=document.getElementById('rev-panel-handle');
+  if(panel) panel.style.display='none';
+  if(handle) handle.style.display='none';
+}
+function revSetFilter(f){ revFilter=f; revRender(); }
+async function revRefresh(){
+  _cmtTree=null; _cmtPrimed={}; _cmtLastSync=Date.now();
+  Object.keys(_cmtRemote).forEach(k=>delete _cmtRemote[k]);
+  await revLoadAll(); renderSidebar(); cmtRefreshUI(); toast('Refreshed');
+}
+// The tree gives counts without bodies; the panel needs the bodies, so pull
+// every section that has any. One pass, then it is cached.
+async function revLoadAll(){
+  const tree = await cmtTreeLoad();
+  if(!tree) { revRender(); return; }
+  const keys = Object.keys(tree);
+  for(const k of keys){
+    if(_cmtRemote[k]) continue;
+    await cmtFetchSection(k.slice(0,k.indexOf(':')), k.slice(k.indexOf(':')+1));
+  }
+  revRender();
+  renderSidebar();
+}
+function revAllComments(){
+  const out=[];
+  Object.keys(_cmtRemote).forEach(k=>{ (_cmtRemote[k]||[]).forEach(c=>out.push(c)); });
+  return out.sort((a,b)=>b.ts-a.ts);
+}
+function revRender(){
+  const root=document.getElementById('rev-panel-body'); if(!root) return;
+  const all=revAllComments();
+  const tops=all.filter(c=>!c.replyTo);
+  const open=tops.filter(c=>c.status!=='resolved');
+  const shown=(revFilter==='open'?open:tops);
+  let h='<div class="clog-wrap">'
+    + '<div class="clog-tabs">'
+    + '<button class="clog-tab'+(revFilter==='open'?' on':'')+'" onclick="revSetFilter(\'open\')">Open '
+    + (open.length?'<span class="clog-n hot">'+open.length+'</span>':'<span class="clog-n">0</span>')+'</button>'
+    + '<button class="clog-tab'+(revFilter==='all'?' on':'')+'" onclick="revSetFilter(\'all\')">Everything '
+    + '<span class="clog-n">'+tops.length+'</span></button>'
+    + '</div>';
+  if(!shown.length){
+    h += '<div class="clog-empty"><div class="clog-empty-t">'
+      + (revFilter==='open'?'Nothing open':'No comments yet')+'</div>'
+      + '<p>'+(revFilter==='open'
+          ? 'Every comment raised so far has been resolved.'
+          : 'Comments left by reviewers on the viewer link appear here, section by section.')
+      + '</p></div></div>';
+    root.innerHTML=h; return;
+  }
+  // grouped by program, then section, so a review reads in document order
+  const byProg={};
+  shown.forEach(c=>{ (byProg[c.progId]=byProg[c.progId]||[]).push(c); });
+  Object.keys(byProg).forEach(pid=>{
+    const prog=programs.find(x=>x.id===pid);
+    const colour=prog?prog.color:'var(--mut)';
+    const label=prog?splitProgName(prog.name).code:'(removed program)';
+    h += '<div class="clog-grp"><span class="clog-sw" style="background:'+colour+'"></span>'
+      +  escapeHtml(label)+'<span class="clog-grp-n">'+byProg[pid].length+'</span></div>';
+    const bySec={};
+    byProg[pid].forEach(c=>{ (bySec[c.secId]=bySec[c.secId]||[]).push(c); });
+    Object.keys(bySec).forEach(sid=>{
+      const name=(typeof ccSectionName==='function' ? ccSectionName(pid,sid) : '') || sid;
+      h += '<div class="rev-sec"><a class="clog-goto" onclick="revGoTo(\''+pid+'\',\''+sid+'\')">'
+        +  escapeHtml(name)+' &rarr;</a></div>';
+      bySec[sid].forEach(c=>{
+        const replies=all.filter(x=>x.replyTo===c.id).length;
+        h += '<div class="rev-item'+(c.status==='resolved'?' resolved':'')+'">'
+          + '<div class="rev-who">'+escapeHtml(c.by.name)
+          +   (c.by.source==='link-unverified'?' <span class="cmt-flag">unconfirmed</span>':'')
+          +   '<span class="rev-when">'+new Date(c.ts).toLocaleDateString('en-US',{month:'short',day:'numeric'})+'</span></div>'
+          + '<div class="rev-text">'+escapeHtml(c.text.length>180?c.text.slice(0,178)+'\u2026':c.text)+'</div>'
+          + (replies?'<div class="rev-meta">'+replies+' repl'+(replies===1?'y':'ies')+'</div>':'')
+          + (c.status==='resolved'&&c.resolution?'<div class="rev-meta">\u2713 '+escapeHtml(c.resolution)+'</div>':'')
+          + '</div>';
+      });
+    });
+  });
+  root.innerHTML = h+'</div>';
+}
+async function revGoTo(progId, secId){
+  if(progId && progId!==curProgId){ openProgram(progId); await new Promise(r=>setTimeout(r,220)); }
+  const prog=programs.find(x=>x.id===progId); if(!prog) return;
+  const ph=(prog.phases||[]).find(x=>(x.sections||[]).some(sc=>sc.id===secId));
+  if(!ph) return;
+  await goTo(ph.id, secId);
+  const body=document.getElementById('comments-body');
+  if(body && body.style.display==='none') toggleComments();
+  const area=document.getElementById('comments-area');
+  if(area) area.scrollIntoView({behavior:'smooth', block:'center'});
+}
+// ---- resolving, reopening, replying -------------------------------------
+// A resolution ADDS to the comment; it never replaces or removes it. The
+// original text, author and timestamp stay exactly as written, and the change
+// is one commit, so the history shows what was addressed and when. That is
+// what makes this a record rather than a task list.
+async function cmtUpdateRemote(c){
+  // The Contents API needs the file's current sha to replace it. Fetching it
+  // now rather than trusting a cached one means a comment edited from another
+  // browser is never silently clobbered.
+  const path = cmtPathFor(c);
+  const cur = await cmtApi('/contents/'+path);
+  if(cur.status!=='ok' || !cur.json || !cur.json.sha) return false;
+  const r = await cmtApi('/contents/'+path, {
+    method:'PUT',
+    body: JSON.stringify({
+      message: (c.status==='resolved' ? 'Resolve' : 'Reopen')+' comment on '+c.progId+'/'+c.secId,
+      content: utf8ToBase64(JSON.stringify(c, null, 2)),
+      sha: cur.json.sha,
+      branch: GITHUB_BRANCH })
+  });
+  if(r.status!=='ok') return false;
+  const key=c.progId+':'+c.secId;
+  const list=_cmtRemote[key]||[];
+  const i=list.findIndex(x=>x.id===c.id);
+  if(i>=0) list[i]=c; else list.push(c);
+  return true;
+}
+function cmtFind(id){
+  for(const k of Object.keys(_cmtRemote)){
+    const hit=(_cmtRemote[k]||[]).find(c=>c.id===id);
+    if(hit) return hit;
+  }
+  return null;
+}
+async function cmtResolve(id){
+  if(viewerModeForced) return;                 // resolving is Karen's call
+  const c = cmtFind(id); if(!c) return;
+  // Optional but prompted, with the field ready: writing a note is the path of
+  // least resistance, skipping it is a deliberate choice. 'Resolved' on its
+  // own tells an auditor nothing.
+  const note = await appPrompt('What did you change? (optional, but this is what makes the record useful)\n\n'
+    + '\u201c'+c.text.slice(0,140)+(c.text.length>140?'\u2026':'')+'\u201d', '');
+  if(note===null) return;                      // cancelled -- nothing changes
+  const who = await cmtIdentity();
+  const next = Object.assign({}, c, { status:'resolved', resolution:String(note||'').trim(),
+    resolvedBy: who ? {id:who.id,name:who.name} : {id:'',name:'Editor'}, resolvedAt: Date.now(),
+    // A factual signal that the section really was edited after the comment
+    // was raised -- asserted resolutions are weaker than evidenced ones.
+    sectionEditedAfter: !!(sectionUpdated[c.progId+':'+c.secId] > c.ts) });
+  const ok = await cmtUpdateRemote(next);
+  if(!ok){ toast('\u26a0 Could not save that \u2014 nothing changed. Try again.'); return; }
+  cmtRefreshUI(); renderSidebar();
+  toast('Resolved');
+}
+async function cmtReopen(id){
+  const c = cmtFind(id); if(!c) return;
+  const who = await cmtIdentity(); if(!who) return;
+  const next = Object.assign({}, c, { status:'open', reopenedBy:{id:who.id,name:who.name},
+                                      reopenedAt: Date.now() });
+  const ok = await cmtUpdateRemote(next);
+  if(!ok){ toast('\u26a0 Could not save that \u2014 nothing changed.'); return; }
+  cmtRefreshUI(); renderSidebar();
+  toast('Reopened');
+}
+async function cmtReply(id){
+  const c = cmtFind(id); if(!c) return;
+  const text = await appPrompt('Reply to '+c.by.name+':', '');
+  if(text===null || !String(text).trim()) return;
+  const made = await cmtCreate(c.progId, c.secId, String(text).trim(), c.id);
+  if(made) cmtRefreshUI();
+}
+// Counts that drive the markers. Open means still needing attention.
+function cmtOpenCount(progId, secId){
+  return cmtList(progId, secId).filter(c=>c.status!=='resolved' && !c.replyTo).length;
+}
+function cmtOpenCountForProgram(progId){
+  const t=_cmtTree; if(!t) return 0;
+  let n=0;
+  Object.keys(t).forEach(k=>{
+    if(k.slice(0,k.indexOf(':'))!==progId) return;
+    const secId=k.slice(k.indexOf(':')+1);
+    n += (_cmtRemote[k] ? cmtOpenCount(progId,secId) : t[k].length);
+  });
+  return n;
+}
+// ==================== COMMENTS: model, queue, identity ====================
+// Step 1 of the compliance-review work. The STORAGE does not change yet --
+// comments still live in sectionComments and ride along with the program file.
+// What changes is that every read and write now goes through one place, so
+// step 4 can swap the backing store for the comments repo without touching a
+// single rendering path. Decided 2026-09-11.
+
+// A comment as the rest of the app should see it. Accepts the legacy
+// {author, text, ts} shape so nothing already written is lost or looks odd.
+function cmtNormalize(c, key){
+  if(!c || typeof c!=='object') return null;
+  const ts = c.ts || 0;
+  const by = c.by && typeof c.by==='object'
+    ? { id:c.by.id||'', name:c.by.name||'Anonymous', source:c.by.source||'typed' }
+    : { id:'', name:c.author||'Anonymous', source:'legacy' };
+  return {
+    id: c.id || ('cmt-'+ts.toString(36)+'-'+(c.author||by.name||'x').slice(0,3)),
+    v: 1,
+    progId: c.progId || (key? key.slice(0, key.indexOf(':')) : ''),
+    secId:  c.secId  || (key? key.slice(key.indexOf(':')+1) : ''),
+    round:  c.round  || '',
+    text:   String(c.text||''),
+    ts, by,
+    replyTo: c.replyTo || null,
+    status:  c.status  || 'open',
+    pending: !!c.pending
+  };
+}
+function cmtKey(progId, secId){ return progId+':'+secId; }
+// The single read path. Merges anything still queued in this browser, so a
+// reviewer always sees their own comment immediately even if the write has
+// not landed yet.
+function cmtList(progId, secId){
+  const key = cmtKey(progId, secId);
+  // Three sources, in one list: comments written before the comments repo
+  // existed (still in the program file), comments from the repo, and anything
+  // this browser has typed but not yet managed to store.
+  const legacy = (sectionComments[key]||[]).map(c=>cmtNormalize(c, key)).filter(Boolean);
+  const remote = (_cmtRemote[key]||[]);
+  const seenIds = new Set(legacy.map(c=>c.id));
+  const stored = legacy.concat(remote.filter(c=>!seenIds.has(c.id)));
+  const queued = cmtQueueAll().filter(c=>c.progId===progId && c.secId===secId)
+                   .map(c=>Object.assign({}, c, { pending:true }));
+  const seen = new Set(stored.map(c=>c.id));
+  return stored.concat(queued.filter(c=>!seen.has(c.id))).sort((a,b)=>a.ts-b.ts);
+}
+// The single write path. Everything a comment needs is decided here.
+async function cmtCreate(progId, secId, text, replyTo){
+  const t = String(text||'').trim(); if(!t) return null;
+  const who = await cmtIdentity();
+  if(!who) return null;                        // they declined to say who they are
+  // replyTo is set HERE, at creation. Writing the comment and then rewriting
+  // it to attach the parent would need the file's sha for the second write
+  // and would fail against the real API -- a mock happily accepted it.
+  const c = cmtNormalize({
+    id: 'cmt-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7),
+    progId, secId, text:t, ts:Date.now(), by:who, status:'open',
+    replyTo: replyTo || null
+  }, cmtKey(progId, secId));
+  cmtQueueAdd(c);          // durable first -- see the note on cmtQueue below
+  await cmtFlush();
+  return c;
+}
+
+// ---- the queue -----------------------------------------------------------
+// A reviewer's words must survive a failed write, a closed laptop, or a
+// connection that drops halfway through a review. The comment is written to
+// this browser's own storage BEFORE anything is attempted, and only leaves the
+// queue once it is genuinely stored. Today "stored" means sectionComments;
+// from step 4 it will mean a commit in the comments repo, and nothing else
+// here has to change.
+const CMT_QUEUE_KEY = 'sdi_cmt_queue';
+function cmtQueueAll(){
+  try{ const q=JSON.parse(localStorage.getItem(CMT_QUEUE_KEY)||'[]');
+       return Array.isArray(q) ? q.map(c=>cmtNormalize(c)).filter(Boolean) : []; }
+  catch(e){ return []; }
+}
+function cmtQueueWrite(list){
+  try{ localStorage.setItem(CMT_QUEUE_KEY, JSON.stringify(list)); }catch(e){}
+}
+function cmtQueueAdd(c){ const q=cmtQueueAll(); q.push(c); cmtQueueWrite(q); }
+function cmtQueueDrop(id){ cmtQueueWrite(cmtQueueAll().filter(c=>c.id!==id)); }
+function cmtPendingCount(){ return cmtQueueAll().length; }
+// Move everything queued into the store. Returns how many landed.
+async function cmtFlush(){
+  const q = cmtQueueAll(); if(!q.length) return 0;
+  let landed = 0;
+  for(const c of q){
+    const ok = await cmtPersistOne(c);
+    if(ok){ cmtQueueDrop(c.id); landed++; }
+  }
+  if(landed) cmtRefreshUI();
+  return landed;
+}
+// THE SWAP POINT. Step 4 replaces the body of this one function with a commit
+// to the comments repo; everything above and below stays exactly as it is.
+async function cmtPersistOne(c){
+  const stored = Object.assign({}, c); delete stored.pending;
+  // The comments repo is the home. If it is not reachable -- no token yet, no
+  // network, the repo not set up -- the comment stays in the queue and is
+  // retried, rather than being written somewhere it will not be seen.
+  if(cmtCanWrite()) return await cmtWriteRemote(stored);
+  return false;
+}
+
+// ---- who is commenting ---------------------------------------------------
+// Two mechanisms, as chosen: a per-person link where Karen knows who she sent
+// it to, and a typed name as the fallback for a generic or forwarded link.
+// The roster lands in step 4; until then a link id is carried but its name is
+// still self-declared, which cmtIdentity records honestly in `source`.
+let _cmtRoster = null;                       // step 4: loaded from the comments repo
+function cmtReviewerIdFromUrl(){
+  const m = /(?:^#|&)r=([A-Za-z0-9_-]{1,32})/.exec(location.hash||'');
+  return m ? m[1] : '';
+}
+function cmtRosterLookup(id){
+  if(!id || !_cmtRoster || !Array.isArray(_cmtRoster.reviewers)) return null;
+  const r = _cmtRoster.reviewers.find(x=>x && x.id===id && !x.revoked);
+  return r || null;
+}
+async function cmtIdentity(){
+  const id = cmtReviewerIdFromUrl();
+  const known = cmtRosterLookup(id);
+  if(known) return { id, name:known.name, source:'link' };
+  const name = await getUserName();
+  if(!name) return null;
+  // An id with no roster entry is recorded as unverified rather than silently
+  // treated as confirmed -- the difference matters for a review record.
+  return { id, name, source: id ? 'link-unverified' : (viewerModeForced ? 'typed' : 'editor') };
+}
 function renderComments(){
-  const key=curProgId+':'+curSection;
-  const comments=sectionComments[key]||[];
+  const comments = cmtList(curProgId, curSection);
   const list=document.getElementById('comments-list');
   const lbl=document.getElementById('comments-count-label');
-  if(lbl) lbl.textContent='💬 Comments ('+comments.length+')';
+  const pending = comments.filter(c=>c.pending).length;
+  const openN = comments.filter(c=>c.status!=='resolved' && !c.replyTo).length;
+  if(lbl) lbl.textContent='\ud83d\udcac Comments ('+comments.length+')'
+    + (openN? ' \u00b7 '+openN+' open' : '')
+    + (pending? ' \u00b7 '+pending+' not saved yet' : '');
   if(!list) return;
-  list.innerHTML=comments.length===0
-    ?'<div style="color:var(--mut);font-size:13px;padding:4px 0;">No comments yet.</div>'
-    :comments.map(c=>`<div class="comment-item"><div class="comment-author">${c.author} -- ${new Date(c.ts).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div><div>${c.text}</div></div>`).join('');
+  // Replies sit under the comment they answer, so a finding and its
+  // resolution read as one exchange rather than two unrelated notes.
+  const tops = comments.filter(c=>!c.replyTo);
+  const repliesOf = id => comments.filter(c=>c.replyTo===id);
+  const canEdit = !viewerModeForced;
+  const when = ts => new Date(ts).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  const one = (c, isReply) => {
+    const flag = c.by.source==='link-unverified'
+      ? ' <span class="cmt-flag" title="Name given by the reviewer; link id '+escapeHtml(c.by.id)+'">unconfirmed</span>' : '';
+    const pend = c.pending
+      ? ' <span class="cmt-flag pend" title="Held in this browser, not stored yet">not saved yet</span>' : '';
+    let foot = '';
+    if(c.status==='resolved'){
+      foot = '<div class="cmt-res">&#10003; Resolved'
+        + (c.resolvedBy&&c.resolvedBy.name ? ' by '+escapeHtml(c.resolvedBy.name) : '')
+        + (c.resolvedAt ? ' &middot; '+when(c.resolvedAt) : '')
+        + (c.resolution ? '<div class="cmt-res-note">'+escapeHtml(c.resolution)+'</div>' : '')
+        + (c.sectionEditedAfter ? '<div class="cmt-res-ev">This section was edited after the comment was raised.</div>' : '')
+        + '</div>';
+    }
+    const acts = [];
+    if(!isReply && !c.pending){
+      if(c.status==='resolved'){ acts.push('<button class="cmt-act cmt-reopen" onclick="cmtReopen(\''+c.id+'\')">Reopen</button>'); }
+      else if(canEdit){ acts.push('<button class="cmt-act cmt-resolve" onclick="cmtResolve(\''+c.id+'\')">Resolve</button>'); }
+      if(canEdit) acts.push('<button class="cmt-act" onclick="cmtReply(\''+c.id+'\')">Reply</button>');
+    }
+    return '<div class="comment-item'+(c.status==='resolved'?' resolved':'')+(isReply?' reply':'')+'">'
+      + '<div class="comment-author">'+escapeHtml(c.by.name)+' &mdash; '+when(c.ts)+flag+pend+'</div>'
+      + '<div>'+escapeHtml(c.text)+'</div>'
+      + foot
+      + (acts.length? '<div class="cmt-acts">'+acts.join('')+'</div>' : '')
+      + '</div>';
+  };
+  list.innerHTML = comments.length===0
+    ? '<div style="color:var(--mut);font-size:13px;padding:4px 0;">No comments yet.</div>'
+    : tops.map(c=>one(c,false)+repliesOf(c.id).map(r=>one(r,true)).join('')).join('');
+}
+// One place for every surface that shows a comment count, so a flush or a
+// failed write updates all of them.
+function cmtRefreshUI(){
+  try{
+    if(typeof curSection!=='undefined' && curSection) renderComments();
+    const lbl=document.getElementById('comments-count-label');
+    if(lbl && curProgId && curSection){
+      const n=cmtList(curProgId,curSection).length, p=cmtPendingCount();
+      lbl.textContent='\ud83d\udcac Comments ('+n+')'+(p? ' \u00b7 '+p+' not saved yet':'');
+    }
+  }catch(e){}
 }
 async function addComment(){
-  if(viewerModeForced) return; // belt-and-suspenders -- the whole comments area is already hidden
+  // Commenting is the ONE thing a reviewer may do. The gate is no longer
+  // "are you a viewer" but "is there somewhere for this to go" -- so a link
+  // with no comment key still cannot take words it would silently drop.
+  if(!cmtToken()) return;
   const inp=document.getElementById('comment-input');
   if(!inp||!inp.value.trim()) return;
-  const key=curProgId+':'+curSection;
-  if(!sectionComments[key]) sectionComments[key]=[];
-  sectionComments[key].push({author:(await getUserName())||'Anonymous',text:inp.value.trim(),ts:Date.now()});
+  const text=inp.value.trim();
   inp.value='';
+  const c=await cmtCreate(curProgId, curSection, text);
+  if(!c){ inp.value=text; return; }        // gave no name -- give them their words back
   renderComments();
-  scheduleSave();
 }
 
 // ==================== DUPLICATE PROGRAM ====================
@@ -12491,6 +13176,7 @@ initSidePanelResize('pm-panel-handle','pm-panel');
 initSidePanelResize('margin-panel-handle','margin-panel');
   initSidePanelResize('cc-panel-handle','cc-panel');
   initSidePanelResize('course-panel-handle','course-panel');
+  initSidePanelResize('rev-panel-handle','rev-panel');
 function openPMDash(){
   document.getElementById('hub-view').style.display='none';
   document.getElementById('prog-view').style.display='none';
@@ -14316,6 +15002,9 @@ async function init(){
   // is someone else's read-only view of a shared link -- neither should
   // download a "backup" file onto that person's machine.
   if(!declinedRecovery && !viewerModeForced) setTimeout(maybeAutoBackup, 4000);
+  // A comment written when the last session could not store it is still in
+  // this browser. Try again now rather than waiting for the person to notice.
+  if(cmtPendingCount()) setTimeout(()=>{ cmtFlush(); }, 2500);
   setInterval(updateBackupReminder, 10*60*1000);
   // Drop the heavy seed node once consumed -- keeps DOM light
   const seedEl = document.getElementById('embedded-seed');
