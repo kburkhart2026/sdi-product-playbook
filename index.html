@@ -370,6 +370,16 @@ body.sb-rail .phase-hdr:hover .ph-dot{box-shadow:0 0 0 3px rgba(201,183,156,0.45
 .export-wrap{position:relative;}
 .export-btn{padding:5px 12px;border-radius:6px;border:1px solid var(--bdr);background:#fff;font-size:13px;cursor:pointer;color:var(--txt);}
 .export-btn:hover{background:var(--cbg);}
+/* Tools menu: grouped by job rather than alphabetically, and one distinct
+   icon per item -- Changelog, Insert courses and PM Board all shared the same
+   clipboard, so the icon column was doing no work. Scoped to #tools-menu so
+   the Export menu beside it is untouched. */
+#tools-menu{width:238px;}
+#tools-menu .tools-group{font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--mut);
+  font-weight:700;padding:9px 14px 3px;border-top:1px solid var(--bdr);background:var(--cbg);}
+#tools-menu .tools-group:first-child{border-top:0;}
+#tools-menu .export-opt{display:flex;gap:9px;align-items:center;}
+#tools-menu .export-opt .ti{flex:0 0 18px;width:18px;text-align:center;font-size:13px;line-height:1.2;}
 .export-menu{position:absolute;right:0;top:calc(100% + 6px);background:#fff;border:1px solid var(--bdr);border-radius:8px;box-shadow:0 10px 28px rgba(0,0,0,0.18);width:210px;z-index:600;display:none;overflow:hidden;}
 .export-menu.show{display:block;}
 .backup-meta{padding:8px 14px;font-size:11.5px;color:var(--mut);border-top:1px solid var(--bdr);background:var(--cbg);}
@@ -1251,6 +1261,61 @@ body.is-staging::before{content:'';position:fixed;top:0;left:0;right:0;height:3p
 .clog-chip-read.on{background:#1F5B3C;border-color:#1F5B3C;color:#fff;}
 .pc2-rev{align-self:flex-start;font-family:var(--font-cond);font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border:1px solid #E3D5B4;background:#F6EFDF;color:#6B5A33;border-radius:3px;padding:1px 6px;margin-top:4px;cursor:pointer;}
 .pc2-rev:hover{border-color:var(--acc);color:var(--acc);}
+#forms-panel{display:none;flex-direction:column;min-width:320px;background:#fff;border-left:1px solid var(--bdr);overflow:hidden;}
+#forms-panel-body{flex:1;overflow-y:auto;padding:10px 12px 20px;}
+#forms-panel-foot{display:none;gap:10px;align-items:center;flex-wrap:wrap;border-top:1px solid var(--bdr);padding:9px 12px;background:#FAFAF8;}
+.fm-hint{font-size:11.5px;color:#7A7168;margin:2px 0 10px;}
+.fm-q{font-size:12.5px;font-weight:700;margin:14px 0 4px;}
+.fm-note{font-size:11.5px;color:#7A7168;border-left:3px solid var(--bdr);padding:6px 0 6px 9px;margin:10px 0;}
+.fm-list{display:flex;flex-direction:column;gap:8px;}
+.fm-row{width:100%;text-align:left;border:1px solid var(--bdr);border-radius:8px;padding:10px 11px;background:#fff;cursor:pointer;}
+.fm-row:hover{border-color:#9B2743;}
+.fm-rt{font-weight:650;font-size:13px;}
+.fm-rs{font-size:11.5px;color:#7A7168;margin-top:2px;}
+.fm-src{margin-top:5px;display:flex;gap:5px;flex-wrap:wrap;align-items:center;}
+.fm-chip{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:999px;border:1px solid;}
+.fm-chip.ok{color:#1F5B3C;background:#EDF5F0;border-color:#BFDCCB;}
+.fm-chip.draft{color:#8A5A00;background:#FBF3E5;border-color:#E7D2A6;}
+.fm-chip.man{color:#494566;background:#EFEEF5;border-color:#CDC9DE;}
+.fm-chip.need{color:#9B2743;background:#FBEDF0;border-color:#E8C2CC;}
+.fm-steps{display:flex;gap:3px;border-bottom:1px solid var(--bdr);margin:-10px -12px 10px;padding:7px 12px 0;overflow-x:auto;background:#FAFAF8;}
+.fm-steps button{border:0;background:none;padding:6px 8px 7px;font-size:11.5px;font-weight:650;color:#7A7168;border-bottom:2px solid transparent;white-space:nowrap;cursor:pointer;}
+.fm-steps button[aria-current="true"]{color:#9B2743;border-bottom-color:#9B2743;}
+.fm-f{border:1px solid var(--bdr);border-radius:7px;padding:9px 10px;margin-bottom:8px;background:#fff;}
+.fm-f.need{border-color:#E8C2CC;background:#FDF7F8;}
+.fm-f label{display:block;font-size:12px;font-weight:650;margin-bottom:4px;}
+.fm-f input,.fm-f textarea,.fm-f select{width:100%;font:inherit;font-size:12.5px;padding:5px 7px;border:1px solid var(--bdr);border-radius:5px;background:#fff;color:inherit;}
+.fm-f textarea{resize:vertical;line-height:1.45;margin-top:5px;}
+.fm-f input:focus,.fm-f textarea:focus,.fm-f select:focus{outline:2px solid #9B2743;outline-offset:1px;}
+.fm-opt{display:flex;gap:8px;align-items:flex-start;width:100%;text-align:left;padding:7px 9px;border:1px solid var(--bdr);border-radius:7px;margin-bottom:5px;font-size:12px;background:#fff;cursor:pointer;}
+.fm-opt:hover{background:#FAFAF8;}
+.fm-opt.sel{border-color:#9B2743;background:#FBEDF0;}
+.fm-box{flex:0 0 14px;width:14px;height:14px;border:1.5px solid #C9BFB6;border-radius:3px;display:grid;place-items:center;font-size:10px;line-height:1;color:#fff;margin-top:1px;}
+.fm-opt.sel .fm-box{background:#9B2743;border-color:#9B2743;}
+.fm-box.round{border-radius:50%;}
+.fm-box.on{background:#1F5B3C;border-color:#1F5B3C;}
+.fm-radio{display:flex;gap:5px;flex-wrap:wrap;}
+.fm-radio .fm-opt{width:auto;}
+.fm-branch{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+.fm-branch button{border:1px solid var(--bdr);border-radius:8px;padding:10px;background:#fff;text-align:left;cursor:pointer;}
+.fm-branch button.sel{border-color:#9B2743;background:#FBEDF0;}
+.fm-branch b{display:block;font-size:12.5px;margin-bottom:2px;}
+.fm-branch span{font-size:11.5px;color:#7A7168;}
+.fm-row{display:flex;gap:10px;align-items:center;}
+.fm-rowoff{opacity:.6;}
+.fm-src .link{border:0;background:none;color:#9B2743;font-size:11px;font-weight:650;text-decoration:underline;text-underline-offset:2px;padding:0;cursor:pointer;}
+.fm-aff{border:1px solid var(--bdr);border-radius:7px;padding:4px 10px;}
+.fm-affrow{display:flex;gap:8px;padding:7px 0;border-bottom:1px solid var(--bdr);font-size:11.5px;color:#4A433D;align-items:flex-start;}
+.fm-affrow:last-child{border-bottom:0;}
+.fm-more summary{font-size:12px;font-weight:650;cursor:pointer;margin:6px 0;}
+.fm-bar{flex:1;min-width:110px;}
+.fm-bt{font-size:11px;color:#7A7168;margin-bottom:4px;}
+.fm-track{height:5px;border-radius:3px;background:#E7E1DA;overflow:hidden;}
+.fm-track i{display:block;height:100%;background:#1F5B3C;}
+.fm-cta{border:1px solid #9B2743;background:#9B2743;color:#fff;border-radius:7px;padding:7px 12px;font-size:12.5px;font-weight:700;cursor:pointer;}
+.fm-cta[disabled]{opacity:.45;cursor:not-allowed;}
+.fm-cta.sec{background:#fff;color:#9B2743;}
+body.view-mode .fm-steps button{cursor:pointer;}
 #rev-panel{display:none;flex-direction:column;min-width:320px;background:#fff;border-left:1px solid var(--bdr);overflow:hidden;}
 #rev-panel-body{flex:1;overflow-y:auto;padding:10px 12px 20px;}
 .rev-sec{display:flex;align-items:center;gap:4px;margin:10px 0 4px;}
@@ -1890,24 +1955,30 @@ table.mg2-table tr.clickable:hover{background:#FDF4F5;}
             <div class="export-wrap" id="tools-wrap">
               <button class="pm-board-btn" id="tools-btn" onclick="toggleToolsMenu(event)">🧰 Tools ▾</button>
               <div class="export-menu" id="tools-menu">
-                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); togglePanel();">&#10022; Ask Claude</div>
-                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); clogOpenSmart();">&#128203; Changelog</div>
-                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); ccOpenSmart();">&#128269; Consistency</div>
-                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); copyViewerLinkForCurrentPage();">&#128279; Copy link to this page</div>
-                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); crsOpenSmart();">&#128218; Course Database</div>
-                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); crsInsertEntry();">&#128203; Insert courses&hellip;</div>
-                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); showShortcutsModal();">&#10067; Keyboard Shortcuts</div>
-                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); openKnowledgeBase();">&#129504; Knowledge Base</div>
-                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); marginOpenSmart();">&#128178; Margin Calculator</div>
-                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); pmOpenSmart();">&#128203; PM Board</div>
-                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); cycleStatus();">&#127991; Program status</div>
-                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); revPanelOpenFor();">&#128172; Review comments</div>
+                <div class="tools-group">Build</div>
+                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); togglePanel();"><span class="ti">&#10022;</span><span>Ask Claude</span></div>
+                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); crsInsertEntry();"><span class="ti">&#65291;</span><span>Insert courses&hellip;</span></div>
+                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); crsOpenSmart();"><span class="ti">&#128218;</span><span>Course Database</span></div>
+                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); openKnowledgeBase();"><span class="ti">&#129504;</span><span>Knowledge Base</span></div>
+                <div class="tools-group">Plan &amp; track</div>
+                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); pmOpenSmart();"><span class="ti">&#128450;</span><span>PM Board</span></div>
+                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); marginOpenSmart();"><span class="ti">&#128178;</span><span>Margin Calculator</span></div>
+                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); cycleStatus();"><span class="ti">&#127991;</span><span>Program status</span></div>
+                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); clogOpenSmart();"><span class="ti">&#128344;</span><span>Changelog</span></div>
+                <div class="tools-group">Review &amp; release</div>
+                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); fmOpenSmart();"><span class="ti">&#128196;</span><span>Compliance Forms</span></div>
+                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); revPanelOpenFor();"><span class="ti">&#128172;</span><span>Review comments</span></div>
+                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); ccOpenSmart();"><span class="ti">&#128269;</span><span>Consistency</span></div>
+                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); copyViewerLinkForCurrentPage();"><span class="ti">&#128279;</span><span>Copy link to this page</span></div>
+                <div class="tools-group">Help</div>
+                <div class="export-opt" onclick="document.getElementById('tools-menu').classList.remove('show'); showShortcutsModal();"><span class="ti">&#9000;</span><span>Keyboard Shortcuts</span></div>
               </div>
             </div>
           </div>
           <button class="tb-more" id="tb-more" onclick="toggleTbExtra(event)" title="More tools">⋯</button>
               <button class="pm-board-btn" id="pm-board-viewer-btn" onclick="pmOpenSmart()" style="display:none">📋 PM Board</button>
               <button class="pm-board-btn" id="rev-viewer-btn" onclick="revPanelOpenFor()" style="display:none" title="See every comment on this program">&#128172; Comments</button>
+              <button class="pm-board-btn" id="forms-viewer-btn" onclick="fmOpenSmart()" style="display:none" title="Accreditor forms for this program">&#128196; Forms<span id="forms-badge" class="clog-badge" style="display:none">0</span></button>
               <button class="pm-board-btn" id="clog-btn" onclick="clogOpenSmart()" title="What changed">&#128203; Changelog<span id="clog-badge" class="clog-badge" style="display:none">0</span></button>
           <div class="export-wrap">
             <button class="export-btn" onclick="toggleExport(event)">Export ▾</button>
@@ -2023,6 +2094,16 @@ table.mg2-table tr.clickable:hover{background:#FDF4F5;}
             <button class="pmp-iconbtn" onclick="revPanelClose()" title="Close panel">&#10005;</button>
           </div>
           <div id="rev-panel-body"></div>
+        </div>
+        <div class="pm-panel-handle" id="forms-panel-handle" title="Drag to resize" style="display:none"></div>
+        <div id="forms-panel" style="display:none">
+          <div class="pmp-head">
+            <div class="pmp-title">Compliance Forms</div>
+            <button class="pmp-dashbtn" id="fm-back" onclick="fmBack()" style="display:none" title="Back">&#8592; Forms</button>
+            <button class="pmp-iconbtn" onclick="fmPanelClose()" title="Close panel">&#10005;</button>
+          </div>
+          <div id="forms-panel-body"></div>
+          <div id="forms-panel-foot"></div>
         </div>
         <div id="clog-panel" style="display:none">
           <div class="pmp-head">
@@ -2773,7 +2854,7 @@ async function ensureProgramLoaded(progId){
 async function pushLocalContentToGithub(){
   if(githubMode() !== 'editor'){ await appAlert('Connect an editor GitHub token first (Export ▾ → Connect to GitHub).'); return; }
   saveCurrentBlocks();
-  const state = { programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, courseStore, shelfStore, changelogStore, v:2, ts: Date.now() };
+  const state = { programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, courseStore, shelfStore, changelogStore, formStore, v:2, ts: Date.now() };
   const ok = await githubCommitFile(GITHUB_CONTENT_PATH, state, 'Push local content');
   if(ok) await appAlert('Current content pushed to GitHub ✓');
   else await appAlert('Push failed. Check that your editor token is still valid and scoped to '+(GITHUB_CONTENT_REPO||'the content repo')+'.');
@@ -3160,6 +3241,10 @@ let shelfStore = { shelves: [], defaultShelfId: '' };
 // What each VIEWER has already read is per-browser and lives in uiState, not
 // here -- one person's reading must not clear anyone else's.
 let changelogStore = { entries: [], ignored: {} };
+// Accreditor forms: the institution's own Section 1 answers, plus each
+// program's answers per form. Templates are NOT stored here -- they are
+// read from the content repo when a form is opened.
+let formStore = { org: {}, answers: {} };
 
 // ==================== COURSE DATABASE ====================
 // Field definitions drive the picker, the table columns, the card and every
@@ -4239,7 +4324,7 @@ const dirtyPrograms = new Set(); // progId's with real content changes since the
 // fields can hold bulk HTML/images.
 function buildManifest(){
   return { v:3, ts: Date.now(), programs, phases: clonePhases(PHASES), sectionStatus, sectionLocks,
-           sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, courseStore, shelfStore, changelogStore };
+           sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, courseStore, shelfStore, changelogStore, formStore };
 }
 // Just one program's slice of blockStore, same key shape as the global
 // object (progId:sectionId) so merging it back in is a zero-transform
@@ -4524,6 +4609,10 @@ function applyState(s){
   marginStore = s.marginStore || { courses: [], scenariosByProgram: {} };
   knowledgeStore = (s.knowledgeStore && Array.isArray(s.knowledgeStore.entries))
     ? s.knowledgeStore : { entries: [] };
+  formStore = (s.formStore && typeof s.formStore==='object')
+    ? { org: (s.formStore.org && typeof s.formStore.org==='object') ? s.formStore.org : {},
+        answers: (s.formStore.answers && typeof s.formStore.answers==='object') ? s.formStore.answers : {} }
+    : { org: {}, answers: {} };
   changelogStore = (s.changelogStore && typeof s.changelogStore==='object')
     ? { entries: Array.isArray(s.changelogStore.entries) ? s.changelogStore.entries : [],
         ignored: (s.changelogStore.ignored && typeof s.changelogStore.ignored==='object') ? s.changelogStore.ignored : {} }
@@ -4584,7 +4673,7 @@ function persistLocalNow(){
   if(viewerModeForced) return;     // read-only session: nothing to mirror
   saveCurrentBlocks();
   try{
-    const state = { programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, courseStore, shelfStore, changelogStore, v:2, ts: Date.now() };
+    const state = { programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, courseStore, shelfStore, changelogStore, formStore, v:2, ts: Date.now() };
     const {lean,assets}=dehydrateState(state);
     let ok=false;
     try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(lean)); ok=true; }catch(e){ console.warn('local mirror failed:',e); }
@@ -4718,7 +4807,7 @@ async function doPersist(){
   if(viewerModeForced) return;
   saveCurrentBlocks();
   pushUndo();
-  const state = { programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, courseStore, shelfStore, changelogStore, v:2, ts: Date.now() };
+  const state = { programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, courseStore, shelfStore, changelogStore, formStore, v:2, ts: Date.now() };
   const ind = document.getElementById('save-ind');
 
   // Always keep a local backup (IndexedDB primary, localStorage mirror).
@@ -5851,6 +5940,7 @@ function openProgram(id, forceLoc){
   // so the sidebar badges are right straight away, not only for the sections
   // that happen to get opened.
   cmtPrimeProgram(id);
+  try{ fmRefreshBadge(); }catch(e){}
   uiState.lastProg=id; saveUIState();
   if(forceLoc){ goTo(forceLoc.phid, forceLoc.sid); return; }
   const last=uiState.lastLoc[id];
@@ -5878,6 +5968,7 @@ function goHub(){
   if(typeof ccPanelOpen!=='undefined' && ccPanelOpen) ccPanelClose();
   if(typeof crsPanelOpen!=='undefined' && crsPanelOpen) crsPanelClose();
   if(typeof clogPanelOpen!=='undefined' && clogPanelOpen) clogPanelClose();
+  if(typeof fmPanelOpen!=='undefined' && fmPanelOpen) fmPanelClose();
   uiState.lastProg=null; saveUIState();
   document.getElementById('prog-view').style.display = 'none';
   document.getElementById('hub-view').style.display = 'block';
@@ -10106,6 +10197,7 @@ function revPanelOpenFor(){
   if(typeof ccPanelOpen!=='undefined' && ccPanelOpen) ccPanelClose();
   if(typeof crsPanelOpen!=='undefined' && crsPanelOpen) crsPanelClose();
   if(typeof clogPanelOpen!=='undefined' && clogPanelOpen) clogPanelClose();
+  if(typeof fmPanelOpen!=='undefined' && fmPanelOpen) fmPanelClose();
   revPanelOpen = true;
   const panel=document.getElementById('rev-panel'), handle=document.getElementById('rev-panel-handle');
   panel.style.flex='0 0 '+(uiState.sidePanelWidth||460)+'px';
@@ -11086,7 +11178,7 @@ function buildBackupJSON(){
   // stale, and reading it would export old work while looking successful.
   try{
     saveCurrentBlocks();
-    space={ programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, courseStore, shelfStore, changelogStore, v:2, ts: Date.now() };
+    space={ programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, courseStore, shelfStore, changelogStore, formStore, v:2, ts: Date.now() };
   }catch(e){ space=null; }
   if(!space){ try{ space=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null'); }catch(e){} }
   try{ tmpls=JSON.parse(localStorage.getItem('sdi_templates')||'[]'); }catch(e){}
@@ -11612,6 +11704,17 @@ async function mergeBundledSnapshot(banner){
   // the snapshot's, same rule as every other merge above.
   // Changelog entries merge additively by id; an ignore is never un-ignored by
   // a restore, so ignores union rather than overwrite.
+  if(snap.formStore && typeof snap.formStore==='object'){
+    // Non-destructive, same rule as every other store: a value already here
+    // wins, anything only in the snapshot is added.
+    Object.keys(snap.formStore.org||{}).forEach(k=>{ if(!formStore.org[k]) formStore.org[k]=snap.formStore.org[k]; });
+    Object.keys(snap.formStore.answers||{}).forEach(pid=>{
+      if(!formStore.answers[pid]){ formStore.answers[pid]=snap.formStore.answers[pid]; return; }
+      Object.keys(snap.formStore.answers[pid]||{}).forEach(fid=>{
+        if(!formStore.answers[pid][fid]) formStore.answers[pid][fid]=snap.formStore.answers[pid][fid];
+      });
+    });
+  }
   if(snap.changelogStore && typeof snap.changelogStore==='object'){
     const have = new Set((changelogStore.entries||[]).map(e=>e.id));
     (snap.changelogStore.entries||[]).forEach(e=>{ if(e && e.id && !have.has(e.id)) changelogStore.entries.push(e); });
@@ -11645,7 +11748,7 @@ async function mergeBundledSnapshot(banner){
 
   try{
     await saveSpace({ programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks,
-      sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, courseStore, shelfStore, changelogStore, v:2, ts: Date.now() });
+      sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, courseStore, shelfStore, changelogStore, formStore, v:2, ts: Date.now() });
   }catch(err){ await appAlert('Restore failed while writing to browser storage: '+err.message); return; }
   window.__skipPersist=true;
   await appAlert('Restored '+addedBlocks+' section(s), '+addedSecs+' new section entr(ies) and '+addedProgs+
@@ -13230,6 +13333,7 @@ function pmPanelOpenFor(pid){
   if(typeof ccPanelOpen!=='undefined' && ccPanelOpen) ccPanelClose(); // one docked tool at a time
   if(typeof crsPanelOpen!=='undefined' && crsPanelOpen) crsPanelClose();
   if(typeof clogPanelOpen!=='undefined' && clogPanelOpen) clogPanelClose();
+  if(typeof fmPanelOpen!=='undefined' && fmPanelOpen) fmPanelClose();
   pmProgId = pid || curProgId;
   if(!pmProgId) return;
   if(marginPanelOpen) marginPanelClose(); // only one docked tool at a time
@@ -13273,6 +13377,7 @@ function marginPanelOpenFor(progId, scenarioId){
   if(typeof ccPanelOpen!=='undefined' && ccPanelOpen) ccPanelClose();
   if(typeof crsPanelOpen!=='undefined' && crsPanelOpen) crsPanelClose();
   if(typeof clogPanelOpen!=='undefined' && clogPanelOpen) clogPanelClose();
+  if(typeof fmPanelOpen!=='undefined' && fmPanelOpen) fmPanelClose();
   marginPanelOpen=true;
   marginDrafts={};
   marginView='program'; marginCurProgId=pid;
@@ -13737,6 +13842,7 @@ function crsPanelOpenFor(){
   if(marginPanelOpen) marginPanelClose();
   if(typeof ccPanelOpen!=='undefined' && ccPanelOpen) ccPanelClose();
   if(typeof clogPanelOpen!=='undefined' && clogPanelOpen) clogPanelClose();
+  if(typeof fmPanelOpen!=='undefined' && fmPanelOpen) fmPanelClose();
   crsPanelOpen=true;
   const panel=document.getElementById('course-panel'), handle=document.getElementById('course-panel-handle');
   panel.style.flex='0 0 '+(uiState.sidePanelWidth||460)+'px';
@@ -14134,6 +14240,7 @@ async function ccPanelOpenFor(){
   if(marginPanelOpen) marginPanelClose();
   if(typeof crsPanelOpen!=='undefined' && crsPanelOpen) crsPanelClose();
   if(typeof clogPanelOpen!=='undefined' && clogPanelOpen) clogPanelClose();
+  if(typeof fmPanelOpen!=='undefined' && fmPanelOpen) fmPanelClose();
   ccPanelOpen=true;
   const panel=document.getElementById('cc-panel'), handle=document.getElementById('cc-panel-handle');
   panel.style.flex='0 0 '+(uiState.sidePanelWidth||460)+'px';
@@ -14163,6 +14270,1251 @@ function ccOpenSmart(){
 // Shared by every docked side panel (PM Board, Margin Calculator, ...) --
 // one resize gesture, one remembered width preference, regardless of which
 // tool happens to be docked at the moment.
+/* ==================== COMPLIANCE FORMS (DEAC) ====================
+   Generates an accreditor's own .docx with this program's answers written
+   into its own fields. The template is never re-created -- it is read from
+   the content repo, its Word content controls are filled, and every other
+   part of the package is passed through untouched. Runs entirely on the
+   read-only path, so a compliance viewer can generate and download without
+   any write access at all. */
+
+const DX_W  = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+const DX_W14= 'http://schemas.microsoft.com/office/word/2010/wordml';
+const DX_FILL_COLOR = '0070C0';   // SDI types answers in blue; match it.
+
+/* ---------- zip ---------- */
+function dxU16(b,i){ return b[i]|(b[i+1]<<8); }
+function dxU32(b,i){ return (b[i]|(b[i+1]<<8)|(b[i+2]<<16)|(b[i+3]<<24))>>>0; }
+
+const DX_CRC=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0;}return t;})();
+function dxCrc32(b){ let c=0xFFFFFFFF; for(let i=0;i<b.length;i++) c=DX_CRC[(c^b[i])&0xFF]^(c>>>8); return (c^0xFFFFFFFF)>>>0; }
+
+// Locate the End Of Central Directory record and read every entry from the
+// central directory -- never by scanning for local headers, which can appear
+// inside stored data.
+function dxUnzip(bytes){
+  let eocd=-1;
+  for(let i=bytes.length-22;i>=0 && i>bytes.length-66000;i--){
+    if(bytes[i]===0x50&&bytes[i+1]===0x4b&&bytes[i+2]===5&&bytes[i+3]===6){ eocd=i; break; }
+  }
+  if(eocd<0) throw new Error('Not a zip file (no end-of-central-directory record).');
+  const count=dxU16(bytes,eocd+10), cdOff=dxU32(bytes,eocd+16);
+  const dec=new TextDecoder('utf-8');
+  const out=[]; let p=cdOff;
+  for(let n=0;n<count;n++){
+    if(dxU32(bytes,p)!==0x02014b50) throw new Error('Damaged zip directory at entry '+n+'.');
+    const flag=dxU16(bytes,p+8), method=dxU16(bytes,p+10),
+          crc=dxU32(bytes,p+16), csize=dxU32(bytes,p+20), usize=dxU32(bytes,p+24),
+          nlen=dxU16(bytes,p+28), elen=dxU16(bytes,p+30), clen=dxU16(bytes,p+32),
+          lho=dxU32(bytes,p+42);
+    const name=dec.decode(bytes.subarray(p+46,p+46+nlen));
+    if(flag&8) throw new Error('Unsupported zip entry (streamed): '+name);
+    if(method!==0&&method!==8) throw new Error('Unsupported compression in '+name);
+    const lnlen=dxU16(bytes,lho+26), lelen=dxU16(bytes,lho+28);
+    const start=lho+30+lnlen+lelen;
+    out.push({ name, method, crc, usize, raw: bytes.subarray(start,start+csize) });
+    p+=46+nlen+elen+clen;
+  }
+  return out;
+}
+
+async function dxInflate(raw){
+  const ds=new DecompressionStream('deflate-raw');
+  const buf=await new Response(new Blob([raw]).stream().pipeThrough(ds)).arrayBuffer();
+  return new Uint8Array(buf);
+}
+async function dxDeflate(bytes){
+  const cs=new CompressionStream('deflate-raw');
+  const buf=await new Response(new Blob([bytes]).stream().pipeThrough(cs)).arrayBuffer();
+  return new Uint8Array(buf);
+}
+async function dxEntryBytes(e){ return e.method===0 ? e.raw : dxInflate(e.raw); }
+async function dxEntryText(e){ return new TextDecoder('utf-8').decode(await dxEntryBytes(e)); }
+
+// Rebuild the archive. Entries carry either their original compressed bytes
+// (method 8, untouched) or fresh uncompressed bytes (method 0) -- Word reads
+// both, and the untouched parts stay byte-identical to the template.
+function dxZip(entries){
+  const enc=new TextEncoder(), parts=[], cen=[];
+  const u16=n=>[n&255,(n>>8)&255], u32=n=>[n&255,(n>>8)&255,(n>>16)&255,(n>>24)&255];
+  let off=0;
+  entries.forEach(e=>{
+    const nm=enc.encode(e.name), csize=e.raw.length;
+    parts.push(new Uint8Array([0x50,0x4b,3,4,...u16(20),...u16(0),...u16(e.method),...u16(0),...u16(0),
+      ...u32(e.crc),...u32(csize),...u32(e.usize),...u16(nm.length),...u16(0)]), nm, e.raw);
+    cen.push(new Uint8Array([0x50,0x4b,1,2,...u16(20),...u16(20),...u16(0),...u16(e.method),...u16(0),...u16(0),
+      ...u32(e.crc),...u32(csize),...u32(e.usize),...u16(nm.length),...u16(0),...u16(0),...u16(0),...u16(0),
+      ...u32(0),...u32(off)]), nm);
+    off+=30+nm.length+csize;
+  });
+  let cdSize=0; cen.forEach(c=>cdSize+=c.length);
+  return new Blob([...parts,...cen,
+    new Uint8Array([0x50,0x4b,5,6,0,0,0,0,...u16(entries.length),...u16(entries.length),...u32(cdSize),...u32(off),0,0])],
+    {type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+}
+
+/* ---------- reading the fields ---------- */
+function dxNorm(s){
+  return String(s||'').toLowerCase()
+    .replace(/[‘’]/g,"'").replace(/[“”]/g,'"')
+    .replace(/[^a-z0-9]+/g,' ').trim();
+}
+function dxRunText(el){
+  let s='';
+  const ts=el.getElementsByTagNameNS(DX_W,'t');
+  for(let i=0;i<ts.length;i++) s+=ts[i].textContent||'';
+  return s;
+}
+function dxChildEls(el){ return Array.prototype.filter.call(el.childNodes,n=>n.nodeType===1); }
+
+// Walk the body in document order. Text that is NOT inside a control builds
+// the label for the next control, which is the only identity these controls
+// have -- Word content controls in this form carry no alias and no tag.
+// Text of a table cell ignoring anything inside a control -- the column
+// heading, not the answer sitting under it.
+function dxCellText(tc){
+  let s='';
+  (function rec(el){
+    dxChildEls(el).forEach(ch=>{
+      if(ch.namespaceURI===DX_W && ch.localName==='sdt') return;
+      if(ch.namespaceURI===DX_W && ch.localName==='t'){ s+=ch.textContent||''; return; }
+      rec(ch);
+    });
+  })(tc);
+  return s.replace(/\s+/g,' ').trim();
+}
+
+function dxFields(doc){
+  const body=doc.getElementsByTagNameNS(DX_W,'body')[0];
+  const out=[];
+  let inline='', prevPara='', hdr='';
+  function sdt(ch){
+    const pr=dxChildEls(ch).filter(c=>c.localName==='sdtPr')[0]||null;
+    const content=dxChildEls(ch).filter(c=>c.localName==='sdtContent')[0]||null;
+    let kind='text', checked=false;
+    if(pr){
+      const cb=pr.getElementsByTagNameNS(DX_W14,'checkbox')[0];
+      if(cb){
+        kind='checkbox';
+        const c=cb.getElementsByTagNameNS(DX_W14,'checked')[0];
+        const v=c?c.getAttributeNS(DX_W14,'val'):'0';
+        checked=(v==='1'||v==='true');
+      }
+      if(pr.getElementsByTagNameNS(DX_W,'dropDownList')[0]) kind='dropdown';
+      if(pr.getElementsByTagNameNS(DX_W,'date')[0]) kind='date';
+    }
+    out.push({ idx:out.length, kind, checked,
+               label:(inline.trim()||hdr||prevPara.trim()),
+               value: content?dxRunText(content):'',
+               node:ch, content, pr });
+    inline='';                        // a control ends the run of label text
+    if(content) walk(content);        // tables can nest inside a control
+  }
+  function walk(el){
+    dxChildEls(el).forEach(ch=>{
+      const ln=ch.localName, ns=ch.namespaceURI;
+      if(ns!==DX_W){ walk(ch); return; }
+      if(ln==='sdt'){ sdt(ch); return; }
+      if(ln==='tbl'){
+        // Inside a table the question is the column heading, not whichever
+        // paragraph happened to come before the table.
+        const rows=dxChildEls(ch).filter(c=>c.localName==='tr');
+        const heads=rows.length?dxChildEls(rows[0]).filter(c=>c.localName==='tc').map(dxCellText):[];
+        const keepH=hdr, keepP=prevPara;
+        rows.forEach((tr,r)=>{
+          let c=-1;
+          // A control sitting directly in the row is labelled by that row's
+          // own text, which is what it is a checkbox *for*.
+          const rowText=dxChildEls(tr).filter(n=>n.localName==='tc').map(dxCellText).join(' ').trim();
+          dxChildEls(tr).forEach(node=>{
+            if(node.localName==='tc'){
+              c++;
+              // A header cell holding only a checkbox glyph is not a
+              // question; fall back to what the row actually says.
+              const h=(dxNorm(heads[c]||'')?heads[c]:'');
+              hdr = r===0 ? '' : (h||rowText);
+              inline=''; walk(node); inline='';
+            }else if(node.localName==='sdt'){
+              // Word also puts a control directly in the row, outside any
+              // cell -- the affirmations table does exactly that for 13 of
+              // its 14 checkboxes. Missing these loses them silently.
+              hdr=rowText; inline=''; sdt(node); inline='';
+            }
+          });
+        });
+        hdr=keepH; prevPara=keepP; inline='';
+        return;
+      }
+      if(ln==='p'){
+        inline='';
+        walk(ch);
+        const t=inline.trim();
+        if(t) prevPara=t;
+        inline='';
+        return;
+      }
+      if(ln==='r'||ln==='hyperlink'){ inline+=dxRunText(ch); return; }
+      walk(ch);
+    });
+  }
+  walk(body);
+  // Fingerprint: the tail of the question text plus a counter, because
+  // several controls legitimately share one question (Yes / No pairs, the
+  // repeated address rows). This is the only identity these controls have --
+  // DEAC ships them with no alias and no tag.
+  const seen={};
+  out.forEach(f=>{
+    const tail=dxNorm(f.label).slice(-60);
+    seen[tail]=(seen[tail]||0)+1;
+    f.fp=tail+'#'+seen[tail];
+  });
+  return out;
+}
+
+/* ---------- writing the fields ---------- */
+function dxFirstEl(el,ns,name){ const l=el.getElementsByTagNameNS(ns,name); return l.length?l[0]:null; }
+
+function dxSetText(doc,f,text){
+  if(!f.content) return false;
+  // A filled control is no longer showing its placeholder.
+  if(f.pr){
+    const ph=dxFirstEl(f.pr,DX_W,'showingPlcHdr');
+    if(ph && ph.parentNode) ph.parentNode.removeChild(ph);
+  }
+  const runs=f.content.getElementsByTagNameNS(DX_W,'r');
+  let run=runs.length?runs[0]:null, rPr=null;
+  if(run){
+    const p=dxFirstEl(run,DX_W,'rPr');
+    if(p) rPr=p.cloneNode(true);
+    // Everything after the first run is placeholder debris or a previous answer.
+    for(let i=runs.length-1;i>=0;i--) if(runs[i]!==run) runs[i].parentNode.removeChild(runs[i]);
+  }else{
+    run=doc.createElementNS(DX_W,'w:r');
+    const p=dxFirstEl(f.content,DX_W,'p');
+    (p||f.content).appendChild(run);
+  }
+  while(run.firstChild) run.removeChild(run.firstChild);
+  if(rPr){
+    // Placeholder styling must go, or a real answer renders grey.
+    const st=dxFirstEl(rPr,DX_W,'rStyle');
+    if(st && (st.getAttributeNS(DX_W,'val')||'')==='PlaceholderText') st.parentNode.removeChild(st);
+    let col=dxFirstEl(rPr,DX_W,'color');
+    if(!col){ col=doc.createElementNS(DX_W,'w:color'); rPr.appendChild(col); }
+    col.setAttributeNS(DX_W,'w:val',DX_FILL_COLOR);
+    run.appendChild(rPr);
+  }
+  String(text==null?'':text).split('\n').forEach((line,i)=>{
+    if(i>0) run.appendChild(doc.createElementNS(DX_W,'w:br'));
+    const t=doc.createElementNS(DX_W,'w:t');
+    t.setAttribute('xml:space','preserve');
+    t.appendChild(doc.createTextNode(line));
+    run.appendChild(t);
+  });
+  return true;
+}
+
+function dxSetCheck(doc,f,on){
+  if(!f.pr) return false;
+  const cb=f.pr.getElementsByTagNameNS(DX_W14,'checkbox')[0];
+  if(!cb) return false;
+  let c=cb.getElementsByTagNameNS(DX_W14,'checked')[0];
+  if(!c){ c=doc.createElementNS(DX_W14,'w14:checked'); cb.insertBefore(c,cb.firstChild); }
+  c.setAttributeNS(DX_W14,'w14:val',on?'1':'0');
+  // The printed glyph is a separate thing from the stored state; both move.
+  const st=cb.getElementsByTagNameNS(DX_W14,on?'checkedState':'uncheckedState')[0];
+  const code=st?(st.getAttributeNS(DX_W14,'val')||(on?'2612':'2610')):(on?'2612':'2610');
+  const font=st?st.getAttributeNS(DX_W14,'font'):null;
+  const glyph=String.fromCodePoint(parseInt(code,16));
+  if(f.content){
+    const ts=f.content.getElementsByTagNameNS(DX_W,'t');
+    if(ts.length){
+      ts[0].textContent=glyph;
+      for(let i=ts.length-1;i>0;i--) ts[i].parentNode.removeChild(ts[i]);
+      if(font){
+        const rf=f.content.getElementsByTagNameNS(DX_W,'rFonts')[0];
+        if(rf){ rf.setAttributeNS(DX_W,'w:ascii',font); rf.setAttributeNS(DX_W,'w:hAnsi',font); rf.setAttributeNS(DX_W,'w:eastAsia',font); }
+      }
+    }else{
+      // One control in DEAC's own form ships with an empty <w:sdtContent/> and
+      // a loose glyph typed beside it, so its state and what prints are not
+      // connected. Word repairs this by moving the glyph inside the control
+      // and blanking the loose one; do exactly that.
+      const r=doc.createElementNS(DX_W,'w:r');
+      if(font){
+        const rPr=doc.createElementNS(DX_W,'w:rPr'), rf=doc.createElementNS(DX_W,'w:rFonts');
+        rf.setAttributeNS(DX_W,'w:ascii',font); rf.setAttributeNS(DX_W,'w:hAnsi',font); rf.setAttributeNS(DX_W,'w:cs',font);
+        rPr.appendChild(rf); r.appendChild(rPr);
+      }
+      const t=doc.createElementNS(DX_W,'w:t');
+      t.appendChild(doc.createTextNode(glyph)); r.appendChild(t);
+      f.content.appendChild(r);
+      let sib=f.node.nextSibling;
+      while(sib && sib.nodeType!==1) sib=sib.nextSibling;
+      if(sib && sib.namespaceURI===DX_W && sib.localName==='r'){
+        const st=sib.getElementsByTagNameNS(DX_W,'t')[0];
+        if(st && /^[\s☐☑☒]+$/.test(st.textContent||'')){
+          st.textContent=' '; st.setAttribute('xml:space','preserve');
+        }
+      }
+    }
+  }
+  return true;
+}
+
+/* ---------- the whole job ---------- */
+// answers: { <field index>: string | boolean }
+async function dxFillDocx(templateBytes,answers){
+  const entries=dxUnzip(templateBytes);
+  const docEntry=entries.filter(e=>e.name==='word/document.xml')[0];
+  if(!docEntry) throw new Error('That file has no word/document.xml -- is it a Word document?');
+  const xml=await dxEntryText(docEntry);
+  const doc=new DOMParser().parseFromString(xml,'application/xml');
+  if(doc.getElementsByTagName('parsererror').length) throw new Error('word/document.xml could not be parsed.');
+  const fields=dxFields(doc);
+  let written=0;
+  Object.keys(answers||{}).forEach(k=>{
+    const f=fields[+k]; if(!f) return;
+    const v=answers[k];
+    const ok = f.kind==='checkbox' ? dxSetCheck(doc,f,!!v) : dxSetText(doc,f,v);
+    if(ok) written++;
+  });
+  const outXml=new XMLSerializer().serializeToString(doc);
+  const bytes=new TextEncoder().encode(outXml);
+  let packed=bytes, method=0;
+  try{ const z=await dxDeflate(bytes); if(z.length<bytes.length){ packed=z; method=8; } }catch(e){}
+  const rebuilt=entries.map(e=> e===docEntry
+    ? { name:e.name, method, crc:dxCrc32(bytes), usize:bytes.length, raw:packed }
+    : e);
+  return { blob:dxZip(rebuilt), fields, written };
+}
+const FM_DEAC_MAP={
+  " of the request check the requested substantive change below#1":"type:0",
+  "eld of study reference deac handbook part ii section xix f 1#1":"type:1",
+  "st evaluated reference deac handbook part ii section xix f 2#1":"type:2",
+  "st evaluated reference deac handbook part ii section xix f 3#1":"type:3",
+  "ccreditation reference deac handbook part ii section xix f 4#1":"type:4",
+  "ccreditation reference deac handbook part ii section xix f 5#1":"type:5",
+  "ccreditation reference deac handbook part ii section xix f 6#1":"type:6",
+  "ccreditation reference deac handbook part ii section xix f 7#1":"type:7",
+  "ge application reference deac handbook part ii section xix h#1":"type:8",
+  " accreditation reference deac handbook part ii section v c 3#1":"type:9",
+  "ccreditation reference deac handbook part ii section xix g 2#1":"type:10",
+  "ements reference deac handbook part ii section xix g 3 and 4#1":"type:11",
+  "st evaluated reference deac handbook part ii section xix h 1#1":"type:12",
+  "the contract reference deac handbook part ii section xix h 2#1":"type:13",
+  "hange involve competency based or direct assessment learning#1":"cbd:yes",
+  "yes#1":"cbd:no",
+  "no#1":"cbd:na",
+  "institution name#1":"org:name",
+  "former names#1":"org:formerNames",
+  "address#1":"org:mainAddr",
+  "city#1":"org:mainCity",
+  "state country province#1":"org:mainState",
+  "zip code#1":"org:mainZip",
+  "local contact#1":"org:mainContact",
+  "address#2":"org:loc1Addr",
+  "city#2":"org:loc1City",
+  "state country province#2":"org:loc1State",
+  "zip code#2":"org:loc1Zip",
+  "location type2#1":"org:loc1Type",
+  "local contact3#1":"org:loc1Contact",
+  "address#3":"org:loc2Addr",
+  "city#3":"org:loc2City",
+  "state country province#3":"org:loc2State",
+  "zip code#3":"org:loc2Zip",
+  "location type2#2":"org:loc2Type",
+  "local contact3#2":"org:loc2Contact",
+  "address#4":"org:loc3Addr",
+  "city#4":"org:loc3City",
+  "state country province#4":"org:loc3State",
+  "zip code#4":"org:loc3Zip",
+  "location type2#3":"org:loc3Type",
+  "local contact3#3":"org:loc3Contact",
+  "address#5":"org:loc4Addr",
+  "city#5":"org:loc4City",
+  "state country province#5":"org:loc4State",
+  "zip code#5":"org:loc4Zip",
+  "location type2#4":"org:loc4Type",
+  "local contact3#4":"org:loc4Contact",
+  "address#6":"org:loc5Addr",
+  "city#6":"org:loc5City",
+  "state country province#6":"org:loc5State",
+  "zip code#6":"org:loc5Zip",
+  "location type2#5":"org:loc5Type",
+  "local contact3#5":"org:loc5Contact",
+  "website s#1":"org:website",
+  "main telephone number#1":"org:phone",
+  "institutional mission statement#1":"org:mission",
+  "primary contact#1":"org:presName",
+  "title#1":"org:presTitle",
+  "email#1":"org:presEmail",
+  "telephone#1":"org:presPhone",
+  "compliance officer contact#1":"org:coName",
+  "title#2":"org:coTitle",
+  "email#2":"org:coEmail",
+  "telephone#2":"org:coPhone",
+  "ther accrediting organizations institutional or programmatic#1":"acc1:yes",
+  "yes#2":"acc1:no",
+  "n and the most recent action by the accrediting organization#1":"org:accList",
+  "creditation from any accrediting organization including deac#1":"acc2:yes",
+  "yes#3":"acc2:no",
+  "planation of the action made by the accrediting organization#1":"org:accDenied",
+  "y pending accrediting action by any accrediting organization#1":"acc3:yes",
+  "yes#4":"acc3:no",
+  "if yes please include an explanation#1":"org:accPending",
+  "e rationale for the proposed change in educational offerings#1":"sec:rationale",
+  " in educational offerings supports the institutional mission#1":"sec:mission",
+  " as a result of the proposed change in educational offerings#1":"sec:population",
+  "ture required to support the change in educational offerings#1":"sec:infrastructure",
+  "ings related to the proposed change in educational offerings#1":"sec:market",
+  " students being eligible for specific licensure examinations#1":"lic:yes",
+  "yes#5":"lic:no",
+  "ammatic accreditation or professional licensure examinations#1":"manual:licDetail",
+  "provide the proposed program name#1":"new:progName",
+  "state the total number of program clock credit hours#1":"new:credits",
+  "state the program length in weeks months or years#1":"new:length",
+  "e program method of delivery correspondence online or hybrid#1":"new:delivery",
+  "ram s language of instruction e g english spanish vietnamese#1":"new:language",
+  "provide the program name#1":"ex:progName",
+  "describe the proposed changes to the program#1":"ex:changes",
+  "program clock credit hours and describe any changes proposed#1":"ex:credits",
+  "h in weeks months or years and describe any changes proposed#1":"ex:length",
+  "spondence online or hybrid and describe any changes proposed#1":"ex:delivery",
+  "me based or non time based and describe any changes proposed#1":"ex:terms",
+  "english spanish vietnamese and describe any changes proposed#1":"ex:language",
+  "ed change in educational offerings and affirms the following#1":"affirm",
+  "ace designed to measure student achievement and satisfaction#1":"affirm",
+  "e individual institution is appended to the parent statement#1":"affirm",
+  "h as illegal actions unethical conduct or abuse of consumers#1":"affirm",
+  "of this eligibility criterion and of standards ii and or xiv#1":"affirm",
+  " or renewal of accreditation to one or more of such entities#1":"affirm",
+  "tance education accrediting commission of its qualifications#1":"affirm",
+  "eviewed the accreditation standards and supporting materials#1":"affirm",
+  " and assumes the burden of proof to document this compliance#1":"affirm",
+  "e education accrediting commission and designated evaluators#1":"affirm",
+  "and fulfill all the obligations of an accredited institution#1":"affirm",
+  "ents set forth in the deac accreditation handbook and bylaws#1":"affirm",
+  "n opinion about the institution its programs or its services#1":"affirm",
+  "edures and applicable federal and state laws and regulations#1":"affirm",
+  "provide evidence of payment scanned copy of check or similar#1":"blank",
+  "section 5 documentation#1":"blank",
+  "institution s president ceo#1":"org:presCertName",
+  "institution s president ceo signature#1":"blank",
+  "date#1":"blank"
+};
+
+/* ---------- what forms exist ---------- */
+// A form is data, not code: a template in the content repo plus a map from
+// each control's fingerprint to where its answer comes from. Adding the next
+// accreditor document means adding an entry here and a .docx -- see fmAddForm.
+const FM_FORMS = [{
+  id:'deac-ceo', agency:'DEAC',
+  title:'Change in Educational Offerings',
+  path:'forms/deac-change-ed-offerings/template.docx',
+  revision:'rev. 02.01.2025 (Handbook 32nd ed.)',
+  expect:113, map:FM_DEAC_MAP
+}];
+function fmForm(id){ return FM_FORMS.filter(f=>f.id===id)[0]||null; }
+
+const FM_TYPES = [
+ 'Addition of a New Degree Program in a Related Field',
+ 'New Related-Field Non-Degree Program: Vocational or Non-Credit-bearing Certificate',
+ 'New Related-Field Non-Degree Program: Credit-bearing Certificate',
+ 'Addition of a New Degree Program in an Unrelated Field',
+ 'New Unrelated-Field Non-Degree Program: Vocational or Non-Credit-bearing Certificate',
+ 'New Unrelated-Field Non-Degree Program: Credit-bearing Certificate',
+ 'Addition of a Program at a Different Degree or Credential Level',
+ 'Addition of a New Program with an In-Residence Program Component',
+ 'Addition of a New High School Program/Courses',
+ 'Change in Academic Units of Measurement — Clock or Credit Hours',
+ 'Change in Academic Progress Measurement(s)',
+ 'Change in Method of Delivery',
+ 'Contracting for Educational Delivery',
+ 'Contracting for Educational Delivery with an Approved AQC Provider'
+];
+
+// Section 1 is the same on every accreditor form, every time, so it is
+// answered once for the institution and reused.
+const FM_ORG_FIELDS = [
+ {k:'name',    l:'Institution name'},
+ {k:'formerNames', l:'Former name(s)'},
+ {k:'mainAddr',l:'Main facility — address'},
+ {k:'mainCity',l:'Main facility — city'},
+ {k:'mainState',l:'Main facility — state'},
+ {k:'mainZip', l:'Main facility — ZIP'},
+ {k:'mainContact',l:'Main facility — local contact'},
+ {k:'website', l:'Website(s)'},
+ {k:'phone',   l:'Main telephone number'},
+ {k:'mission', l:'Institutional mission statement', big:true},
+ {k:'presName',l:'President/CEO'},
+ {k:'presTitle',l:'President/CEO — title'},
+ {k:'presEmail',l:'President/CEO — email'},
+ {k:'presPhone',l:'President/CEO — telephone'},
+ {k:'presCertName',l:'President/CEO — name as signed (Section 6)'},
+ {k:'coName',  l:'Compliance officer'},
+ {k:'coTitle', l:'Compliance officer — title'},
+ {k:'coEmail', l:'Compliance officer — email'},
+ {k:'coPhone', l:'Compliance officer — telephone'},
+ {k:'accList', l:'Other accrediting organizations (if any)', big:true},
+ {k:'accDenied',l:'Accreditation ever denied/terminated/resigned — explanation', big:true},
+ {k:'accPending',l:'Pending accrediting action — explanation', big:true},
+ {k:'defDelivery',l:'Default method of delivery'},
+ {k:'defTerms', l:'Default academic term structure'},
+ {k:'defLanguage',l:'Default language of instruction'}
+];
+for(let r=1;r<=5;r++) ['Addr','City','State','Zip','Type','Contact'].forEach(sfx=>{
+  FM_ORG_FIELDS.push({k:'loc'+r+sfx, l:'Other location '+r+' — '+sfx.toLowerCase(), extra:true});
+});
+
+// The five Section 2 narratives, each drafted from a section of this program.
+// Each question carries the section names that usually answer it and the
+// words that appear in a real answer to it. Both are used for scoring -- the
+// section name alone picked Marketing -> Channels for "rationale" once.
+const FM_SEC_SLOTS = [
+ {k:'rationale',      l:'Rationale for the proposed change',
+  match:/position|overview|rationale|concept|narrative|curriculum/i,
+  kw:['rationale','industry','demand','employer','workforce','need','driver','skill','align','update','revis','expand','advanc','respond','trend','career']},
+ {k:'mission',        l:'How it supports the institutional mission',
+  match:/mission|position|overview/i,
+  kw:['mission','specialized','distance education','practical application','career-focused','accessible','flexible','commit','institution','align']},
+ {k:'population',     l:'Target student population',
+  match:/audience|persona|voice of customer|\bvoc\b|admission|position|market/i,
+  kw:['student','learner','adult','veteran','military','hobby','career change','working','enroll','audience','demographic','age','population']},
+ {k:'infrastructure', l:'Anticipated academic infrastructure changes',
+  match:/staffing|operation|budget|readiness|resource|faculty/i,
+  kw:['faculty','staff','instructor','infrastructure','resource','lms','equipment','facility','capacity','hire','support','already offers','no anticipated']},
+ {k:'market',         l:'Market research and findings',
+  match:/market research|competitive|market/i,
+  kw:['market','research','industry','growth','report','survey','employment','salary','bls','demand','projected','percent','%','graduates','job']}
+];
+
+
+// Section 1 as SDI has filed it before, taken from the ASFT submission. These
+// are starting values, not constants -- every one is editable in the panel,
+// and an edit sticks. Seeded once per browser so clearing a field keeps it
+// cleared rather than having it reappear on the next boot.
+const FM_ORG_DEFAULTS = {
+  name:'Sonoran Desert Institute',
+  formerNames:'',
+  mainAddr:'1555 W. University Drive, Suite 103',
+  mainCity:'Tempe', mainState:'AZ', mainZip:'85281', mainContact:'Traci Lee',
+  loc1Addr:'7230 N. Glen Harbor Blvd.', loc1City:'Glendale', loc1State:'AZ',
+  loc1Zip:'85307', loc1Type:'Administrative Site', loc1Contact:'Traci Lee',
+  website:'www.sdi.edu', phone:'480-314-2102',
+  mission:'To provide students with current, industry-driven, quality education with a focus on specialized programs delivered through online distance education and practical application. SDI is committed to continuous improvement in our instructional processes and the overall student experience. We accomplish this through student and graduate achievement and satisfaction as well as our stakeholder relationships and reputation in the markets we serve.',
+  presName:'Traci Lee', presTitle:'President',
+  presEmail:'traci.lee@sdi.edu', presPhone:'480-744-0738',
+  presCertName:'Traci A. Lee',
+  coName:'Teresa Speicher', coTitle:'Compliance Manager',
+  coEmail:'teresa.speicher@sdi.edu', coPhone:'412-302-2096',
+  accList:'N/A', accDenied:'N/A', accPending:'N/A',
+  defDelivery:'Online', defTerms:'Semesters', defLanguage:'English'
+};
+
+/* ---------- stored answers ---------- */
+function fmOrg(){
+  if(!formStore.org||typeof formStore.org!=='object') formStore.org={};
+  const o=formStore.org;
+  if(!o.__seeded){
+    Object.keys(FM_ORG_DEFAULTS).forEach(k=>{ if(o[k]===undefined) o[k]=FM_ORG_DEFAULTS[k]; });
+    o.__seeded=1;
+  }
+  return o;
+}
+function fmAns(progId,formId){
+  if(!formStore.answers) formStore.answers={};
+  if(!formStore.answers[progId]) formStore.answers[progId]={};
+  const a=formStore.answers[progId][formId] || (formStore.answers[progId][formId]={});
+  if(typeof a.type!=='number') a.type=-1;
+  if(!a.branch) a.branch='';
+  if(!a.cbd) a.cbd='no';
+  if(!a.acc1) a.acc1='no';
+  if(!a.acc2) a.acc2='no';
+  if(!a.acc3) a.acc3='no';
+  if(!a.lic)  a.lic='no';
+  if(!a.vals||typeof a.vals!=='object') a.vals={};
+  if(!a.secPick||typeof a.secPick!=='object') a.secPick={};
+  if(typeof a.ready!=='number') a.ready=0;   // 0 = not released to compliance
+  return a;
+}
+function fmDirty(){
+  if(viewerModeForced) return;          // a reviewer's edits are theirs alone
+  try{ scheduleSave(); }catch(e){}
+}
+
+/* ---------- pulling answers out of the Playbook ---------- */
+function fmSections(progId){
+  const p=(programs||[]).filter(x=>x.id===progId)[0];
+  if(!p) return [];
+  const out=[];
+  (phasesOf(p)||[]).forEach(ph=>(ph.sections||[]).forEach(s=>out.push({id:s.id,name:s.name,phase:ph.name})));
+  return out;
+}
+// innerText only reports text that is actually being RENDERED. On a detached
+// element it silently degrades to textContent, which is why a three-column
+// table arrived as "ChannelPriorityBudget %"; visibility:hidden and
+// display:none do the same. So the scratch copy has to be laid out somewhere.
+// It goes in an off-screen iframe rather than in this document, because
+// dropping real block markup into the page wakes the app's own machinery --
+// the table-upgrade MutationObserver watches the whole document and would
+// start rewriting scratch content, and the document-level input listener sits
+// right behind it. The iframe is a plain document with no app code in it.
+let _fmFrame=null;
+function fmScratchDoc(){
+  if(_fmFrame && _fmFrame.isConnected && _fmFrame.contentDocument) return _fmFrame.contentDocument;
+  const f=document.createElement('iframe');
+  f.id='fm-scratch';
+  f.setAttribute('aria-hidden','true');
+  f.setAttribute('tabindex','-1');
+  f.style.cssText='position:absolute;left:-10000px;top:0;width:780px;height:600px;border:0;';
+  document.body.appendChild(f);
+  const d=f.contentDocument;
+  d.open();
+  d.write('<!doctype html><meta charset="utf-8"><style>body{margin:0;font:14px system-ui,sans-serif;width:760px}'+
+          'table{border-collapse:collapse}td,th{padding:2px 6px}</style><body></body>');
+  d.close();
+  _fmFrame=f;
+  return f.contentDocument;
+}
+// Checklist ticks, callout icons and trend arrows are characters inside her
+// blocks, not toolbar chrome, so removing the toolbars never reached them.
+const FM_GLYPHS=/[\u2190-\u21FF\u2300-\u27BF\u2B00-\u2BFF\u2600-\u26FF\uFE00-\uFE0F\u2800-\u28FF]|[\uD83C-\uDBFF][\uDC00-\uDFFF]/g;
+function fmClean(t){
+  return String(t||'').replace(FM_GLYPHS,'')
+    .replace(/[ \t\u00a0]+/g,' ')
+    .replace(/ ?\n ?/g,'\n')
+    .replace(/\n{3,}/g,'\n\n')
+    .trim();
+}
+const FM_KIND={ 'block-text':'prose','block-callout':'prose','block-table-wrap':'table','block-table':'table',
+  'block-swot':'structured','block-decision':'structured','block-approval':'structured','block-costtable':'structured',
+  'block-timeline':'structured','block-margin':'structured','block-margin-scenario':'structured','block-course-card':'structured',
+  'block-image':'media','block-video':'media','block-file':'media','block-embed':'media','block-divider':'media' };
+function fmTableLines(el){
+  const rows=[...el.querySelectorAll('tr')];
+  if(!rows.length) return '';
+  const cell=c=>fmClean(c.innerText).replace(/\n+/g,' ').trim();
+  const heads=[...rows[0].children].map(cell);
+  return rows.slice(1,12).map(tr=>[...tr.children].map(cell)
+      .map((v,i)=>v?((heads[i]?heads[i]+': ':'')+v):'')
+      .filter(Boolean).join('; ')).filter(Boolean).join('\n');
+}
+const _fmBlockCache={}, _fmDraftCache={};
+// A cheap fingerprint of everything this program holds. Changing any section
+// changes a length, which retires every cached draft for that program.
+function fmContentSig(progId){
+  let n=0;
+  fmSections(progId).forEach(s=>{ n+=((blockStore||{})[progId+':'+s.id]||'').length+7; });
+  return n;
+}
+// One record per block, with its text already readable.
+function fmBlocks(progId,secId){
+  const html=(blockStore||{})[progId+':'+secId]||'';
+  if(!html) return [];
+  const ck=progId+':'+secId+'|'+html.length;
+  if(_fmBlockCache[ck]) return _fmBlockCache[ck];
+  const doc=fmScratchDoc(), host=doc.body;
+  host.innerHTML=html;
+  const out=[];
+  [...host.children].forEach((bl,i)=>{
+    const clone=bl.cloneNode(true);
+    clone.querySelectorAll('.bctrl,.tbl-toolbar,.add-block-area,.vid-change-bar,script,style').forEach(n=>n.remove());
+    host.appendChild(clone);                       // rendered, so innerText lays out
+    let kind='other';
+    for(const k in FM_KIND) if(clone.querySelector('.'+k)||clone.classList.contains(k)){ kind=FM_KIND[k]; break; }
+    let text = kind==='table' ? fmTableLines(clone) : fmClean(clone.innerText);
+    if(kind==='table') text=fmClean(text);
+    clone.remove();
+    if(kind!=='media' && text) out.push({ i, bid: bl.dataset.bid||('i'+i), kind, text });
+  });
+  host.innerHTML='';
+  _fmBlockCache[ck]=out;
+  return out;
+}
+function fmSectionText(progId,secId){
+  return fmBlocks(progId,secId).map(b=>b.text).join('\n\n');
+}
+// How well one block answers one DEAC question. Prose wins; a table or a
+// tracker loses, because neither reads as a narrative however clean it is.
+function fmKwHits(text,slot){
+  const low=text.toLowerCase();
+  let n=0; slot.kw.forEach(w=>{ if(low.indexOf(w)>=0) n++; });
+  return n;
+}
+function fmScore(block,slot,secName){
+  let sc=0;
+  if(slot.match.test(secName)) sc+=4;
+  // Discriminative, not absolute: a long well-written block hits every
+  // question's vocabulary, so what matters is whether it hits THIS question's
+  // words more than the others'. Without this, one strong paragraph was
+  // drafted into four of the five answers.
+  const mine=fmKwHits(block.text,slot);
+  let best=0;
+  FM_SEC_SLOTS.forEach(o=>{ if(o.k!==slot.k) best=Math.max(best,fmKwHits(block.text,o)); });
+  sc+=Math.min(mine,6)*0.6 + (mine-best)*1.6;
+  if(block.kind==='prose') sc+=5;
+  if(block.kind==='table') sc-=7;
+  if(block.kind==='structured') sc-=6;
+  const n=block.text.length;
+  if(n<140) sc-=4; else if(n>=200&&n<=4000) sc+=2;
+  const sentences=(block.text.match(/[.!?](\s|$)/g)||[]).length;
+  sc+=Math.min(sentences,6)*0.5;
+  return sc;
+}
+// Which question a block answers best. A block is only offered to that one,
+// so five answers do not all open with the same paragraph.
+function fmBestSlot(block,secName){
+  let bk='', bs=-99;
+  FM_SEC_SLOTS.forEach(o=>{ const v=fmScore(block,o,secName); if(v>bs){ bs=v; bk=o.k; } });
+  return bk;
+}
+// Assemble an answer from the whole program, not one chosen section.
+function fmAutoDraft(progId,slot){
+  const ck=progId+'|'+slot.k+'|'+fmContentSig(progId);
+  if(_fmDraftCache[ck]) return _fmDraftCache[ck];
+  const secs=fmSections(progId), cand=[];
+  secs.forEach((s,si)=>fmBlocks(progId,s.id).forEach(b=>{
+    cand.push({ secId:s.id, secName:s.name, phase:s.phase, si, bid:b.bid, i:b.i,
+                kind:b.kind, text:b.text, score:fmScore(b,slot,s.name) });
+  }));
+  let picked=cand.filter(c=>c.score>=6 && fmBestSlot(c,c.secName)===slot.k);
+  if(!picked.length) picked=cand.filter(c=>c.score>=6);   // nothing else fits it
+  picked.sort((a,b)=>b.score-a.score);
+  const used=[]; let chars=0;
+  for(const c of picked){
+    if(used.length>=3) break;
+    if(used.length && chars+c.text.length>3000) continue;
+    if(used.length>=2 && !used.some(u=>u.secId===c.secId)) continue;
+    used.push(c); chars+=c.text.length;
+  }
+  used.sort((a,b)=> a.si-b.si || a.i-b.i);
+  _fmDraftCache[ck]=used;
+  return used;
+}
+function fmUsedBlocks(progId,a,slot){ return fmAutoDraft(progId,slot); }
+// Course figures for a program, from the Course Database. Returns null rather
+// than a guess when nothing is linked -- a wrong credit-hour count on an
+// accreditor form is worse than an empty field.
+function fmCourseStats(prog){
+  const cs=(courseStore&&courseStore.courses)||[];
+  if(!cs.length||!prog) return null;
+  const name=String(prog.name||''), abbr=(name.split(/\s*[-–—]{1,2}\s*/)[0]||name).trim().toUpperCase();
+  const mine=cs.filter(c=>(c.programs||[]).some(p=>{
+    const t=String(p||'').trim().toUpperCase();
+    return t===abbr || t===name.toUpperCase() || t===String(prog.id||'').toUpperCase();
+  }));
+  if(!mine.length) return null;
+  let credits=0; const weeks={};
+  mine.forEach(c=>{ credits+=Number(c.credits)||0; if(c.weeks) weeks[c.weeks]=(weeks[c.weeks]||0)+1; });
+  const wk=Object.keys(weeks).sort((a,b)=>weeks[b]-weeks[a])[0]||'';
+  return { count:mine.length, credits, weeks:wk?Number(wk):0 };
+}
+function fmProgName(prog){
+  const n=String((prog&&prog.name)||'');
+  const m=n.match(/^\s*[A-Za-z0-9][A-Za-z0-9\-\/ ]{0,12}?\s+(?:--|\u2013|\u2014)\s+(.+)$/);
+  return (m?m[1]:n).trim();
+}
+function fmProgFacts(progId){
+  const prog=(programs||[]).filter(p=>p.id===progId)[0]||null;
+  const st=fmCourseStats(prog);
+  const org=fmOrg();
+  const terms=(prog&&prog.margin&&prog.margin.maxTerms)||0;
+  const f={ name:prog?fmProgName(prog):'', courses:st,
+            delivery:org.defDelivery||'Online',
+            terms:org.defTerms||'Semesters',
+            language:org.defLanguage||'English' };
+  f.credits = st ? String(st.credits)+' credit hours' : '';
+  f.length  = (st&&st.weeks&&terms) ? (st.weeks*terms)+' weeks ('+terms+' terms)'
+            : (st&&st.weeks) ? st.weeks+' weeks per course' : '';
+  return f;
+}
+
+/* ---------- resolving one control ---------- */
+// Returns {v, src, need} -- v is the value to write, src labels where it came
+// from, need marks an answer that is still missing.
+function fmResolve(srcSpec,progId,a){
+  const org=fmOrg(), s=String(srcSpec||''), c=s.indexOf(':'), head=c<0?s:s.slice(0,c), tail=c<0?'':s.slice(c+1);
+  if(head==='affirm') return { v:true, src:'affirmation' };
+  // Deliberately left as the form's own blank line: the president signs
+  // and dates the generated file electronically.
+  if(head==='blank') return { v:'', src:'left for the signer' };
+  if(head==='type')   return { v:a.type===Number(tail), src:'your choice', need:a.type<0 };
+  if(head==='cbd'||head==='acc1'||head==='acc2'||head==='acc3'||head==='lic')
+    return { v:a[head]===tail, src:'your choice' };
+  if(head==='org'){
+    const v=org[tail]||'';
+    return { v, src:'Institution Profile', need:!v && !/^loc[1-5]/.test(tail) && tail!=='formerNames'
+             && !/^acc(List|Denied|Pending)$/.test(tail) };
+  }
+  if(head==='manual'){
+    const v=a.vals[s]||'';
+    // The licensure detail is only wanted when the licensure answer is Yes.
+    const wanted = (tail==='licDetail') ? (a.lic==='yes') : true;
+    return { v, src:'you answer this', need:!v && wanted };
+  }
+  if(head==='sec'){
+    if(a.vals[s]) return { v:a.vals[s], src:'edited here' };
+    const slot=FM_SEC_SLOTS.filter(x=>x.k===tail)[0];
+    if(!slot) return { v:'', src:'unmapped', need:true };
+    const used=fmUsedBlocks(progId,a,slot);
+    const txt=used.map(u=>u.text).join('\n\n');
+    const names=[...new Set(used.map(u=>u.phase+' → '+u.secName))];
+    return { v:txt, src: used.length? ('drafted from '+names.join(' + ')) : 'nothing in this program answers it yet',
+             need:!txt, draft:!!txt, used };
+  }
+  const want = head==='new' ? 'new' : 'existing';
+  if(head==='new'||head==='ex'){
+    if(a.branch && a.branch!==want) return { v:'Not applicable.', src:'the other branch' };
+    if(!a.branch) return { v:'', src:'new or existing?', need:true };
+    if(a.vals[s]) return { v:a.vals[s], src:'edited here' };
+    const f=fmProgFacts(progId);
+    const cur=k=>'The '+(f.name||'program')+' program is currently '+k+' and there is no proposed change.';
+    if(head==='new'){
+      if(tail==='progName') return { v:f.name, src:'program record', need:!f.name };
+      if(tail==='credits')  return { v:f.credits, src:f.courses?'Course Database':'no linked courses', need:!f.credits };
+      if(tail==='length')   return { v:f.length,  src:f.courses?'Course Database':'no linked courses', need:!f.length };
+      if(tail==='delivery') return { v:f.delivery, src:'Institution Profile' };
+      if(tail==='language') return { v:f.language, src:'Institution Profile' };
+    }else{
+      if(tail==='progName') return { v:f.name, src:'program record', need:!f.name };
+      if(tail==='changes')  return { v:'', src:'you answer this', need:true };
+      if(tail==='credits')  return { v:f.credits?cur(f.credits):'', src:f.courses?'Course Database':'no linked courses', need:!f.credits };
+      if(tail==='length')   return { v:f.length?cur(f.length):'', src:f.courses?'Course Database':'no linked courses', need:!f.length };
+      if(tail==='delivery') return { v:cur('offered '+String(f.delivery).toLowerCase()), src:'Institution Profile' };
+      if(tail==='terms')    return { v:cur('offered in '+String(f.terms).toLowerCase()), src:'Institution Profile' };
+      if(tail==='language') return { v:cur('offered in '+f.language), src:'Institution Profile' };
+    }
+  }
+  return { v:'', src:'unmapped', need:true };
+}
+
+/* ---------- the template ---------- */
+const _fmTpl={};          // formId -> {bytes, fields, unmatched}
+function base64ToBytes(b64){
+  const bin=atob(String(b64||'').replace(/\s+/g,''));
+  const a=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) a[i]=bin.charCodeAt(i);
+  return a;
+}
+// Same two-step read as githubReadFileStatus, but the blob stays binary.
+async function githubReadBinary(path){
+  const token=githubActiveToken();
+  if(!token) return { status:'error', why:'this browser has no GitHub token' };
+  try{
+    const meta=await fetch(githubRepoUrl('/contents/'+path+'?ref='+GITHUB_BRANCH),{headers:githubHeaders(token),cache:'no-store'});
+    if(!meta.ok) return { status: meta.status===404?'not_found':'error', code:meta.status,
+                          why:'GitHub returned '+meta.status+' for '+path+(meta.status===404?' — check the path, or the upload may not have finished':'') };
+    const m=await meta.json();
+    const blob=await fetch(githubRepoUrl('/git/blobs/'+m.sha),{headers:githubHeaders(token),cache:'no-store'});
+    if(!blob.ok) return { status:'error', code:blob.status, why:'GitHub returned '+blob.status+' reading the file itself' };
+    const b=await blob.json();
+    return { status:'ok', bytes:base64ToBytes(b.content) };
+  }catch(e){ return { status:'error', why:'no response from GitHub (offline, or the request was blocked)' }; }
+}
+async function fmParse(form,bytes){
+  const entries=dxUnzip(bytes);
+  const de=entries.filter(e=>e.name==='word/document.xml')[0];
+  if(!de) throw new Error('That file is not a Word document.');
+  const doc=new DOMParser().parseFromString(await dxEntryText(de),'application/xml');
+  if(doc.getElementsByTagName('parsererror').length) throw new Error('This Word file could not be read.');
+  const fields=dxFields(doc);
+  const unmatched=fields.filter(f=>!form.map[f.fp]).length;
+  _fmTpl[form.id]={ bytes, fields, unmatched };
+  return _fmTpl[form.id];
+}
+const _fmTplErr={};
+async function fmTemplate(form,quiet){
+  if(_fmTpl[form.id]) return _fmTpl[form.id];
+  const r=await githubReadBinary(form.path);
+  _fmTplErr[form.id] = r.status==='ok' ? null : (r.why||'the template could not be read');
+  if(r.status!=='ok'){
+    if(!quiet) await appAlert(r.status==='not_found'
+      ? 'The form template is not in the content repo yet.\n\nCommit the blank .docx to:\n'+form.path+'\n\nOr use "Load template from this computer" to try it without committing.'
+      : 'Could not read the form template from GitHub. Check your connection and try again.');
+    return null;
+  }
+  return fmParse(form,r.bytes);
+}
+// Testing hatch, and the path for trying a new accreditor document before it
+// is committed: read the .docx straight off this machine.
+function fmLoadLocalTemplate(formId){
+  const form=fmForm(formId); if(!form) return;
+  const inp=document.createElement('input');
+  inp.type='file'; inp.accept='.docx';
+  inp.onchange=async()=>{
+    const file=inp.files&&inp.files[0]; if(!file) return;
+    try{
+      const t=await fmParse(form,new Uint8Array(await file.arrayBuffer()));
+      toast('Template read: '+t.fields.length+' fields'+(t.unmatched?', '+t.unmatched+' unmapped':''));
+      fmRender();
+    }catch(e){ await appAlert('Could not read that file: '+e.message); }
+  };
+  inp.click();
+}
+
+/* ---------- the panel ---------- */
+let fmPanelOpen=false, fmView='list', fmFormId='', fmStep=0, fmProgId='';
+// Only what the app can actually answer is a step. The affirmations are
+// always checked, and Sections 5 and 6 are completed by hand on the
+// generated document, so neither is anything to decide here.
+const FM_STEPS=['Type of change','Program','Narratives'];
+
+function fmOpenSmart(){
+  if(!curProgId){ toast('Open a program first — forms are filled per program.'); return; }
+  fmPanelOpenFor();
+}
+function fmPanelOpenFor(){
+  // Whatever a viewer was last looking at, they come back to the list.
+  if(typeof pmPanelOpen!=='undefined' && pmPanelOpen) pmPanelClose();
+  if(typeof marginPanelOpen!=='undefined' && marginPanelOpen) marginPanelClose();
+  if(typeof ccPanelOpen!=='undefined' && ccPanelOpen) ccPanelClose();
+  if(typeof crsPanelOpen!=='undefined' && crsPanelOpen) crsPanelClose();
+  if(typeof clogPanelOpen!=='undefined' && clogPanelOpen) clogPanelClose();
+  if(typeof revPanelOpen!=='undefined' && revPanelOpen) revPanelClose();
+  fmPanelOpen=true; fmProgId=curProgId; fmView='list'; fmStep=0;
+  if(viewerModeForced) fmRefreshFromManifest();
+  const panel=document.getElementById('forms-panel'), handle=document.getElementById('forms-panel-handle');
+  panel.style.flex='0 0 '+(uiState.sidePanelWidth||460)+'px';
+  panel.style.display='flex'; handle.style.display='block';
+  fmRender();
+}
+let _fmRefreshedAt=0;
+// Read-only sessions only: pull the current answers and ready flags out of
+// the manifest, so a reviewer who left the tab open still sees what Karen
+// released since. Throttled -- the manifest is not tiny.
+async function fmRefreshFromManifest(){
+  if(!viewerModeForced) return;
+  if(Date.now()-_fmRefreshedAt < 60000) return;
+  _fmRefreshedAt=Date.now();
+  try{
+    const r=await githubReadFileStatus(GITHUB_MANIFEST_PATH);
+    if(r.status!=='ok' || !r.json || !r.json.formStore) return;
+    const fs=r.json.formStore;
+    if(fs.org && typeof fs.org==='object') formStore.org=fs.org;
+    if(fs.answers && typeof fs.answers==='object') formStore.answers=fs.answers;
+    if(fmPanelOpen) fmRender();
+    fmRefreshBadge();
+  }catch(e){}
+}
+function fmPanelClose(){
+  fmPanelOpen=false;
+  const panel=document.getElementById('forms-panel'), handle=document.getElementById('forms-panel-handle');
+  if(panel) panel.style.display='none';
+  if(handle) handle.style.display='none';
+}
+function fmGo(view,formId){ fmView=view; if(formId!==undefined) fmFormId=formId; fmStep=0; fmRender(); }
+function fmBack(){ fmGo('list'); }
+function fmSetStep(n){ fmStep=n; fmRender(); }
+
+function fmChip(src,need){
+  const cls = need ? 'fm-chip need'
+            : /Institution Profile|Course Database|program record|affirmation|the other branch/.test(src) ? 'fm-chip ok'
+            : /drafted from/.test(src) ? 'fm-chip draft' : 'fm-chip man';
+  return '<span class="'+cls+'">'+escapeHtml(src)+'</span>';
+}
+function fmTextField(key,label,val,src,need,big){
+  const ro=viewerModeForced?' readonly':'';
+  const id='fmv-'+key.replace(/[^a-zA-Z0-9]/g,'_');
+  return '<div class="fm-f'+(need?' need':'')+'">'+
+    '<label for="'+id+'">'+escapeHtml(label)+'</label>'+
+    (big?'<textarea id="'+id+'" rows="4"'+ro+' oninput="fmEdit(\''+key+'\',this.value)">'+escapeHtml(val)+'</textarea>'
+        :'<input id="'+id+'" type="text"'+ro+' value="'+escapeHtml(val)+'" oninput="fmEdit(\''+key+'\',this.value)">')+
+    '<div class="fm-src">'+fmChip(src,need)+'</div></div>';
+}
+function fmEdit(key,val){
+  if(viewerModeForced) return;
+  if(key.indexOf('org:')===0){ fmOrg()[key.slice(4)]=val; }
+  else { fmAns(fmProgId,fmFormId).vals[key]=val; }
+  fmDirty();
+}
+// Karen's sign-off. Until she marks a form ready, a viewer sees that it is
+// being prepared and cannot download it -- which is the whole point: the
+// reviewer should never pull a half-finished application.
+async function fmToggleReady(){
+  if(viewerModeForced) return;
+  const a=fmAns(fmProgId,fmFormId);
+  if(a.ready){ a.ready=0; fmDirty(); fmRender(); toast('Marked as still in preparation'); return; }
+  const st=fmStatus();
+  if(st.need){
+    const ok=await appConfirm(st.need+' field'+(st.need===1?' is':'s are')+' still blank. '+
+      'Mark it ready for compliance anyway?');
+    if(!ok) return;
+  }
+  a.ready=Date.now(); fmDirty(); fmRender(); fmRefreshBadge();
+  toast('Ready — compliance can download it from the Forms panel');
+}
+function fmReadyCount(progId){
+  const byForm=((formStore.answers||{})[progId||fmProgId||curProgId]||{});
+  return FM_FORMS.filter(f=>(byForm[f.id]||{}).ready).length;
+}
+function fmRefreshBadge(){
+  const b=document.getElementById('forms-badge');
+  if(!b) return;
+  const n=curProgId?fmReadyCount(curProgId):0;
+  b.textContent=n; b.style.display=n?'inline-block':'none';
+}
+function fmSetChoice(what,val){
+  if(viewerModeForced) return;
+  const a=fmAns(fmProgId,fmFormId);
+  if(what==='type') a.type=Number(val); else a[what]=val;
+  fmDirty(); fmRender();
+}
+// Back to the app's own draft: forget both the hand-picked blocks and the
+// edit, and let the router choose again.
+function fmRedraft(slotKey){
+  if(viewerModeForced) return;
+  const a=fmAns(fmProgId,fmFormId);
+  delete a.vals['sec:'+slotKey];
+  fmDirty(); fmRender();
+}
+function fmSetSec(slot,secId){
+  if(viewerModeForced) return;
+  const a=fmAns(fmProgId,fmFormId);
+  a.secPick[slot]=secId; delete a.vals['sec:'+slot];
+  fmDirty(); fmRender();
+}
+
+function fmRenderList(){
+  const prog=(programs||[]).filter(p=>p.id===fmProgId)[0]||{};
+  let h='<p class="fm-hint">'+(viewerModeForced
+      ? 'Accreditor forms for <b>'+escapeHtml(prog.name||'')+'</b>. Download the Word file and submit it as it is.'
+      : 'Forms for <b>'+escapeHtml(prog.name||'')+'</b>. Templates are read from the content repo, so a new revision is a file swap.')+
+    '</p><div class="fm-list">';
+  FM_FORMS.forEach(f=>{
+    const a=((formStore.answers||{})[fmProgId]||{})[f.id]||{};
+    const ready=!!a.ready;
+    const when=ready?new Date(a.ready).toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'}):'';
+    const pill=ready?'<span class="fm-chip ok">Form ready</span>'
+                    :'<span class="fm-chip '+(viewerModeForced?'man':'need')+'">'+(viewerModeForced?'Preparing':'Draft')+'</span>';
+    const sub=f.agency+' · '+f.revision+(ready?' · marked ready '+when:'');
+    if(viewerModeForced){
+      h+='<div class="fm-row'+(ready?'':' fm-rowoff')+'">'+
+         '<div style="flex:1;min-width:0"><div class="fm-rt">'+escapeHtml(f.title)+'</div>'+
+         '<div class="fm-rs">'+escapeHtml(sub)+'</div>'+
+         '<div class="fm-src">'+pill+'</div></div>'+
+         (ready?'<button class="fm-cta" onclick="fmQuickGenerate(\''+f.id+'\')">Download Word</button>':'')+
+         '</div>';
+    }else{
+      const st=_fmTpl[f.id];
+      h+='<button class="fm-row" onclick="fmGo(\'form\',\''+f.id+'\')">'+
+         '<div class="fm-rt">'+escapeHtml(f.title)+'</div>'+
+         '<div class="fm-rs">'+escapeHtml(sub+' · '+f.expect+' fields')+'</div>'+
+         '<div class="fm-src">'+pill+
+         (st?'<span class="fm-chip man">template loaded</span>':'')+
+         (st&&st.unmatched?'<span class="fm-chip need">'+st.unmatched+' unmapped</span>':'')+
+         '</div></button>';
+    }
+  });
+  return h+'</div>';
+}
+function fmOrgMissing(){
+  const org=fmOrg();
+  return FM_ORG_FIELDS.filter(f=>!f.extra&&!/^(formerNames|accList|accDenied|accPending)$/.test(f.k)&&!org[f.k]).length;
+}
+function fmRenderOrg(){
+  const org=fmOrg();
+  let h='<p class="fm-hint">Already filled in, and shared by every accreditor form. Edit anything that has changed.</p>';
+  FM_ORG_FIELDS.filter(f=>!f.extra).forEach(f=>{
+    h+=fmTextField('org:'+f.k,f.l,org[f.k]||'','Institution Profile',
+        !org[f.k]&&!/^(formerNames|accList|accDenied|accPending)$/.test(f.k),f.big);
+  });
+  h+='<details class="fm-more"><summary>Other locations (5 rows on the form)</summary>';
+  FM_ORG_FIELDS.filter(f=>f.extra).forEach(f=>{
+    h+=fmTextField('org:'+f.k,f.l,org[f.k]||'','Institution Profile',false,false);
+  });
+  return h+'</details>';
+}
+function fmStepsBar(){
+  let h='<div class="fm-steps">';
+  FM_STEPS.forEach((n,i)=>{ h+='<button onclick="fmSetStep('+i+')" aria-current="'+(i===fmStep)+'">'+n+'</button>'; });
+  return h+'</div>';
+}
+function fmRenderForm(){
+  const form=fmForm(fmFormId), a=fmAns(fmProgId,fmFormId);
+  let h=fmStepsBar();
+  if(fmStep===0){
+    h+='<p class="fm-q">Which substantive change are you requesting?</p>';
+    FM_TYPES.forEach((t,i)=>{
+      h+='<button class="fm-opt'+(a.type===i?' sel':'')+'" onclick="fmSetChoice(\'type\','+i+')">'+
+         '<span class="fm-box">'+(a.type===i?'&#10003;':'')+'</span><span>'+escapeHtml(t)+'</span></button>';
+    });
+    h+='<p class="fm-q">Does the change involve competency-based or direct assessment learning?</p>'+
+       fmRadio('cbd',[['yes','Yes'],['no','No'],['na','Not applicable — not a Title IV participant']],a.cbd)+
+       '<p class="fm-q">Is the institution or any program accredited elsewhere?</p>'+fmRadio('acc1',[['yes','Yes'],['no','No']],a.acc1)+
+       '<p class="fm-q">Has accreditation ever been denied, terminated or resigned?</p>'+fmRadio('acc2',[['yes','Yes'],['no','No']],a.acc2)+
+       '<p class="fm-q">Any pending accrediting action?</p>'+fmRadio('acc3',[['yes','Yes'],['no','No']],a.acc3)+
+       '<p class="fm-q">Does the change make students eligible for a licensure examination?</p>'+fmRadio('lic',[['yes','Yes'],['no','No']],a.lic)+
+       fmTextField('manual:licDetail','If yes — related programmatic accreditation or licensure examinations',
+                   a.vals['manual:licDetail']||'','you answer this',false,true)+
+       '<details class="fm-more"><summary>Section 1 — institution information ('+
+       (fmOrgMissing()?fmOrgMissing()+' still blank':'prefilled')+')</summary>'+fmRenderOrg()+'</details>';
+  }
+  if(fmStep===1){
+    h+='<p class="fm-q">Is this a new program, or a change to an existing one?</p>'+
+       '<p class="fm-hint">The branch you do not pick is filled with “Not applicable.”, which is what DEAC’s instructions require.</p>'+
+       '<div class="fm-branch">'+
+       '<button class="'+(a.branch==='new'?'sel':'')+'" onclick="fmSetChoice(\'branch\',\'new\')"><b>New program addition</b><span>5 questions</span></button>'+
+       '<button class="'+(a.branch==='existing'?'sel':'')+'" onclick="fmSetChoice(\'branch\',\'existing\')"><b>Change to an existing program</b><span>7 questions</span></button>'+
+       '</div>';
+    if(!a.branch) h+='<p class="fm-note">Pick one to see the questions.</p>';
+    else{
+      const pre=a.branch==='new'?'new':'ex';
+      const qs=a.branch==='new'
+        ? [['progName','Proposed program name'],['credits','Total clock/credit hours'],['length','Program length'],
+           ['delivery','Method of delivery'],['language','Language of instruction']]
+        : [['progName','Program name'],['changes','Describe the proposed changes',1],['credits','Current clock/credit hours, and any change',1],
+           ['length','Current program length, and any change',1],['delivery','Current method of delivery, and any change',1],
+           ['terms','Semesters/trimesters/quarters, time-based or not, and any change',1],['language','Current language, and any change',1]];
+      qs.forEach(q=>{
+        const key=pre+':'+q[0], r=fmResolve(key,fmProgId,a);
+        h+=fmTextField(key,q[1],r.v,r.src,r.need,!!q[2]);
+      });
+      h+='<p class="fm-note">The other branch’s '+(a.branch==='new'?7:5)+' questions will read “Not applicable.”</p>';
+    }
+  }
+  if(fmStep===2){
+    const secs=fmSections(fmProgId);
+    h+='<p class="fm-q">Section 2 — the proposed change</p>'+
+       '<p class="fm-hint">Each answer is drafted from whichever blocks across this program best answer that question. Edit it here and the edit stays with the form, not the section.</p>';
+    FM_SEC_SLOTS.forEach(slot=>{
+      const key='sec:'+slot.k, r=fmResolve(key,fmProgId,a);
+      // "Redraft" has to be offered after a hand-pick too, not only after an
+      // edit -- otherwise the only way back is unticking blocks one by one.
+      const edited=!!a.vals[key];
+      h+='<div class="fm-f'+(r.need?' need':'')+'">'+
+         '<label>'+escapeHtml(slot.l)+'</label>'+
+         '<textarea rows="6"'+(viewerModeForced?' readonly':'')+' oninput="fmEdit(\''+key+'\',this.value)">'+escapeHtml(r.v)+'</textarea>'+
+         '<div class="fm-src">'+fmChip(r.src,r.need)+
+         (!viewerModeForced && edited ? '<button class="link" onclick="fmRedraft(\''+slot.k+'\')">Start again from the program</button>':'')+
+         '</div></div>';
+    });
+    h+='<p class="fm-note">Nothing else is asked here: Section 4’s 14 affirmations are checked on the '+
+       'generated document, and Sections 5 and 6 — the fee evidence, the signature and the date — are '+
+       'left blank to be completed by hand.</p>';
+  }
+
+  return h;
+}
+function fmRadio(what,opts,cur){
+  return '<div class="fm-radio">'+opts.map(o=>
+    '<button class="fm-opt'+(cur===o[0]?' sel':'')+'" onclick="fmSetChoice(\''+what+'\',\''+o[0]+'\')">'+
+    '<span class="fm-box round">'+(cur===o[0]?'&#10003;':'')+'</span><span>'+escapeHtml(o[1])+'</span></button>').join('')+'</div>';
+}
+
+function fmStatus(){
+  const form=fmForm(fmFormId), t=_fmTpl[fmFormId], a=fmAns(fmProgId,fmFormId);
+  if(!form||!t) return { total:0, need:0, ready:false, msg:'Template not loaded yet' };
+  let need=0;
+  t.fields.forEach(f=>{
+    const spec=form.map[f.fp];
+    if(!spec){ need++; return; }
+    const r=fmResolve(spec,fmProgId,a);
+    if(r.need) need++;
+  });
+  const ready = a.type>=0 && !!a.branch;
+  return { total:t.fields.length, need, ready,
+           msg: a.type<0 ? 'Choose the type of change' : (!a.branch ? 'Choose new or existing program'
+                : (t.fields.length-need)+' of '+t.fields.length+' answered'+(need?' · '+need+' still blank':'')) };
+}
+function fmRender(){
+  const body=document.getElementById('forms-panel-body'), foot=document.getElementById('forms-panel-foot'),
+        title=document.querySelector('#forms-panel .pmp-title'), back=document.getElementById('fm-back');
+  if(!body) return;
+  if(title) title.textContent = fmView==='form' ? (fmForm(fmFormId)||{}).title||'Form' : 'Compliance Forms';
+  if(back) back.style.display = fmView==='list' ? 'none' : 'inline-block';
+  body.innerHTML = fmView==='list' ? fmRenderList() : fmRenderForm();
+  if(foot){
+    if(fmView==='form'){
+      const s=fmStatus();
+      foot.style.display='flex';
+      const a=fmAns(fmProgId,fmFormId);
+      foot.innerHTML='<div class="fm-bar"><div class="fm-bt">'+escapeHtml(s.msg)+'</div>'+
+        '<div class="fm-track"><i style="width:'+(s.total?Math.round(100*(s.total-s.need)/s.total):0)+'%"></i></div></div>'+
+        (viewerModeForced?'<span class="fm-chip man">read-only</span>'
+          :'<button class="fm-cta sec" onclick="fmToggleReady()"'+(s.ready?'':' disabled')+'>'+
+            (a.ready?'Ready ✓':'Mark ready')+'</button>')+
+        '<button class="fm-cta" onclick="fmGenerate()"'+(s.ready?'':' disabled')+'>Generate Word file</button>';
+    }else{ foot.style.display='none'; foot.innerHTML=''; }
+  }
+  fmRefreshBadge();
+  if(fmView==='form' && !_fmTpl[fmFormId]) fmEnsureTemplate();
+}
+// A template committed a minute ago is the normal case, so a failed read
+// must offer another go rather than a dead end.
+function fmRetryTemplate(){
+  const foot=document.getElementById('forms-panel-foot');
+  if(foot) foot.innerHTML='<div class="fm-bar"><div class="fm-bt">Reading the template…</div></div>';
+  delete _fmTpl[fmFormId]; delete _fmTplErr[fmFormId];
+  fmEnsureTemplate();
+}
+async function fmEnsureTemplate(){
+  const form=fmForm(fmFormId); if(!form||_fmTpl[form.id]) return;
+  const t=await fmTemplate(form,true);
+  if(t){
+    if(t.fields.length!==form.expect)
+      toast('Heads up: this template has '+t.fields.length+' fields, not the '+form.expect+' this map was built for.');
+    fmRender();
+  }else{
+    const foot=document.getElementById('forms-panel-foot');
+    if(foot) foot.innerHTML='<div class="fm-bar"><div class="fm-bt">'+escapeHtml(_fmTplErr[form.id]||('Could not read '+form.path))+'</div></div>'+
+      '<button class="fm-cta" onclick="fmRetryTemplate()">Try again</button>'+
+      '<button class="fm-cta sec" onclick="fmLoadLocalTemplate(\''+form.id+'\')">From this computer…</button>';
+  }
+}
+
+/* ---------- generate ---------- */
+// A viewer clicks the form and gets the file. No steps, no options -- there
+// is nothing there they are allowed to change.
+async function fmQuickGenerate(formId){
+  const form=fmForm(formId); if(!form) return;
+  fmFormId=formId;
+  const foot=document.getElementById('forms-panel-foot');
+  if(foot){ foot.style.display='flex'; foot.innerHTML='<div class="fm-bar"><div class="fm-bt">Building the document…</div></div>'; }
+  const t=_fmTpl[form.id]||await fmTemplate(form);
+  if(!t){ fmRender(); return; }
+  await fmGenerate();
+  fmRender();
+}
+async function fmGenerate(){
+  const form=fmForm(fmFormId); if(!form) return;
+  const t=_fmTpl[form.id]||await fmTemplate(form);
+  if(!t) return;
+  const a=fmAns(fmProgId,fmFormId);
+  if(a.type<0){ await appAlert('Choose the type of substantive change first (step 1).'); return; }
+  if(!a.branch){ await appAlert('Say whether this is a new program or a change to an existing one (step 2).'); return; }
+  const answers={}; const blanks=[];
+  t.fields.forEach(f=>{
+    const spec=form.map[f.fp];
+    if(!spec){ blanks.push('(unmapped) '+f.label.slice(0,60)); return; }
+    const r=fmResolve(spec,fmProgId,a);
+    if(f.kind==='checkbox') answers[f.idx]=!!r.v;
+    else if(r.v) answers[f.idx]=r.v;
+    else if(r.need) blanks.push(f.label.slice(0,70));
+  });
+  if(blanks.length && !viewerModeForced){
+    const ok=await appConfirm(blanks.length+' field'+(blanks.length===1?' is':'s are')+' still blank and will stay as the form’s placeholder text:\n\n• '+
+      blanks.slice(0,8).join('\n• ')+(blanks.length>8?'\n• …and '+(blanks.length-8)+' more':'')+'\n\nGenerate anyway?');
+    if(!ok) return;
+  }
+  try{
+    const res=await dxFillDocx(t.bytes,answers);
+    const prog=(programs||[]).filter(p=>p.id===fmProgId)[0]||{};
+    // Name it the way it will be filed: agency, form, program code, date.
+    const raw=String(prog.name||'program');
+    const code=(raw.match(/^\s*([A-Za-z0-9][A-Za-z0-9\-\/]{0,12})\s+(?:--|\u2013|\u2014)\s+/)||[])[1]||raw;
+    const slug=t=>String(t).replace(/[^A-Za-z0-9]+/g,'-').replace(/^-|-$/g,'');
+    const d=new Date(), pad=n=>String(n).padStart(2,'0');
+    const name=[form.agency,slug(form.title),slug(code).slice(0,24),
+                d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())].join('-')+'.docx';
+    const url=URL.createObjectURL(res.blob);
+    const link=document.createElement('a');
+    link.href=url; link.download=name;
+    document.body.appendChild(link); link.click(); link.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),4000);
+    toast('Generated '+name+' — '+res.written+' fields written');
+  }catch(e){ await appAlert('The form could not be generated: '+e.message); }
+}
+
 function initSidePanelResize(handleId, panelId){
   const handle=document.getElementById(handleId);
   if(!handle) return;
@@ -14204,6 +15556,7 @@ initSidePanelResize('margin-panel-handle','margin-panel');
   initSidePanelResize('course-panel-handle','course-panel');
   initSidePanelResize('clog-panel-handle','clog-panel');
   initSidePanelResize('rev-panel-handle','rev-panel');
+  initSidePanelResize('forms-panel-handle','forms-panel');
 function openPMDash(){
   document.getElementById('hub-view').style.display='none';
   document.getElementById('prog-view').style.display='none';
@@ -15810,7 +17163,17 @@ function applyStagingSkin(){
   try{ document.title = '[STAGING] ' + document.title; }catch(e){}
 }
 
+// Nothing in a read-only session saves, so the topbar must never be left
+// saying it is saving. Called both when viewer chrome goes up and again the
+// moment the read-only flag is set, which is the last point anything could
+// have written it.
+function clearSaveIndicator(){
+  const si=document.getElementById('save-ind');
+  if(si){ si.textContent=''; si.style.color=''; }
+}
 function hideEditorChromeForViewer(){
+  clearSaveIndicator();
+
   document.querySelectorAll('.mode-btn').forEach(b=>b.style.display='none');
   const tbExtra=document.getElementById('tb-extra'); if(tbExtra) tbExtra.style.display='none';
   const tbMore=document.getElementById('tb-more'); if(tbMore) tbMore.style.display='none';
@@ -15832,6 +17195,7 @@ function hideEditorChromeForViewer(){
   // how they discover commenting exists at all -- the box itself is at the
   // bottom of a section, which is easy to never scroll to.
   const revBtn=document.getElementById('rev-viewer-btn'); if(revBtn) revBtn.style.display='inline-block';
+  const fmBtn=document.getElementById('forms-viewer-btn'); if(fmBtn) fmBtn.style.display='inline-block';
   const bkPill=document.getElementById('backup-pill'); if(bkPill) bkPill.style.display='none';
   // The changelog is the one thing a viewer is meant to come BACK for, so its
   // button survives the viewer chrome-hiding rather than being stripped with
@@ -15889,18 +17253,24 @@ async function init(){
     const manifest = await probeManifest();
     if(manifest && manifest.v === 3 && (manifest.programs||[]).length > 0){
       manifestMode = true;
+      viewerModeForced = true;   // BEFORE applyState -- see note below
+      clearSaveIndicator();
       applyState(manifest);
       loaded = true;
-      viewerModeForced = true;
       setHubSyncStatus('viewer');
     } else {
     const githubState = await loadFromGithub();
     // Require real content, not just a valid version number -- a shared link that
     // technically "loads" 0 programs is not a working link, it's a broken one.
     if(githubState && githubState.v === 2 && (githubState.programs||[]).length > 0){
+      // Same ordering rule as the manifest branch above: the read-only flag
+      // has to be true before any content is applied, or a save scheduled
+      // during that step puts 'Saving...' in the topbar of a session that
+      // will never save, and nothing ever clears it.
+      viewerModeForced = true;
+      clearSaveIndicator();
       applyState(githubState);
       loaded = true;
-      viewerModeForced = true;
       setHubSyncStatus('viewer');
     } else {
       setHubSyncStatus('warn');
@@ -15981,7 +17351,7 @@ async function init(){
   // An unconditional write here re-stamped and re-flattened whatever was loaded,
   // which turned any bad read into a permanent overwrite.
   if(seededThisBoot)
-  try{ await saveSpace({ programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, courseStore, shelfStore, changelogStore, v:2, ts: Date.now() }); }catch(e){ console.warn('seed persist failed:', e); }
+  try{ await saveSpace({ programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks, sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, courseStore, shelfStore, changelogStore, formStore, v:2, ts: Date.now() }); }catch(e){ console.warn('seed persist failed:', e); }
 
   clogFilterPh = uiState.clogPhase || '';      // a reader's phase filter persists
   clogSeedReadForNewBrowser();
