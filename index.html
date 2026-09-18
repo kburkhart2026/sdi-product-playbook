@@ -17366,9 +17366,19 @@ async function init(){
     // Password gate, if this is a vault link. Deliberately before ANY content
     // fetch: nothing is requested from GitHub, and nothing renders behind the
     // gate, until the token has actually been unlocked.
-    if(githubViewerVaultFromUrl() && !vkCachedToken()){
-      const unlocked = await vkPromptUnlock();
-      if(!unlocked) return;
+    // A cached token means this browser unlocked the vault before. It does
+    // NOT mean that token still works -- if the viewer PAT has been rotated
+    // since, every read fails and the old code reported the link as expired
+    // with no way back to the gate, because the gate only shows when there
+    // is no cached token at all. Remember that we relied on the cache, so a
+    // failed load below can clear it and ask for the password again.
+    let usedCachedVault = false;
+    if(githubViewerVaultFromUrl()){
+      if(vkCachedToken()) usedCachedVault = true;
+      else {
+        const unlocked = await vkPromptUnlock();
+        if(!unlocked) return;
+      }
     }
     // Content can be several MB, so this can take a few seconds -- without this,
     // the screen just sits there looking stuck rather than obviously working.
@@ -17401,6 +17411,16 @@ async function init(){
       loaded = true;
       setHubSyncStatus('viewer');
     } else {
+      // Before blaming the link: if this browser was using a REMEMBERED key,
+      // that key is the most likely thing that stopped working. Forget it and
+      // let the password gate run again on the next boot.
+      if(usedCachedVault){
+        try{ localStorage.removeItem(VK_TOKEN_KEY); }catch(e){}
+        await appAlert('The saved key this browser was using for this Playbook no longer works.\n\n'+
+          'It has been cleared. You will be asked for the password again when the page reloads.');
+        location.reload();
+        return;
+      }
       setHubSyncStatus('warn');
       renderHub();
       await appAlert('Could not load the shared content — the link may have expired or been revoked. Ask whoever shared it with you for a fresh link.');
