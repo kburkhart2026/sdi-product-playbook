@@ -1261,6 +1261,12 @@ body.is-staging::before{content:'';position:fixed;top:0;left:0;right:0;height:3p
 .clog-chip-read.on{background:#1F5B3C;border-color:#1F5B3C;color:#fff;}
 .pc2-rev{align-self:flex-start;font-family:var(--font-cond);font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border:1px solid #E3D5B4;background:#F6EFDF;color:#6B5A33;border-radius:3px;padding:1px 6px;margin-top:4px;cursor:pointer;}
 .pc2-rev:hover{border-color:var(--acc);color:var(--acc);}
+#multitab-warn{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:12000;
+  max-width:min(620px,92vw);background:#7F1D1D;color:#fff;border-radius:8px;padding:11px 14px;
+  box-shadow:0 12px 34px rgba(0,0,0,.35);font-size:13px;line-height:1.45;display:flex;gap:12px;align-items:center;}
+#multitab-warn b{color:#FECACA;}
+#multitab-warn button{flex:0 0 auto;background:#fff;color:#7F1D1D;border:0;border-radius:6px;
+  padding:5px 11px;font-size:12px;font-weight:700;cursor:pointer;}
 #forms-panel{display:none;flex-direction:column;min-width:320px;background:#fff;border-left:1px solid var(--bdr);overflow:hidden;}
 #forms-panel-body{flex:1;overflow-y:auto;padding:10px 12px 20px;}
 #forms-panel-foot{display:none;gap:10px;align-items:center;flex-wrap:wrap;border-top:1px solid var(--bdr);padding:9px 12px;background:#FAFAF8;}
@@ -2652,6 +2658,7 @@ async function githubReadFileStatus(path){
     const blobResp = await fetch(githubRepoUrl('/git/blobs/'+meta.sha), { headers: githubHeaders(token), cache:'no-store' });
     if(!blobResp.ok) return { status:'error' };
     const blob = await blobResp.json();
+    ghNoteSha(path, meta.sha);   // this session has now SEEN this version
     return { status:'ok', json: JSON.parse(base64ToUtf8(blob.content)), sha: meta.sha };
   }catch(e){ return { status:'error' }; }
 }
@@ -2675,6 +2682,7 @@ let _ghLastError = null;
 function ghLastErrorText(){
   if(!_ghLastError) return '';
   const e = _ghLastError;
+  if(e.kind === 'stale') return 'another tab or device has saved '+e.path+' since this one loaded, so this save was stopped rather than overwrite it';
   if(e.kind === 'network') return 'no network response (offline, or the request was blocked)';
   if(e.status === 401) return 'your GitHub token is expired or was revoked (401)';
   if(e.status === 403) return 'permission denied or rate-limited (403) — wait a minute, then retry';
@@ -2682,6 +2690,30 @@ function ghLastErrorText(){
   if(e.status === 409 || e.status === 422) return 'another save landed first and the retries were exhausted ('+e.status+')';
   if(e.status >= 500) return 'GitHub is having problems ('+e.status+') — try again shortly';
   return 'GitHub returned '+e.status+(e.path?' on '+e.path:'');
+}
+// The blob sha this session last READ or WROTE for each path. Two editor
+// tabs never collide on the branch ref -- each one takes the current commit
+// as its parent -- so a tab open since before lunch could commit its stale
+// manifest straight over newer work and nothing would notice. It happened:
+// three sections and five changelog entries were written at 11:56 and erased
+// by a 15:40 save from an older tab. This is the baseline that makes that
+// detectable.
+const _ghPathSha = {};
+function ghNoteSha(path, sha){ if(path && sha) _ghPathSha[path]=sha; }
+// Walk the tree to the blob sha currently at `path`. Paths here are one or
+// two levels deep, and each response is a small directory listing rather
+// than the file itself.
+async function ghCurrentBlobSha(token, rootTreeSha, path){
+  const parts=String(path).split('/');
+  let sha=rootTreeSha;
+  for(let i=0;i<parts.length;i++){
+    const r=await fetch(githubRepoUrl('/git/trees/'+sha), { headers: githubHeaders(token), cache:'no-store' });
+    if(!r.ok) return undefined;                      // cannot tell -- do not block the save
+    const entry=((await r.json()).tree||[]).filter(e=>e.path===parts[i])[0];
+    if(!entry) return null;                          // genuinely not there yet
+    sha=entry.sha;
+  }
+  return sha;
 }
 async function githubCommitFile(path, jsonObj, message){
   const token = githubActiveToken();
@@ -2726,6 +2758,20 @@ async function githubCommitFile(path, jsonObj, message){
       if(!commitResp.ok){ _ghLastError={kind:'http',status:commitResp.status,path:path}; return false; }
       const baseTreeSha = (await commitResp.json()).tree.sha;
 
+      // LOST-UPDATE GUARD. If this file has changed since this session last
+      // read or wrote it, someone else -- another tab, another machine --
+      // has saved work we have never seen. Overwriting it is exactly the
+      // failure this guard exists for, so stop and let the caller say so.
+      const baselineSha = _ghPathSha[path];
+      if(baselineSha){
+        const remoteSha = await ghCurrentBlobSha(token, baseTreeSha, path);
+        if(remoteSha && remoteSha !== baselineSha){
+          _ghLastError={kind:'stale',status:0,path:path};
+          console.warn('githubCommitFile: refusing to overwrite '+path+' -- changed by another session');
+          return false;
+        }
+      }
+
       const treeResp = await fetch(githubRepoUrl('/git/trees'), {
         method:'POST', headers: githubHeaders(token),
         body: JSON.stringify({ base_tree: baseTreeSha, tree: [{ path, mode:'100644', type:'blob', sha: newBlobSha }] })
@@ -2746,7 +2792,7 @@ async function githubCommitFile(path, jsonObj, message){
         method:'PATCH', headers: githubHeaders(token),
         body: JSON.stringify({ sha: newCommitSha, force:false })
       });
-      if(updateRefResp.ok) return true;
+      if(updateRefResp.ok){ ghNoteSha(path, newBlobSha); return true; }
 
       // Only a non-fast-forward rejection (branch moved under us) is worth
       // retrying. 401/403/404/5xx mean retrying won't help -- give up now.
@@ -4856,7 +4902,24 @@ async function doPersist(){
   }
   setHubSyncStatus(ok ? 'github' : 'warn');
   if(ok) _ghLastError = null;
+  // A refused overwrite is not an ordinary failed save. It means newer work
+  // exists that this session has never seen, and carrying on typing here
+  // makes the divergence worse -- so say it once, loudly, rather than
+  // leaving a small red note in the corner.
+  if(!ok && _ghLastError && _ghLastError.kind==='stale' && !_staleWarned){
+    _staleWarned = true;
+    await appAlert('This save was STOPPED to protect newer work.\n\n'+
+      'Another tab or device has saved since this one loaded, so writing now would '+
+      'overwrite changes this window has never seen.\n\n'+
+      'Do this, in order:\n'+
+      '1. \u2699 Data & Backup \u2192 Backup all data, so nothing here is lost\n'+
+      '2. Close every other Playbook tab\n'+
+      '3. Reload this page to pick up the newer copy\n\n'+
+      'Nothing has been overwritten. Your unsaved changes are still in this window '+
+      'and in the backup you take in step 1.');
+  }
 }
+let _staleWarned = false;
 
 // Async load: IndexedDB first, then the localStorage mirror, rehydrating images.
 async function loadStateAsync(){
@@ -7736,6 +7799,18 @@ document.addEventListener('click',e=>{
   const tm=document.getElementById('tools-menu');
   if(tm&&!tm.contains(e.target)&&!e.target.closest('#tools-btn')) tm.classList.remove('show');
 });
+// True for anything where the browser's own editing behaviour should win:
+// real form controls, and anything inside a docked tool panel. Content blocks
+// are contenteditable rather than inputs, so they are deliberately NOT here.
+function inTextField(el){
+  for(let n=el; n && n!==document; n=n.parentElement){
+    const t=(n.tagName||'').toUpperCase();
+    if(t==='INPUT'||t==='TEXTAREA'||t==='SELECT') return true;
+    if(n.id==='forms-panel'||n.id==='pm-panel'||n.id==='margin-panel'||
+       n.id==='course-panel'||n.id==='cc-panel'||n.id==='clog-panel'||n.id==='rev-panel') return true;
+  }
+  return false;
+}
 document.addEventListener('input',scheduleSave);
 
 // ==================== MODE ====================
@@ -9939,8 +10014,16 @@ function updateUndoButtons(){
 document.addEventListener('keydown', e=>{
   const tag=document.activeElement.tagName.toLowerCase();
   const inEdit=tag==='input'||tag==='textarea'||document.activeElement.isContentEditable;
-  if((e.metaKey||e.ctrlKey)&&e.key==='z'&&!e.shiftKey){e.preventDefault();undo();return;}
-  if((e.metaKey||e.ctrlKey)&&e.key==='z'&&e.shiftKey){e.preventDefault();redo();return;}
+  // Undo/redo here mean "roll the PROGRAM back", which is right inside a
+  // content block but catastrophic in a form field: typing in the Compliance
+  // Forms panel and pressing Cmd+Z rolled back every section of the program.
+  // In a real input the browser's own text undo is what the person means, so
+  // hand the event straight back to it.
+  if((e.metaKey||e.ctrlKey)&&e.key==='z'&&!inTextField(e.target)){
+    e.preventDefault();
+    if(e.shiftKey) redo(); else undo();
+    return;
+  }
   if((e.metaKey||e.ctrlKey)&&e.key==='s'){e.preventDefault();persist();return;}
   if(e.key==='Escape'){closeSearch();closeShortcutsModal();return;}
   if(inEdit) return;
@@ -12260,6 +12343,50 @@ function insertTableRowAt(tbody,hi){
   if(hi>=rows.length) tbody.appendChild(newTr); else tbody.insertBefore(newTr,rows[hi]);
   return newTr;
 }
+
+// ---- One editor at a time --------------------------------------------
+// Two editor tabs on the same content is the condition that silently loses
+// work: neither collides with the other on the branch ref, so whichever
+// saves LAST wins even when it holds older data. The write guard in
+// githubCommitFile now refuses that overwrite, but it is far better not to
+// be in the situation, so each editor tab announces itself and any tab that
+// hears an answer says so. Channel name includes the content repo, because
+// staging and production share this origin and must not warn about each
+// other.
+(function(){
+  if(typeof BroadcastChannel!=='function') return;
+  let ch;
+  try{ ch=new BroadcastChannel('sdi_editor_'+GITHUB_CONTENT_REPO); }catch(e){ return; }
+  const me=Math.random().toString(36).slice(2);
+  function warn(){
+    if(document.getElementById('multitab-warn')) return;
+    const el=document.createElement('div');
+    el.id='multitab-warn';
+    el.innerHTML='<span><b>Another Playbook tab is open on this content.</b> '+
+      'Only the last tab to save wins, even if it holds older work. Close the others, '+
+      'then reload this one.</span>';
+    const b=document.createElement('button');
+    b.textContent='Dismiss';
+    b.onclick=function(){ el.remove(); };
+    el.appendChild(b);
+    document.body.appendChild(el);
+  }
+  ch.onmessage=function(e){
+    const d=e.data||{};
+    if(!d || d.from===me) return;
+    if(d.t==='hello'){ try{ ch.postMessage({t:'here',from:me}); }catch(err){} warn(); }
+    else if(d.t==='here'){ warn(); }
+  };
+  // Only editors compete for writes; a viewer is harmless. Delayed so the
+  // boot has settled and githubMode() is meaningful.
+  setTimeout(function(){
+    try{
+      if(typeof viewerModeForced!=='undefined' && viewerModeForced) return;
+      if(githubMode()!=='editor') return;
+      ch.postMessage({t:'hello',from:me});
+    }catch(e){}
+  }, 1500);
+})();
 
 // ---- Keep row buttons current on tables loaded from saved content. ----
 (function(){
@@ -15108,6 +15235,7 @@ async function githubReadBinary(path){
     const blob=await fetch(githubRepoUrl('/git/blobs/'+m.sha),{headers:githubHeaders(token),cache:'no-store'});
     if(!blob.ok) return { status:'error', code:blob.status, why:'GitHub returned '+blob.status+' reading the file itself' };
     const b=await blob.json();
+    ghNoteSha(path, m.sha);
     return { status:'ok', bytes:base64ToBytes(b.content) };
   }catch(e){ return { status:'error', why:'no response from GitHub (offline, or the request was blocked)' }; }
 }
