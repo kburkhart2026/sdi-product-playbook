@@ -1310,6 +1310,12 @@ body.is-staging::before{content:'';position:fixed;top:0;left:0;right:0;height:3p
 .fm-row{display:flex;gap:10px;align-items:center;}
 .fm-rowoff{opacity:.6;}
 .fm-src .link{border:0;background:none;color:#9B2743;font-size:11px;font-weight:650;text-decoration:underline;text-underline-offset:2px;padding:0;cursor:pointer;}
+.fm-courses{border:1px solid var(--bdr);border-radius:7px;overflow:hidden;margin-bottom:8px;}
+.fm-crow{display:grid;grid-template-columns:64px 1fr 96px 26px;gap:7px;padding:5px 9px;font-size:11.5px;
+  border-bottom:1px solid var(--bdr);align-items:baseline;}
+.fm-crow:last-child{border-bottom:0;}
+.fm-crow span:nth-child(4){text-align:right;font-variant-numeric:tabular-nums;}
+.fm-chead{background:#FAFAF8;font-weight:700;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:#7A7168;}
 .fm-aff{border:1px solid var(--bdr);border-radius:7px;padding:4px 10px;}
 .fm-affrow{display:flex;gap:8px;padding:7px 0;border-bottom:1px solid var(--bdr);font-size:11.5px;color:#4A433D;align-items:flex-start;}
 .fm-affrow:last-child{border-bottom:0;}
@@ -14835,12 +14841,19 @@ const FM_DEAC_MAP={
 // each control's fingerprint to where its answer comes from. Adding the next
 // accreditor document means adding an entry here and a .docx -- see fmAddForm.
 const FM_FORMS = [{
-  id:'deac-ceo', agency:'DEAC',
+  id:'deac-ceo', agency:'DEAC', kind:'docx',
   title:'Change in Educational Offerings',
   path:'forms/deac-change-ed-offerings/template.docx',
   revision:'rev. 02.01.2025 (Handbook 32nd ed.)',
   expect:113, map:FM_DEAC_MAP
+},{
+  id:'deac-eos', agency:'DEAC', kind:'xlsx',
+  title:'Educational Offerings Information Sheet',
+  path:'forms/deac-ed-offerings-sheet/template.xlsx',
+  revision:'2025 edition',
+  expect:0, map:{}
 }];
+function fmIsSheet(form){ return !!form && form.kind==='xlsx'; }
 function fmForm(id){ return FM_FORMS.filter(f=>f.id===id)[0]||null; }
 
 const FM_TYPES = [
@@ -15240,6 +15253,14 @@ async function githubReadBinary(path){
   }catch(e){ return { status:'error', why:'no response from GitHub (offline, or the request was blocked)' }; }
 }
 async function fmParse(form,bytes){
+  // A workbook is filled by cell address, so there is nothing to enumerate
+  // and nothing to fingerprint -- keep the bytes and stop.
+  if(fmIsSheet(form)){
+    if(!dxUnzip(bytes).some(e=>e.name==='xl/workbook.xml'))
+      throw new Error('That file is not an Excel workbook.');
+    _fmTpl[form.id]={ bytes, fields:[], unmatched:0 };
+    return _fmTpl[form.id];
+  }
   const entries=dxUnzip(bytes);
   const de=entries.filter(e=>e.name==='word/document.xml')[0];
   if(!de) throw new Error('That file is not a Word document.');
@@ -15268,7 +15289,7 @@ async function fmTemplate(form,quiet){
 function fmLoadLocalTemplate(formId){
   const form=fmForm(formId); if(!form) return;
   const inp=document.createElement('input');
-  inp.type='file'; inp.accept='.docx';
+  inp.type='file'; inp.accept=fmIsSheet(form)?'.xlsx':'.docx';
   inp.onchange=async()=>{
     const file=inp.files&&inp.files[0]; if(!file) return;
     try{
@@ -15278,6 +15299,356 @@ function fmLoadLocalTemplate(formId){
     }catch(e){ await appAlert('Could not read that file: '+e.message); }
   };
   inp.click();
+}
+
+/* ==================== XLSX CELL FILLING ====================
+   Writes values into an existing workbook without rebuilding it. Every cell
+   this form needs already exists in the blank as a self-closing tag carrying
+   its own style -- <c r="C3" s="25"/> -- so filling one is a local edit that
+   keeps the formatting, the dropdowns, the table, the images and the print
+   setup exactly as the publisher shipped them. Shares the zip core with the
+   Word form: only the XML differs. */
+
+function xlEsc(s){
+  // Character by character rather than a regex: Excel rejects control
+  // characters outright, and a class of \u escapes is one careless copy away
+  // from becoming literal control bytes and an invalid pattern.
+  const t=String(s==null?'':s);
+  let out='';
+  for(let i=0;i<t.length;i++){
+    const ch=t[i], c=t.charCodeAt(i);
+    if(c<32 && c!==9 && c!==10 && c!==13) continue;
+    out += ch==='&' ? '&amp;' : ch==='<' ? '&lt;' : ch==='>' ? '&gt;' : ch;
+  }
+  return out;
+}// Excel counts days from 1899-12-30 (the Lotus leap-year bug is baked in).
+function xlDateSerial(d){
+  const t = (d instanceof Date) ? d : new Date(String(d)+'T00:00:00');
+  if(isNaN(t)) return null;
+  return Math.round((Date.UTC(t.getFullYear(),t.getMonth(),t.getDate()) - Date.UTC(1899,11,30))/86400000);
+}
+// Replace one cell in a worksheet's XML. Keeps s="..", drops any stale t="..",
+// and returns null when the cell is not in the sheet at all rather than
+// silently doing nothing.
+function xlSetCell(xml, ref, value, kind){
+  const re = new RegExp('<c r="'+ref+'"([^>]*?)(/>|>[\\s\\S]*?</c>)');
+  const m = re.exec(xml);
+  if(!m) return null;
+  let attrs = m[1].replace(/\s+t="[^"]*"/g,'').replace(/\s+$/,'');
+  let body;
+  if(value===null || value===undefined || value===''){
+    return xml.slice(0,m.index) + '<c r="'+ref+'"'+attrs+'/>' + xml.slice(m.index+m[0].length);
+  }
+  if(kind==='num'){
+    body = '><v>'+Number(value)+'</v></c>';
+  }else if(kind==='date'){
+    const ser = xlDateSerial(value);
+    if(ser===null) return xml;
+    body = '><v>'+ser+'</v></c>';
+  }else{
+    // Inline strings keep sharedStrings.xml untouched, which keeps every
+    // other sheet's text exactly as it was.
+    attrs += ' t="inlineStr"';
+    body = '><is><t xml:space="preserve">'+xlEsc(value)+'</t></is></c>';
+  }
+  return xml.slice(0,m.index) + '<c r="'+ref+'"'+attrs+body + xml.slice(m.index+m[0].length);
+}
+// Read a cell back -- used by the round-trip check, and by nothing else.
+function xlGetCell(xml, ref, shared){
+  const m = new RegExp('<c r="'+ref+'"([^>]*?)(/>|>([\\s\\S]*?)</c>)').exec(xml);
+  if(!m || m[2]==='/>') return null;
+  const attrs=m[1], inner=m[3]||'';
+  const t=(/\st="([^"]*)"/.exec(attrs)||[])[1];
+  if(t==='inlineStr'){ const i=/<t[^>]*>([\s\S]*?)<\/t>/.exec(inner); return i?xlUnesc(i[1]):''; }
+  const v=/<v>([\s\S]*?)<\/v>/.exec(inner);
+  if(!v) return null;
+  if(t==='s'){ return (shared||[])[Number(v[1])]; }
+  if(t==='str'){ return v[1]; }
+  return Number(v[1]);
+}
+function xlUnesc(s){
+  return String(s).replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"')
+                  .replace(/&apos;/g,"'").replace(/&amp;/g,'&');
+}
+function xlSharedStrings(xml){
+  const out=[];
+  const re=/<si>([\s\S]*?)<\/si>/g; let m;
+  while((m=re.exec(xml))){
+    let s=''; const tre=/<t[^>]*>([\s\S]*?)<\/t>/g; let tm;
+    while((tm=tre.exec(m[1]))) s+=xlUnesc(tm[1]);
+    out.push(s);
+  }
+  return out;
+}
+
+/* ---------- the whole job ---------- */
+// sheets: { '<part name>': { 'C3': {v:'...', t:'str'|'num'|'date'}, ... } }
+async function xlFillWorkbook(templateBytes, sheets){
+  const entries = dxUnzip(templateBytes);
+  const rebuilt = [];
+  const missing = [];
+  let written = 0;
+  for(const e of entries){
+    const edits = sheets[e.name];
+    if(!edits){ rebuilt.push(e); continue; }
+    let xml = await dxEntryText(e);
+    Object.keys(edits).forEach(ref=>{
+      const cell = edits[ref];
+      const next = xlSetCell(xml, ref, cell.v, cell.t||'str');
+      if(next===null){ missing.push(e.name+'!'+ref); return; }
+      xml = next; written++;
+    });
+    const bytes = new TextEncoder().encode(xml);
+    let packed = bytes, method = 0;
+    try{ const z = await dxDeflate(bytes); if(z.length < bytes.length){ packed = z; method = 8; } }catch(err){}
+    rebuilt.push({ name:e.name, method, crc:dxCrc32(bytes), usize:bytes.length, raw:packed });
+  }
+  return { blob: dxZip(rebuilt), written, missing };
+}
+
+
+/* ==================== EDUCATIONAL OFFERINGS SHEET (xlsx) ====================
+   The second accreditor document, and the first that is a spreadsheet. Every
+   cell it needs already exists in the blank workbook carrying its own style,
+   so filling one is a local edit -- the dropdowns, the course table, the
+   images, the print setup and the Instructions sheet are never touched. */
+
+// DEAC's own lists, read out of the workbook's Sheet6 and its data validations.
+// Where the two disagree -- and they do -- the validation list wins, because
+// that is what Excel itself will accept.
+const EO_PROGRAM_TYPES = ['Degree','Credit-bearing Certificate','Vocational/Non-Credit-bearing','High School'];
+const EO_UNITS         = ['Semester Credit Hours','Quarter Credit Hours','Clock Hours','Lessons','Modules'];
+const EO_DELIVERY      = ['Online/LMS','Hybrid','Correspondence/Mail (No LMS)'];
+const EO_STATUS        = ['Active','Pending','In Teach-out','Discontinued'];
+const EO_COURSE_TYPES  = ['Core/Required','Concentration','Emphasis','Specialization','General Education','Elective','Capstone','Lesson','Module'];
+
+// Karen's rule, 2026-09-21: anything that is not a gen-ed is 4 credits, and a
+// term is 5 weeks for Uncrewed and 8 for Firearms. Used only where the Course
+// Database has nothing to say -- a real record always wins.
+const EO_DEFAULT_CREDITS_GENED = 3;
+const EO_DEFAULT_CREDITS_OTHER = 4;
+function eoWeeksForSchool(school){
+  const s=String(school||'').toUpperCase();
+  if(s.indexOf('SFT')>=0 || s.indexOf('FIREARM')>=0) return 8;
+  if(s.indexOf('SUT')>=0 || s.indexOf('UAS')>=0 || s.indexOf('UNCREWED')>=0) return 5;
+  return 0;
+}
+// The Course Database says "General Education" in full, and a gen-ed area
+// on top of it; matching only "gen ed" quietly typed five of them as
+// Core/Required on the first run.
+function eoIsGenEd(c){
+  if(!c) return false;
+  if(String(c.genEdArea||'').trim()) return true;
+  return /general\s*education|gen\s*ed\b|\bgeneds?\b/i.test(String(c.category||'')+' '+String(c.school||''));
+}
+function eoCourseType(c){
+  const cat=String((c&&c.category)||'');
+  if(eoIsGenEd(c)) return 'General Education';
+  if(/elective/i.test(cat)) return 'Elective';
+  if(/student success/i.test(cat)) return 'Student Success';   // as DEAC accepted it on ASFT
+  if(/concentration/i.test(cat)) return 'Concentration';
+  if(/emphasis/i.test(cat)) return 'Emphasis';
+  if(/capstone/i.test(cat)) return 'Capstone';
+  return 'Core/Required';
+}
+function eoCredits(c){
+  const n=Number(c&&c.credits);
+  if(n>0) return n;
+  return eoIsGenEd(c) ? EO_DEFAULT_CREDITS_GENED : EO_DEFAULT_CREDITS_OTHER;
+}
+
+// The course order comes from a course table the program already contains --
+// the overview, the catalog page, any inserted course list -- because those
+// rows carry data-course-id and are already in the sequence Karen put them in.
+// Falling back to the database's own order only when the program has no table.
+function eoCourses(progId){
+  const db=(courseStore&&courseStore.courses)||[];
+  const byId={}; db.forEach(c=>{ byId[c.id]=c; });
+  const seen={}, out=[]; let from='';
+  fmSections(progId).forEach(sec=>{
+    const html=(blockStore||{})[progId+':'+sec.id]||'';
+    if(!html || html.indexOf('data-course-id')<0) return;
+    const re=/data-course-id="([^"]+)"/g; let m;
+    while((m=re.exec(html))){
+      const id=m[1];
+      if(seen[id] || !byId[id]) continue;
+      seen[id]=1; out.push(byId[id]);
+      if(!from) from=sec.phase+' → '+sec.name;
+    }
+  });
+  if(out.length) return { courses:out, source:from };
+  const prog=(programs||[]).filter(p=>p.id===progId)[0];
+  const st=prog?fmCourseStats(prog):null;
+  if(!st) return { courses:[], source:'' };
+  const name=String(prog.name||''), abbr=(name.split(/\s*[-–—]{1,2}\s*/)[0]||name).trim().toUpperCase();
+  const mine=db.filter(c=>(c.programs||[]).some(p=>{
+    const t=String(p||'').trim().toUpperCase();
+    return t===abbr || t===name.toUpperCase() || t===String(progId).toUpperCase();
+  }));
+  return { courses:mine, source:'Course Database (no course table in this program)' };
+}
+function eoTotals(progId){
+  const r=eoCourses(progId);
+  let credits=0, weeks=0;
+  r.courses.forEach(c=>{
+    credits+=eoCredits(c);
+    const w=Number(c.weeks)||eoWeeksForSchool(c.school);
+    if(w>weeks) weeks=w;
+  });
+  return { count:r.courses.length, credits, termWeeks:weeks, source:r.source, courses:r.courses };
+}
+
+/* ---------- what goes in which cell ---------- */
+const EO_SHEET_LIST = 'xl/worksheets/sheet2.xml';   // Program List
+const EO_SHEET_PROG = 'xl/worksheets/sheet3.xml';   // Program 1
+const EO_FIRST_COURSE_ROW = 10, EO_LAST_COURSE_ROW = 70;
+
+function eoValue(progId, a, key){
+  const org=fmOrg(), t=eoTotals(progId);
+  const prog=(programs||[]).filter(p=>p.id===progId)[0]||{};
+  const v=a.vals['eo:'+key];
+  if(v!==undefined && v!=='') return v;
+  switch(key){
+    case 'progName':  return fmProgName(prog);
+    case 'progType':  return 'Degree';
+    case 'units':     return 'Semester Credit Hours';
+    case 'delivery':  return 'Online/LMS';
+    case 'altStruct': return 'No';
+    case 'status':    return 'Active';
+    case 'language':  return org.defLanguage||'English';
+    case 'institution': return org.name||'';
+    case 'credits':   return t.credits||'';
+    case 'length':    return t.termWeeks ? (t.termWeeks+' weeks per term') : '';
+    default: return '';
+  }
+}
+function eoCellMap(progId, a){
+  const V=k=>eoValue(progId,a,k);
+  const t=eoTotals(progId);
+  const list={}, prog={};
+  // --- Program List: this program's row ---
+  list['D3']={v:V('institution'),t:'str'};
+  list['C6']={v:V('progName'),t:'str'};
+  list['D6']={v:V('progType'),t:'str'};
+  list['E6']={v:V('altStruct'),t:'str'};
+  list['F6']={v:V('language'),t:'str'};
+  list['G6']={v:a.vals['eo:dateStateApproval']||'',t:'date'};
+  list['H6']={v:V('status'),t:'str'};
+  list['I6']={v:a.vals['eo:dateFirstEnrollment']||'',t:'date'};
+  list['J6']={v:a.vals['eo:dateMostRecent']||'',t:'date'};
+  list['K6']={v:a.vals['eo:dateLastAccreditation']||'',t:'date'};
+  // --- Program 1: the detail sheet ---
+  prog['C3']={v:V('progName'),t:'str'};
+  prog['F3']={v:V('progType'),t:'str'};
+  prog['C4']={v:V('units'),t:'str'};
+  prog['F4']={v:V('delivery'),t:'str'};
+  prog['C5']={v:V('credits'),t:'num'};
+  prog['F5']={v:V('altStruct'),t:'str'};
+  prog['C6']={v:V('length'),t:'str'};
+  prog['C7']={v:V('language'),t:'str'};
+  if(V('altStruct')==='Yes') prog['B74']={v:a.vals['eo:altNarrative']||'',t:'str'};
+  // --- the course table, and a blank line under it for every unused row ---
+  let row=EO_FIRST_COURSE_ROW;
+  t.courses.forEach(c=>{
+    if(row>EO_LAST_COURSE_ROW) return;
+    prog['B'+row]={v:c.code||'',t:'str'};
+    prog['C'+row]={v:c.title||'',t:'str'};
+    prog['D'+row]={v:eoCourseType(c),t:'str'};
+    prog['E'+row]={v:eoCredits(c),t:'num'};
+    row++;
+  });
+  for(let r=row;r<=EO_LAST_COURSE_ROW;r++){
+    prog['B'+r]={v:'',t:'str'}; prog['C'+r]={v:'',t:'str'};
+    prog['D'+r]={v:'',t:'str'}; prog['E'+r]={v:'',t:'str'};
+  }
+  const out={}; out[EO_SHEET_LIST]=list; out[EO_SHEET_PROG]=prog;
+  return out;
+}
+
+/* ---------- the panel screen for this form ---------- */
+function eoSelect(key,label,opts,cur,src){
+  const ro=viewerModeForced?' disabled':'';
+  return '<div class="fm-f"><label>'+escapeHtml(label)+'</label>'+
+    '<select'+ro+' onchange="fmEdit(\'eo:'+key+'\',this.value)">'+
+    opts.map(o=>'<option value="'+escapeHtml(o)+'"'+(o===cur?' selected':'')+'>'+escapeHtml(o)+'</option>').join('')+
+    '</select><div class="fm-src">'+fmChip(src||'your choice',false)+'</div></div>';
+}
+function eoDate(key,label,a){
+  const ro=viewerModeForced?' readonly':'';
+  return '<div class="fm-f"><label>'+escapeHtml(label)+'</label>'+
+    '<input type="date"'+ro+' value="'+escapeHtml(a.vals['eo:'+key]||'')+'" oninput="fmEdit(\'eo:'+key+'\',this.value)">'+
+    '<div class="fm-src">'+fmChip('you answer this',false)+'</div></div>';
+}
+function fmRenderSheetForm(){
+  const a=fmAns(fmProgId,fmFormId), t=eoTotals(fmProgId);
+  let h='<p class="fm-hint">One workbook for this program. Everything below lands on the '+
+        '<b>Program List</b> and <b>Program 1</b> sheets; Instructions and the lookup sheet are left exactly as DEAC ships them.</p>';
+  h+='<p class="fm-q">Program</p>';
+  h+=fmTextField('eo:progName','Name of program',eoValue(fmProgId,a,'progName'),'program record',false);
+  h+=eoSelect('progType','Type of program',EO_PROGRAM_TYPES,eoValue(fmProgId,a,'progType'));
+  h+=eoSelect('units','Academic units of measurement',EO_UNITS,eoValue(fmProgId,a,'units'));
+  h+=eoSelect('delivery','Method of delivery',EO_DELIVERY,eoValue(fmProgId,a,'delivery'));
+  h+=eoSelect('status','Program status',EO_STATUS,eoValue(fmProgId,a,'status'));
+  h+=eoSelect('altStruct','Alternative program structure',['No','Yes'],eoValue(fmProgId,a,'altStruct'));
+  if(eoValue(fmProgId,a,'altStruct')==='Yes')
+    h+=fmTextField('eo:altNarrative','Alternative structure — narrative',a.vals['eo:altNarrative']||'','you answer this',!a.vals['eo:altNarrative'],true);
+  h+=fmTextField('eo:credits','Total clock/credit hours',String(eoValue(fmProgId,a,'credits')||''),
+       t.count?('Course Database — '+t.count+' courses'):'no courses found',!t.count);
+  h+=fmTextField('eo:length','Program length',eoValue(fmProgId,a,'length'),
+       t.termWeeks?('Course Database — '+t.termWeeks+'-week terms'):'you answer this',!eoValue(fmProgId,a,'length'));
+  h+=fmTextField('eo:language','Language of instruction',eoValue(fmProgId,a,'language'),'Institution Profile',false);
+
+  h+='<p class="fm-q">Dates</p><p class="fm-hint">DEAC asks for these per program; none of them exist anywhere in the Playbook.</p>';
+  h+=eoDate('dateStateApproval','Date of state approval',a);
+  h+=eoDate('dateFirstEnrollment','Initial applicants — date of first enrollment',a);
+  h+=eoDate('dateMostRecent','Initial applicants — date of most recent student',a);
+  h+=eoDate('dateLastAccreditation','Renewal applicants — date of last accreditation',a);
+
+  h+='<p class="fm-q">Courses</p>';
+  if(!t.count){
+    h+='<p class="fm-note">No course list found in this program. The generator looks for a course table in any section — '+
+       'insert one from the Course Database and the rows here fill themselves, in that table\'s order.</p>';
+  }else{
+    h+='<p class="fm-hint">'+t.count+' course'+(t.count===1?'':'s')+', in the order they appear in '+
+       '<b>'+escapeHtml(t.source)+'</b>. Reorder them there and this follows.</p>'+
+       '<div class="fm-courses"><div class="fm-crow fm-chead"><span>Code</span><span>Title</span><span>Type</span><span>Cr</span></div>';
+    t.courses.forEach(c=>{
+      h+='<div class="fm-crow"><span>'+escapeHtml(c.code||'')+'</span><span>'+escapeHtml(c.title||'')+
+         '</span><span>'+escapeHtml(eoCourseType(c))+'</span><span>'+eoCredits(c)+'</span></div>';
+    });
+    h+='</div><p class="fm-note">Total '+t.credits+' credit hours across '+t.count+' courses.</p>';
+  }
+  return h;
+}
+
+/* ---------- generate ---------- */
+async function eoGenerate(){
+  const form=fmForm(fmFormId); if(!form) return;
+  const t=_fmTpl[form.id]||await fmTemplate(form);
+  if(!t) return;
+  const a=fmAns(fmProgId,fmFormId);
+  const totals=eoTotals(fmProgId);
+  if(!totals.count && !viewerModeForced){
+    const go=await appConfirm('This program has no course list, so the course table will be empty.\n\nGenerate anyway?');
+    if(!go) return;
+  }
+  try{
+    const res=await xlFillWorkbook(t.bytes, eoCellMap(fmProgId,a));
+    if(res.missing.length) console.warn('eoGenerate: cells not in the template:', res.missing);
+    const prog=(programs||[]).filter(p=>p.id===fmProgId)[0]||{};
+    const raw=String(prog.name||'program');
+    const code=(raw.match(/^\s*([A-Za-z0-9][A-Za-z0-9\-\/]{0,12})\s+(?:--|–|—)\s+/)||[])[1]||raw;
+    const slug=x=>String(x).replace(/[^A-Za-z0-9]+/g,'-').replace(/^-|-$/g,'');
+    const d=new Date(), pad=n=>String(n).padStart(2,'0');
+    const name=[form.agency,slug(form.title),slug(code).slice(0,24),
+                d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())].join('-')+'.xlsx';
+    const url=URL.createObjectURL(res.blob);
+    const link=document.createElement('a');
+    link.href=url; link.download=name;
+    document.body.appendChild(link); link.click(); link.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),4000);
+    toast('Generated '+name+' — '+res.written+' cells written');
+  }catch(e){ await appAlert('The workbook could not be generated: '+e.message); }
 }
 
 /* ---------- the panel ---------- */
@@ -15420,7 +15791,7 @@ function fmRenderList(){
          '<div style="flex:1;min-width:0"><div class="fm-rt">'+escapeHtml(f.title)+'</div>'+
          '<div class="fm-rs">'+escapeHtml(sub)+'</div>'+
          '<div class="fm-src">'+pill+'</div></div>'+
-         (ready?'<button class="fm-cta" onclick="fmQuickGenerate(\''+f.id+'\')">Download Word</button>':'')+
+         (ready?'<button class="fm-cta" onclick="fmQuickGenerate(\''+f.id+'\')">Download '+(fmIsSheet(f)?'Excel':'Word')+'</button>':'')+
          '</div>';
     }else{
       const st=_fmTpl[f.id];
@@ -15459,6 +15830,8 @@ function fmStepsBar(){
 }
 function fmRenderForm(){
   const form=fmForm(fmFormId), a=fmAns(fmProgId,fmFormId);
+  // A spreadsheet form has no steps: every cell it needs is on one screen.
+  if(fmIsSheet(form)) return fmRenderSheetForm();
   let h=fmStepsBar();
   if(fmStep===0){
     h+='<p class="fm-q">Which substantive change are you requesting?</p>';
@@ -15532,6 +15905,14 @@ function fmRadio(what,opts,cur){
 function fmStatus(){
   const form=fmForm(fmFormId), t=_fmTpl[fmFormId], a=fmAns(fmProgId,fmFormId);
   if(!form||!t) return { total:0, need:0, ready:false, msg:'Template not loaded yet' };
+  if(fmIsSheet(form)){
+    const eo=eoTotals(fmProgId);
+    const dates=['dateStateApproval','dateFirstEnrollment','dateMostRecent','dateLastAccreditation']
+      .filter(k=>!a.vals['eo:'+k]).length;
+    return { total:0, need:dates, ready:true,
+             msg: eo.count ? (eo.count+' courses · '+eo.credits+' credit hours'+(dates?' · '+dates+' dates blank':''))
+                           : 'No course list found in this program' };
+  }
   let need=0;
   t.fields.forEach(f=>{
     const spec=form.map[f.fp];
@@ -15561,7 +15942,8 @@ function fmRender(){
         (viewerModeForced?'<span class="fm-chip man">read-only</span>'
           :'<button class="fm-cta sec" onclick="fmToggleReady()"'+(s.ready?'':' disabled')+'>'+
             (a.ready?'Ready ✓':'Mark ready')+'</button>')+
-        '<button class="fm-cta" onclick="fmGenerate()"'+(s.ready?'':' disabled')+'>Generate Word file</button>';
+        '<button class="fm-cta" onclick="'+(fmIsSheet(fmForm(fmFormId))?'eoGenerate()':'fmGenerate()')+'"'+
+          (s.ready?'':' disabled')+'>Generate '+(fmIsSheet(fmForm(fmFormId))?'Excel':'Word')+' file</button>';
     }else{ foot.style.display='none'; foot.innerHTML=''; }
   }
   fmRefreshBadge();
@@ -15579,7 +15961,7 @@ async function fmEnsureTemplate(){
   const form=fmForm(fmFormId); if(!form||_fmTpl[form.id]) return;
   const t=await fmTemplate(form,true);
   if(t){
-    if(t.fields.length!==form.expect)
+    if(!fmIsSheet(form) && t.fields.length!==form.expect)
       toast('Heads up: this template has '+t.fields.length+' fields, not the '+form.expect+' this map was built for.');
     fmRender();
   }else{
@@ -15600,7 +15982,7 @@ async function fmQuickGenerate(formId){
   if(foot){ foot.style.display='flex'; foot.innerHTML='<div class="fm-bar"><div class="fm-bt">Building the document…</div></div>'; }
   const t=_fmTpl[form.id]||await fmTemplate(form);
   if(!t){ fmRender(); return; }
-  await fmGenerate();
+  if(fmIsSheet(form)) await eoGenerate(); else await fmGenerate();
   fmRender();
 }
 async function fmGenerate(){
