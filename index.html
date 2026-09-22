@@ -1311,10 +1311,20 @@ body.is-staging::before{content:'';position:fixed;top:0;left:0;right:0;height:3p
 .fm-rowoff{opacity:.6;}
 .fm-src .link{border:0;background:none;color:#9B2743;font-size:11px;font-weight:650;text-decoration:underline;text-underline-offset:2px;padding:0;cursor:pointer;}
 .fm-courses{border:1px solid var(--bdr);border-radius:7px;overflow:hidden;margin-bottom:8px;}
-.fm-crow{display:grid;grid-template-columns:64px 1fr 96px 26px;gap:7px;padding:5px 9px;font-size:11.5px;
-  border-bottom:1px solid var(--bdr);align-items:baseline;}
+.fm-crow{display:grid;grid-template-columns:52px 1fr 118px 48px 22px;gap:6px;padding:4px 9px;font-size:11.5px;
+  border-bottom:1px solid var(--bdr);align-items:center;}
+.fm-crow-off{opacity:.42;}
+.fm-crow-ed{font-weight:600;}
+.fm-crow-ed::after{content:'•';color:#E8A33D;margin-left:4px;font-weight:700;}
+.fm-cin{font:inherit;font-size:11px;color:inherit;background:var(--bg);border:1px solid var(--bdr);
+  border-radius:5px;padding:2px 4px;width:100%;box-sizing:border-box;min-width:0;}
+.fm-cin:disabled{border-color:transparent;background:transparent;}
+.fm-cnum{text-align:right;font-variant-numeric:tabular-nums;}
+.fm-cx{font:inherit;font-size:11px;line-height:1;color:var(--mut);background:transparent;border:0;
+  cursor:pointer;padding:2px;border-radius:4px;}
+.fm-cx:hover{background:var(--bdr);color:var(--fg);}
 .fm-crow:last-child{border-bottom:0;}
-.fm-crow span:nth-child(4){text-align:right;font-variant-numeric:tabular-nums;}
+.fm-chead span:nth-child(4){text-align:right;}
 .fm-chead{background:#FAFAF8;font-weight:700;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:#7A7168;}
 .fm-aff{border:1px solid var(--bdr);border-radius:7px;padding:4px 10px;}
 .fm-affrow{display:flex;gap:8px;padding:7px 0;border-bottom:1px solid var(--bdr);font-size:11.5px;color:#4A433D;align-items:flex-start;}
@@ -14974,6 +14984,11 @@ function fmAns(progId,formId){
   if(!a.lic)  a.lic='no';
   if(!a.vals||typeof a.vals!=='object') a.vals={};
   if(!a.secPick||typeof a.secPick!=='object') a.secPick={};
+  // Course type is one field on the course record, but DEAC asks for it per
+  // program -- UAS 202 is an Elective in ASUT and Core/Required in CUT-F. These
+  // overrides live with THIS program's answers to this form, so correcting the
+  // sheet never rewrites the Course Database.
+  if(!a.courseOv||typeof a.courseOv!=='object') a.courseOv={};
   if(typeof a.ready!=='number') a.ready=0;   // 0 = not released to compliance
   return a;
 }
@@ -15441,7 +15456,20 @@ function eoIsGenEd(c){
   if(String(c.genEdArea||'').trim()) return true;
   return /general\s*education|gen\s*ed\b|\bgeneds?\b/i.test(String(c.category||'')+' '+String(c.school||''));
 }
-function eoCourseType(c){
+// Read the answers without creating an empty record for a program that has
+// never opened this form.
+function eoAnsRO(progId){
+  const all=(typeof formStore==='object'&&formStore&&formStore.answers)||{};
+  const byForm=all[progId]||{};
+  return byForm['deac-eos']||{};
+}
+function eoOv(a,c){
+  const m=(a&&a.courseOv)||{};
+  return (c&&m[c.id])||{};
+}
+function eoCourseType(c,a){
+  const o=eoOv(a,c);
+  if(o.type) return o.type;
   const cat=String((c&&c.category)||'');
   if(eoIsGenEd(c)) return 'General Education';
   if(/elective/i.test(cat)) return 'Elective';
@@ -15451,7 +15479,9 @@ function eoCourseType(c){
   if(/capstone/i.test(cat)) return 'Capstone';
   return 'Core/Required';
 }
-function eoCredits(c){
+function eoCredits(c,a){
+  const ov=Number(eoOv(a,c).credits);
+  if(ov>0) return ov;
   const n=Number(c&&c.credits);
   if(n>0) return n;
   return eoIsGenEd(c) ? EO_DEFAULT_CREDITS_GENED : EO_DEFAULT_CREDITS_OTHER;
@@ -15487,15 +15517,21 @@ function eoCourses(progId){
   }));
   return { courses:mine, source:'Course Database (no course table in this program)' };
 }
-function eoTotals(progId){
+function eoTotals(progId, a){
   const r=eoCourses(progId);
-  let credits=0, weeks=0;
-  r.courses.forEach(c=>{
-    credits+=eoCredits(c);
+  const ans = a || eoAnsRO(progId);
+  // Excluded rows stay in `all` so the panel can offer them back, and are
+  // absent from `courses`, which is what the workbook and the totals see.
+  const kept=r.courses.filter(c=>!eoOv(ans,c).off);
+  let credits=0, weeks=0, edited=0;
+  kept.forEach(c=>{
+    credits+=eoCredits(c,ans);
     const w=Number(c.weeks)||eoWeeksForSchool(c.school);
     if(w>weeks) weeks=w;
   });
-  return { count:r.courses.length, credits, termWeeks:weeks, source:r.source, courses:r.courses };
+  r.courses.forEach(c=>{ if(Object.keys(eoOv(ans,c)).length) edited++; });
+  return { count:kept.length, credits, termWeeks:weeks, source:r.source,
+           courses:kept, all:r.courses, edited, excluded:r.courses.length-kept.length };
 }
 
 /* ---------- what goes in which cell ---------- */
@@ -15504,7 +15540,7 @@ const EO_SHEET_PROG = 'xl/worksheets/sheet3.xml';   // Program 1
 const EO_FIRST_COURSE_ROW = 10, EO_LAST_COURSE_ROW = 70;
 
 function eoValue(progId, a, key){
-  const org=fmOrg(), t=eoTotals(progId);
+  const org=fmOrg(), t=eoTotals(progId,a);
   const prog=(programs||[]).filter(p=>p.id===progId)[0]||{};
   const v=a.vals['eo:'+key];
   if(v!==undefined && v!=='') return v;
@@ -15524,7 +15560,7 @@ function eoValue(progId, a, key){
 }
 function eoCellMap(progId, a){
   const V=k=>eoValue(progId,a,k);
-  const t=eoTotals(progId);
+  const t=eoTotals(progId,a);
   const list={}, prog={};
   // --- Program List: this program's row ---
   list['D3']={v:V('institution'),t:'str'};
@@ -15553,8 +15589,8 @@ function eoCellMap(progId, a){
     if(row>EO_LAST_COURSE_ROW) return;
     prog['B'+row]={v:c.code||'',t:'str'};
     prog['C'+row]={v:c.title||'',t:'str'};
-    prog['D'+row]={v:eoCourseType(c),t:'str'};
-    prog['E'+row]={v:eoCredits(c),t:'num'};
+    prog['D'+row]={v:eoCourseType(c,a),t:'str'};
+    prog['E'+row]={v:eoCredits(c,a),t:'num'};
     row++;
   });
   for(let r=row;r<=EO_LAST_COURSE_ROW;r++){
@@ -15580,7 +15616,7 @@ function eoDate(key,label,a){
     '<div class="fm-src">'+fmChip('you answer this',false)+'</div></div>';
 }
 function fmRenderSheetForm(){
-  const a=fmAns(fmProgId,fmFormId), t=eoTotals(fmProgId);
+  const a=fmAns(fmProgId,fmFormId), t=eoTotals(fmProgId,a);
   let h='<p class="fm-hint">One workbook for this program. Everything below lands on the '+
         '<b>Program List</b> and <b>Program 1</b> sheets; Instructions and the lookup sheet are left exactly as DEAC ships them.</p>';
   h+='<p class="fm-q">Program</p>';
@@ -15609,16 +15645,74 @@ function fmRenderSheetForm(){
     h+='<p class="fm-note">No course list found in this program. The generator looks for a course table in any section — '+
        'insert one from the Course Database and the rows here fill themselves, in that table\'s order.</p>';
   }else{
-    h+='<p class="fm-hint">'+t.count+' course'+(t.count===1?'':'s')+', in the order they appear in '+
-       '<b>'+escapeHtml(t.source)+'</b>. Reorder them there and this follows.</p>'+
-       '<div class="fm-courses"><div class="fm-crow fm-chead"><span>Code</span><span>Title</span><span>Type</span><span>Cr</span></div>';
-    t.courses.forEach(c=>{
-      h+='<div class="fm-crow"><span>'+escapeHtml(c.code||'')+'</span><span>'+escapeHtml(c.title||'')+
-         '</span><span>'+escapeHtml(eoCourseType(c))+'</span><span>'+eoCredits(c)+'</span></div>';
+    const ro=viewerModeForced;
+    h+='<p class="fm-hint">'+t.all.length+' course'+(t.all.length===1?'':'s')+', in the order they appear in '+
+       '<b>'+escapeHtml(t.source)+'</b>. Reorder them there and this follows. '+
+       'Type and credits can be changed here for this program only &mdash; the Course Database is left alone.</p>'+
+       '<div class="fm-courses"><div class="fm-crow fm-chead"><span>Code</span><span>Title</span>'+
+       '<span>Type</span><span>Cr</span><span></span></div>';
+    t.all.forEach(c=>{
+      const o=eoOv(a,c), off=!!o.off, ed=Object.keys(o).filter(k=>k!=='off').length>0;
+      const cur=eoCourseType(c,a);
+      const opts=EO_TYPE_CHOICES.slice();
+      if(opts.indexOf(cur)<0) opts.unshift(cur);
+      h+='<div class="fm-crow'+(off?' fm-crow-off':'')+'">'+
+         '<span>'+escapeHtml(c.code||'')+'</span>'+
+         '<span'+(ed?' class="fm-crow-ed" title="Changed for this program"':'')+'>'+escapeHtml(c.title||'')+'</span>'+
+         '<select class="fm-cin"'+((ro||off)?' disabled':'')+' onchange="eoSetType(\''+c.id+'\',this.value)">'+
+           opts.map(x=>'<option value="'+escapeHtml(x)+'"'+(x===cur?' selected':'')+'>'+escapeHtml(x)+'</option>').join('')+
+         '</select>'+
+         '<input class="fm-cin fm-cnum" type="number" min="0" step="0.5"'+((ro||off)?' disabled':'')+
+           ' value="'+eoCredits(c,a)+'" onchange="eoSetCredits(\''+c.id+'\',this.value)">'+
+         (ro?'<span></span>':
+           '<button type="button" class="fm-cx" title="'+(off?'Put this course back on the sheet':'Leave this course off the sheet')+
+           '" aria-label="'+(off?'Include':'Exclude')+' '+escapeHtml(c.code||'')+'" onclick="eoToggleOff(\''+c.id+'\')">'+(off?'↺':'✕')+'</button>')+
+         '</div>';
     });
-    h+='</div><p class="fm-note">Total '+t.credits+' credit hours across '+t.count+' courses.</p>';
+    h+='</div>';
+    h+='<p class="fm-note">Total '+t.credits+' credit hours across '+t.count+' course'+(t.count===1?'':'s')+
+       (t.excluded?(' &middot; '+t.excluded+' left off'):'')+
+       (t.edited?(' &middot; '+t.edited+' changed here'):'')+'.</p>';
+    if(!viewerModeForced && (t.edited||t.excluded))
+      h+='<p class="fm-note"><a href="#" onclick="eoResetCourses();return false;">Reset every row to the Course Database</a></p>';
   }
   return h;
+}
+
+/* ---------- editing a row, for this program's sheet only ---------- */
+// ASFT went in with "Student Success", which DEAC accepted but does not offer
+// on its own lookup sheet -- so it stays available here.
+const EO_TYPE_CHOICES = EO_COURSE_TYPES.concat(['Student Success']);
+function eoOvSet(id,field,val){
+  if(viewerModeForced) return;
+  const a=fmAns(fmProgId,fmFormId);
+  if(!a.courseOv||typeof a.courseOv!=='object') a.courseOv={};
+  const o=a.courseOv[id]||(a.courseOv[id]={});
+  if(val==='' || val===null || val===undefined) delete o[field]; else o[field]=val;
+  if(!Object.keys(o).length) delete a.courseOv[id];
+  fmDirty();
+}
+function eoSetType(id,v){ eoOvSet(id,'type',v); fmRender(); }
+function eoSetCredits(id,v){
+  const n=Number(v);
+  eoOvSet(id,'credits', (n>0 ? n : ''));
+  fmRender();
+}
+function eoToggleOff(id){
+  if(viewerModeForced) return;
+  const a=fmAns(fmProgId,fmFormId);
+  const on=!!((a.courseOv||{})[id]||{}).off;
+  eoOvSet(id,'off', on?'':1);
+  fmRender();
+}
+async function eoResetCourses(){
+  if(viewerModeForced) return;
+  const go=await appConfirm('Put every course back to what the Course Database says, for this program\'s sheet?\n\nType, credits and anything you left off are all reset. No other program is affected.');
+  if(!go) return;
+  const a=fmAns(fmProgId,fmFormId);
+  a.courseOv={};
+  fmDirty(); fmRender();
+  toast('Course rows reset to the Course Database');
 }
 
 /* ---------- generate ---------- */
@@ -15627,7 +15721,7 @@ async function eoGenerate(){
   const t=_fmTpl[form.id]||await fmTemplate(form);
   if(!t) return;
   const a=fmAns(fmProgId,fmFormId);
-  const totals=eoTotals(fmProgId);
+  const totals=eoTotals(fmProgId,a);
   if(!totals.count && !viewerModeForced){
     const go=await appConfirm('This program has no course list, so the course table will be empty.\n\nGenerate anyway?');
     if(!go) return;
@@ -15906,7 +16000,7 @@ function fmStatus(){
   const form=fmForm(fmFormId), t=_fmTpl[fmFormId], a=fmAns(fmProgId,fmFormId);
   if(!form||!t) return { total:0, need:0, ready:false, msg:'Template not loaded yet' };
   if(fmIsSheet(form)){
-    const eo=eoTotals(fmProgId);
+    const eo=eoTotals(fmProgId,a);
     const dates=['dateStateApproval','dateFirstEnrollment','dateMostRecent','dateLastAccreditation']
       .filter(k=>!a.vals['eo:'+k]).length;
     return { total:0, need:dates, ready:true,
