@@ -1326,6 +1326,8 @@ body.is-staging::before{content:'';position:fixed;top:0;left:0;right:0;height:3p
 .fm-crow:last-child{border-bottom:0;}
 .fm-chead span:nth-child(4){text-align:right;}
 .fm-chead{background:#FAFAF8;font-weight:700;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:#7A7168;}
+.fm-ref{font-size:10px;font-weight:700;letter-spacing:.04em;color:var(--mut);background:var(--bg);
+  border:1px solid var(--bdr);border-radius:4px;padding:1px 5px;margin-left:5px;white-space:nowrap;}
 .fm-aff{border:1px solid var(--bdr);border-radius:7px;padding:4px 10px;}
 .fm-affrow{display:flex;gap:8px;padding:7px 0;border-bottom:1px solid var(--bdr);font-size:11.5px;color:#4A433D;align-items:flex-start;}
 .fm-affrow:last-child{border-bottom:0;}
@@ -14616,6 +14618,39 @@ function dxFields(doc){
 
 /* ---------- writing the fields ---------- */
 function dxFirstEl(el,ns,name){ const l=el.getElementsByTagNameNS(ns,name); return l.length?l[0]:null; }
+// DEAC reads the institution's own entries in blue, so EVERY run this app
+// writes -- typed answers, prefilled institution information, and the checkbox
+// glyphs -- is coloured. Measured before this existed: of 112 filled controls
+// in a real CUT-F export only 39 were blue; the rest inherited whatever the
+// template's placeholder run happened to carry, which for a run with no rPr at
+// all was black.
+function dxBlueRun(doc,run){
+  if(!run) return;
+  let rPr=dxChildEls(run).filter(c=>c.localName==='rPr'&&c.namespaceURI===DX_W)[0];
+  if(!rPr){ rPr=doc.createElementNS(DX_W,'w:rPr'); run.insertBefore(rPr,run.firstChild); }
+  dxBluePr(doc,rPr);
+}
+// w:rPr is a sequence, so w:color has to sit in its schema position or Word
+// drops it. Everything listed here legally precedes it.
+const DX_RPR_BEFORE_COLOR = ['rStyle','rFonts','b','bCs','i','iCs','caps','smallCaps','strike',
+  'dstrike','outline','shadow','emboss','imprint','noProof','snapToGrid','vanish','webHidden'];
+function dxBluePr(doc,rPr){
+  if(!rPr) return;
+  let col=dxChildEls(rPr).filter(c=>c.localName==='color'&&c.namespaceURI===DX_W)[0];
+  if(!col){
+    col=doc.createElementNS(DX_W,'w:color');
+    const after=dxChildEls(rPr).filter(c=>c.namespaceURI===DX_W && DX_RPR_BEFORE_COLOR.indexOf(c.localName)<0)[0];
+    if(after) rPr.insertBefore(col,after); else rPr.appendChild(col);
+  }
+  col.setAttributeNS(DX_W,'w:val',DX_FILL_COLOR);
+  // DEAC's placeholders are grey by THEME (background1, shaded 80%), and a
+  // theme colour wins over w:val -- so the value alone left the text grey.
+  ['themeColor','themeShade','themeTint'].forEach(a=>{
+    col.removeAttributeNS(DX_W,a);
+    col.removeAttribute('w:'+a);
+  });
+}
+
 
 function dxSetText(doc,f,text){
   if(!f.content) return false;
@@ -14637,14 +14672,18 @@ function dxSetText(doc,f,text){
     (p||f.content).appendChild(run);
   }
   while(run.firstChild) run.removeChild(run.firstChild);
-  if(rPr){
+  // A run the template left without an rPr used to skip the colour entirely --
+  // which is how five real SDI address lines shipped in black. Build one.
+  if(!rPr) rPr=doc.createElementNS(DX_W,'w:rPr');
+  {
     // Placeholder styling must go, or a real answer renders grey.
     const st=dxFirstEl(rPr,DX_W,'rStyle');
     if(st && (st.getAttributeNS(DX_W,'val')||'')==='PlaceholderText') st.parentNode.removeChild(st);
-    let col=dxFirstEl(rPr,DX_W,'color');
-    if(!col){ col=doc.createElementNS(DX_W,'w:color'); rPr.appendChild(col); }
-    col.setAttributeNS(DX_W,'w:val',DX_FILL_COLOR);
     run.appendChild(rPr);
+    dxBlueRun(doc,run);
+    // The control itself can carry the grey placeholder colour; this control
+    // now holds a real answer, so that goes blue as well.
+    if(f.pr) dxBluePr(doc, dxChildEls(f.pr).filter(c=>c.localName==='rPr'&&c.namespaceURI===DX_W)[0]);
   }
   String(text==null?'':text).split('\n').forEach((line,i)=>{
     if(i>0) run.appendChild(doc.createElementNS(DX_W,'w:br'));
@@ -14673,6 +14712,8 @@ function dxSetCheck(doc,f,on){
     if(ts.length){
       ts[0].textContent=glyph;
       for(let i=ts.length-1;i>0;i--) ts[i].parentNode.removeChild(ts[i]);
+      // Only a mark SDI actually made is blue; an empty box is the form's own.
+      if(on) dxBlueRun(doc, ts[0].parentNode);
       if(font){
         const rf=f.content.getElementsByTagNameNS(DX_W,'rFonts')[0];
         if(rf){ rf.setAttributeNS(DX_W,'w:ascii',font); rf.setAttributeNS(DX_W,'w:hAnsi',font); rf.setAttributeNS(DX_W,'w:eastAsia',font); }
@@ -14690,6 +14731,7 @@ function dxSetCheck(doc,f,on){
       }
       const t=doc.createElementNS(DX_W,'w:t');
       t.appendChild(doc.createTextNode(glyph)); r.appendChild(t);
+      if(on) dxBlueRun(doc,r);
       f.content.appendChild(r);
       let sib=f.node.nextSibling;
       while(sib && sib.nodeType!==1) sib=sib.nextSibling;
@@ -14850,12 +14892,63 @@ const FM_DEAC_MAP={
 // A form is data, not code: a template in the content repo plus a map from
 // each control's fingerprint to where its answer comes from. Adding the next
 // accreditor document means adding an entry here and a .docx -- see fmAddForm.
+// DEAC's eleven non-substantive changes, Handbook Part II sections XX.A-XX.I,
+// worded as the form words them. Unlike the substantive form this one says
+// "select all that apply", so the answer is a set, not one choice.
+const FM_NSC_TYPES = [
+ 'Change of President/Chief Executive Officer',
+ 'Program or Course Title Revision',
+ 'Existing Program Revision',
+ 'Adding a Specialization/Emphasis/Concentration to an Existing Program Comprised of Courses Already Approved',
+ 'Certificate Program Containing Courses Already Approved',
+ 'General Education Revisions',
+ 'Contracting for Educational Delivery with an Approved AQC Provider, Accredited Institution, or Other Entity',
+ 'Adding Courses',
+ 'Discontinuing Courses or Programs',
+ 'Division Identity',
+ 'Closure of an Administrative Site'
+];
+const FM_NSC_REFS = ['XX.A','XX.B.1-2','XX.B.3','XX.B.4','XX.C','XX.D','XX.E','XX.F','XX.G','XX.H','XX.I'];
+// Every control sits at the START of the paragraph it belongs to, so the text
+// a fingerprint is built from is the PREVIOUS option -- checkbox 0 is labelled
+// with the instruction line, checkbox 1 with option 0's text, and so on. The
+// pairing below is against the option each control actually ticks, verified
+// paragraph by paragraph against the .docx.
+const FM_NSC_MAP={
+  "hange below select all that apply and submit applicable fees#1":"nsc:0",
+  "valuation study reference deac handbook part ii section xx a#1":"nsc:1",
+  "content reference deac handbook part ii section xx b 1 and 2#1":"nsc:2",
+  " the outcomes reference deac handbook part ii section xx b 3#1":"nsc:3",
+  "gram outcomes reference deac handbook part ii section xx b 4#1":"nsc:4",
+  "pproved by deac reference deac handbook part ii section xx c#1":"nsc:5",
+  "ce standard v b reference deac handbook part ii section xx d#1":"nsc:6",
+  "iv hea programs reference deac handbook part ii section xx e#1":"nsc:7",
+  "ccredited scope reference deac handbook part ii section xx f#1":"nsc:8",
+  "urse or program reference deac handbook part ii section xx g#1":"nsc:9",
+  "the institution reference deac handbook part ii section xx h#1":"nsc:10",
+  "institution name#1":"org:name",
+  "institution website#1":"org:website",
+  "primary contact#1":"org:coName",
+  "email#1":"org:coEmail",
+  "telephone#1":"org:phone",
+  "provide evidence of payment scanned copy of check or similar#1":"manual:nscFeeDate",
+  "institution s president ceo#1":"org:presCertName",
+  "institution s president ceo signature#1":"blank",
+  "date#1":"blank"
+};
+
 const FM_FORMS = [{
   id:'deac-ceo', agency:'DEAC', kind:'docx',
-  title:'Change in Educational Offerings',
+  title:'DEAC Substantive Change',
   path:'forms/deac-change-ed-offerings/template.docx',
   revision:'rev. 02.01.2025 (Handbook 32nd ed.)',
   expect:113, map:FM_DEAC_MAP
+},{
+  id:'deac-nsc', agency:'DEAC', kind:'docx',
+  title:'DEAC Non-Sub Change',
+  path:'forms/deac-non-sub-change/template.docx',
+  revision:'rev. 02.01.2025 (Handbook 32nd ed.)',
+  expect:20, map:FM_NSC_MAP
 },{
   id:'deac-eos', agency:'DEAC', kind:'xlsx',
   title:'Educational Offerings Information Sheet',
@@ -14864,6 +14957,7 @@ const FM_FORMS = [{
   expect:0, map:{}
 }];
 function fmIsSheet(form){ return !!form && form.kind==='xlsx'; }
+function fmIsNsc(form){ return !!form && form.id==='deac-nsc'; }
 function fmForm(id){ return FM_FORMS.filter(f=>f.id===id)[0]||null; }
 
 const FM_TYPES = [
@@ -14989,6 +15083,9 @@ function fmAns(progId,formId){
   // overrides live with THIS program's answers to this form, so correcting the
   // sheet never rewrites the Course Database.
   if(!a.courseOv||typeof a.courseOv!=='object') a.courseOv={};
+  // The non-substantive form is "select all that apply", so its change types
+  // are a set rather than the substantive form's single `type`.
+  if(!a.nsc||typeof a.nsc!=='object') a.nsc={};
   if(typeof a.ready!=='number') a.ready=0;   // 0 = not released to compliance
   return a;
 }
@@ -15194,6 +15291,7 @@ function fmResolve(srcSpec,progId,a){
   // and dates the generated file electronically.
   if(head==='blank') return { v:'', src:'left for the signer' };
   if(head==='type')   return { v:a.type===Number(tail), src:'your choice', need:a.type<0 };
+  if(head==='nsc')    return { v:!!a.nsc[tail], src:'your choice' };
   if(head==='cbd'||head==='acc1'||head==='acc2'||head==='acc3'||head==='lic')
     return { v:a[head]===tail, src:'your choice' };
   if(head==='org'){
@@ -15922,10 +16020,43 @@ function fmStepsBar(){
   FM_STEPS.forEach((n,i)=>{ h+='<button onclick="fmSetStep('+i+')" aria-current="'+(i===fmStep)+'">'+n+'</button>'; });
   return h+'</div>';
 }
+// Twenty controls, no Section 3 branch and no narratives -- so it is one
+// screen, like the spreadsheet, rather than the substantive form's three steps.
+function fmRenderNscForm(){
+  const a=fmAns(fmProgId,fmFormId), ro=viewerModeForced;
+  const picked=FM_NSC_TYPES.filter((t,i)=>a.nsc[i]).length;
+  let h='<p class="fm-hint">DEAC\u2019s non-substantive change request. Everything SDI writes into it \u2014 '+
+        'these selections and all of Section 1 \u2014 is written in blue, which is how DEAC asks to see it.</p>';
+  h+='<p class="fm-q">Which non-substantive change are you requesting?</p>'+
+     '<p class="fm-hint">Select all that apply. Each one carries its own fee.</p>';
+  FM_NSC_TYPES.forEach((t,i)=>{
+    h+='<button class="fm-opt'+(a.nsc[i]?' sel':'')+'"'+(ro?' disabled':'')+' onclick="fmToggleNsc('+i+')">'+
+       '<span class="fm-box">'+(a.nsc[i]?'&#10003;':'')+'</span>'+
+       '<span>'+escapeHtml(t)+' <span class="fm-ref">'+FM_NSC_REFS[i]+'</span></span></button>';
+  });
+  if(!picked) h+='<p class="fm-note">Nothing selected yet \u2014 the form needs at least one.</p>';
+  h+='<p class="fm-q">Fee</p>';
+  h+=fmTextField('manual:nscFeeDate','Date the fee was mailed',a.vals['manual:nscFeeDate']||'',
+                 'you answer this',!a.vals['manual:nscFeeDate']);
+  h+='<p class="fm-q">Certification</p>'+
+     '<p class="fm-note">The president\u2019s name is filled from the Institution Profile. The signature and date lines '+
+     'are deliberately left blank for the electronic signature, exactly as on the substantive form.</p>';
+  h+='<details class="fm-more"><summary>Section 1 \u2014 institution information ('+
+     (fmOrgMissing()?fmOrgMissing()+' still blank':'prefilled')+')</summary>'+fmRenderOrg()+'</details>';
+  return h;
+}
+function fmToggleNsc(i){
+  if(viewerModeForced) return;
+  const a=fmAns(fmProgId,fmFormId);
+  if(a.nsc[i]) delete a.nsc[i]; else a.nsc[i]=1;
+  fmDirty(); fmRender();
+}
+
 function fmRenderForm(){
   const form=fmForm(fmFormId), a=fmAns(fmProgId,fmFormId);
   // A spreadsheet form has no steps: every cell it needs is on one screen.
   if(fmIsSheet(form)) return fmRenderSheetForm();
+  if(fmIsNsc(form)) return fmRenderNscForm();
   let h=fmStepsBar();
   if(fmStep===0){
     h+='<p class="fm-q">Which substantive change are you requesting?</p>';
@@ -16014,6 +16145,12 @@ function fmStatus(){
     const r=fmResolve(spec,fmProgId,a);
     if(r.need) need++;
   });
+  if(fmIsNsc(form)){
+    const picked=Object.keys(a.nsc||{}).length;
+    return { total:t.fields.length, need, ready:picked>0,
+             msg: picked ? (picked+' change'+(picked===1?'':'s')+' selected'+(need?' \u00b7 '+need+' still blank':''))
+                         : 'Select at least one change' };
+  }
   const ready = a.type>=0 && !!a.branch;
   return { total:t.fields.length, need, ready,
            msg: a.type<0 ? 'Choose the type of change' : (!a.branch ? 'Choose new or existing program'
@@ -16084,8 +16221,13 @@ async function fmGenerate(){
   const t=_fmTpl[form.id]||await fmTemplate(form);
   if(!t) return;
   const a=fmAns(fmProgId,fmFormId);
-  if(a.type<0){ await appAlert('Choose the type of substantive change first (step 1).'); return; }
-  if(!a.branch){ await appAlert('Say whether this is a new program or a change to an existing one (step 2).'); return; }
+  // Those two questions belong to the substantive form; this one asks neither.
+  if(fmIsNsc(form)){
+    if(!Object.keys(a.nsc||{}).length){ await appAlert('Select at least one non-substantive change first.'); return; }
+  }else{
+    if(a.type<0){ await appAlert('Choose the type of substantive change first (step 1).'); return; }
+    if(!a.branch){ await appAlert('Say whether this is a new program or a change to an existing one (step 2).'); return; }
+  }
   const answers={}; const blanks=[];
   t.fields.forEach(f=>{
     const spec=form.map[f.fp];
@@ -16108,8 +16250,10 @@ async function fmGenerate(){
     const code=(raw.match(/^\s*([A-Za-z0-9][A-Za-z0-9\-\/]{0,12})\s+(?:--|\u2013|\u2014)\s+/)||[])[1]||raw;
     const slug=t=>String(t).replace(/[^A-Za-z0-9]+/g,'-').replace(/^-|-$/g,'');
     const d=new Date(), pad=n=>String(n).padStart(2,'0');
-    const name=[form.agency,slug(form.title),slug(code).slice(0,24),
-                d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())].join('-')+'.docx';
+    // The titles already start with the agency, so don't repeat it.
+    const head=new RegExp('^'+form.agency+'\\b','i').test(form.title)?[]:[form.agency];
+    const name=head.concat([slug(form.title),slug(code).slice(0,24),
+                d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())]).join('-')+'.docx';
     const url=URL.createObjectURL(res.blob);
     const link=document.createElement('a');
     link.href=url; link.download=name;
