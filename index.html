@@ -16062,16 +16062,40 @@ function cmTable(cols,headCells,bodyRows){
         '<w:tblCellMar><w:top w:w="40" w:type="dxa"/><w:left w:w="70" w:type="dxa"/>'+
         '<w:bottom w:w="40" w:type="dxa"/><w:right w:w="70" w:type="dxa"/></w:tblCellMar>'+
         '</w:tblPr><w:tblGrid>'+grid+'</w:tblGrid>';
-  // tblHeader is what repeats the column headings on every page.
+  // tblHeader repeats the headings on every page; keepNext is what stops the
+  // heading row being left behind on its own when the first course does not fit.
   x+='<w:tr><w:trPr><w:cantSplit/><w:tblHeader/></w:trPr>'+
-     headCells.map((h,i)=>cmCell(h,cols[i],{b:true,color:'FFFFFF',fill:CM_RED,sz:15,
-       align:(i>=headCells.length-6&&/^PLO/i.test(h))?'center':'left'})).join('')+'</w:tr>';
+     headCells.map((h,i)=>cmCell(h,cols[i],{b:true,color:'FFFFFF',fill:CM_RED,sz:15,keepNext:true,
+       align:/^PLO/i.test(h)?'center':'left'})).join('')+'</w:tr>';
   bodyRows.forEach(r=>{
-    x+='<w:tr><w:trPr><w:cantSplit/></w:trPr>'+
+    // A row carrying a long course description can be taller than the space left
+    // on a page. cantSplit would shunt the whole thing to the next page and
+    // strand whatever came before it, so a tall row is allowed to break.
+    const tall=r.cells.some(c=>String(c||'').length>400);
+    x+='<w:tr>'+(tall?'':'<w:trPr><w:cantSplit/></w:trPr>')+
        r.cells.map((c,i)=>cmCell(c,cols[i],{keepNext:r.keepNext, sz:15,
          align:r.center&&r.center.indexOf(i)>=0?'center':'left'})).join('')+'</w:tr>';
   });
   return x+'</w:tbl>';
+}
+// Rough but good enough to tell "fits a page" from "nowhere near": 7.5pt
+// Calibri runs about 19 characters per inch, and a line is about 0.125in.
+// 8.79in of body per page, less the repeated heading row -- but the estimate
+// is rough, so the threshold sits well below the true ceiling. A course that
+// only just fits is better allowed to flow than forced on and split anyway.
+const CM_CHARS_PER_IN = 19, CM_LINE_IN = 0.125, CM_PAGE_CONTENT_IN = 7.6;
+function cmRowHeightIn(cells,cols){
+  let lines=1;
+  cells.forEach((c,i)=>{
+    const w=((cols[i]||600)/1440)-0.1;                 // less the cell margins
+    const per=Math.max(6,Math.floor(w*CM_CHARS_PER_IN));
+    const need=Math.ceil(String(c||'').length/per)||1;
+    if(need>lines) lines=need;
+  });
+  return lines*CM_LINE_IN+0.04;
+}
+function cmCourseHeight(rows,cols,n){
+  return rows.reduce((h,r)=>h+cmRowHeightIn(r.slice(0,n),cols),0);
 }
 function cmSpread(n){
   const w=Math.floor(CM_BODY_W/n), cols=[];
@@ -16196,11 +16220,15 @@ function cmBodyXml(parsed,progName){
       const center=ploIdx.slice();
       const body=[];
       cmGroups(part.rows).forEach(g=>{
+        // Keeping a course together is only possible while it fits a page. Ask
+        // for it anyway and Word pushes it on, leaving the page before it blank
+        // -- and splits it regardless. So estimate the height first.
+        const fits=cmCourseHeight(g.rows,cols,n) <= CM_PAGE_CONTENT_IN;
         g.rows.forEach((r,i)=>{
           const cells=r.slice(0,n); while(cells.length<n) cells.push('');
-          // every row of a course is kept with the next one, so Word moves the
-          // whole course to a fresh page rather than splitting it
-          body.push({cells, keepNext:i<g.rows.length-1, center});
+          // every row of a course is kept with the next, so Word moves the whole
+          // course to a fresh page rather than splitting it
+          body.push({cells, keepNext: fits && i<g.rows.length-1, center});
         });
       });
       x+=cmTable(cols,part.head.slice(0,n),body);
