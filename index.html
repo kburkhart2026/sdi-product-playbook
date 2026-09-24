@@ -15926,12 +15926,43 @@ function cmParse(progId){
   const root=doc.getElementById('cmr');
   root.querySelectorAll('.tbl-rowops,.tbl-row-del,.tbl-add-row,.tbl-gear,.tbl-toolbar,.bctrl,.block-tag,.add-block-area,button,input,select,style,script').forEach(e=>e.remove());
   const parts=[];
+  // A merged cell occupies grid positions its <td> does not appear in. Reading
+  // cells positionally shifted every continuation row two columns left, which
+  // put the objective under "Course Code" and every PLO mark against the wrong
+  // outcome. Lay the rows out on a grid instead.
+  function cmGrid(table){
+    const trs=Array.prototype.slice.call(table.querySelectorAll('tr'))
+      .filter(tr=>!tr.querySelector('table'));       // never read a nested table's rows
+    const grid=[];
+    trs.forEach((tr,r)=>{
+      grid[r]=grid[r]||[];
+      let c=0;
+      Array.prototype.slice.call(tr.children)
+        .filter(x=>x.tagName==='TD'||x.tagName==='TH')
+        .forEach(td=>{
+          while(grid[r][c]!==undefined) c++;          // stepped over by a rowspan above
+          const cs=Math.max(1,parseInt(td.getAttribute('colspan')||'1',10)||1);
+          const rs=Math.max(1,parseInt(td.getAttribute('rowspan')||'1',10)||1);
+          const text=cmCellText(td);
+          for(let i=0;i<rs;i++) for(let j=0;j<cs;j++){
+            grid[r+i]=grid[r+i]||[];
+            // the value belongs to the cell's own first position; the rows it
+            // spans read blank, which is exactly how an unmerged map writes a
+            // continuation row -- so course grouping keeps working either way
+            grid[r+i][c+j]=(i===0&&j===0)?text:'';
+          }
+          c+=cs;
+        });
+    });
+    const w=Math.max.apply(null,grid.map(r=>r?r.length:0));
+    return grid.map(r=>{ const o=(r||[]).slice();
+      for(let i=0;i<w;i++) if(o[i]===undefined) o[i]='';
+      return o.slice(0,w); });
+  }
   function readTable(table){
-    const trs=Array.prototype.slice.call(table.querySelectorAll('tr'));
-    if(!trs.length) return;
-    let rows=trs.map(tr=>Array.prototype.slice.call(tr.querySelectorAll('td,th')).map(cmCellText));
-    const w=Math.max.apply(null,rows.map(r=>r.length));
-    rows=rows.map(r=>{ const c=r.slice(); while(c.length<w) c.push(''); return c; });
+    let rows=cmGrid(table);
+    if(!rows.length) return;
+    const w=rows[0].length;
     // the last column is the app's own row controls when it is empty throughout --
     // but never strip it down to nothing, which produced a table Word drew blank
     if(w>2 && rows.every(r=>!r[w-1])) rows=rows.map(r=>r.slice(0,w-1));
@@ -15965,7 +15996,7 @@ function cmGroups(rows){
 // The matrix names outcomes as "PLO 3" and nothing else, so the reader needs
 // the wording. It is already in the map -- as the first column of the alignment
 // table, or as prose -- so collect it rather than asking anyone to retype it.
-function cmPlos(parts){
+function cmPlos(parts, ploCount){
   const found={};
   const take=str=>{
     const m=/^PLO\s*(\d+)\s*[:.\u2013\u2014-]\s*(.+)$/i.exec(String(str||'').trim());
@@ -15977,7 +16008,22 @@ function cmPlos(parts){
     if(p.kind==='table') p.rows.forEach(r=>take(r[0]));
     else p.text.split('\n').forEach(take);
   });
-  return Object.keys(found).map(Number).sort((a,b)=>a-b).map(n=>({n, text:found[n]}));
+  const list=Object.keys(found).map(Number).sort((a,b)=>a-b).map(n=>({n, text:found[n]}));
+  if(list.length) return { list, from:null };
+  // Some maps write the outcomes as plain prose under a heading, unnumbered --
+  // so the matrix says "PLO 5" and nothing in the document says what that is.
+  // Number them against the matrix's own PLO columns, and only when the counts
+  // agree, so a mismatched block is never silently renumbered.
+  if(ploCount>0){
+    for(const p of parts){
+      if(p.kind!=='text') continue;
+      const lines=p.text.split('\n').map(l=>l.trim()).filter(Boolean);
+      if(!/program\s+learning\s+outcome/i.test(lines[0]||'')) continue;
+      const rest=lines.slice(1).map(l=>l.replace(/^\s*(?:\d+[.)]|[\u2022\-\u2013])\s*/,'').trim()).filter(Boolean);
+      if(rest.length===ploCount) return { list:rest.map((t,i)=>({n:i+1, text:t})), from:p };
+    }
+  }
+  return { list:[], from:null };
 }
 
 /* ---------- OOXML pieces ---------- */
@@ -16090,14 +16136,17 @@ function cmBodyXml(parsed,progName){
   x+=cmP('Sonoran Desert Institute  ·  generated '+
          new Date().toLocaleDateString(undefined,{day:'numeric',month:'long',year:'numeric'}),
          {sz:15,color:'6B6560',after:200});
-  const plos=cmPlos(parsed.parts);
-  if(plos.length){
+  const matrix=parsed.parts.filter(p=>p.kind==='table'&&p.plo)[0];
+  const ploCount=matrix?matrix.head.filter(h=>/^PLO\s*\d/i.test(h)).length:0;
+  const plos=cmPlos(parsed.parts, ploCount);
+  if(plos.list.length){
     x+=cmP('Program Learning Outcomes',{b:true,sz:22,color:CM_INK,before:80,after:100});
     x+=cmTable([1100, CM_BODY_W-1100], ['Outcome','Description'],
-      plos.map(pl=>({cells:['PLO '+pl.n, pl.text], keepNext:false, center:[]})));
+      plos.list.map(pl=>({cells:['PLO '+pl.n, pl.text], keepNext:false, center:[]})));
     x+=cmP('',{after:160});
   }
   parsed.parts.forEach(part=>{
+    if(part===plos.from) return;   // already shown, numbered, just above
     if(part.kind==='text'){
       // a block's own lines stay separate lines instead of running together
       part.text.split('\n').forEach((line,i)=>{
