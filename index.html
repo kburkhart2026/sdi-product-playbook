@@ -14950,6 +14950,12 @@ const FM_FORMS = [{
   revision:'rev. 02.01.2025 (Handbook 32nd ed.)',
   expect:20, map:FM_NSC_MAP
 },{
+  // SDI's own document: there is no template to fetch, the app builds it.
+  id:'sdi-cmap', agency:'SDI', kind:'gen',
+  title:'Curriculum Map',
+  path:'', revision:'SDI format',
+  expect:0, map:{}
+},{
   id:'deac-eos', agency:'DEAC', kind:'xlsx',
   title:'Educational Offerings Information Sheet',
   path:'forms/deac-ed-offerings-sheet/template.xlsx',
@@ -14958,6 +14964,8 @@ const FM_FORMS = [{
 }];
 function fmIsSheet(form){ return !!form && form.kind==='xlsx'; }
 function fmIsNsc(form){ return !!form && form.id==='deac-nsc'; }
+// A generated form has no template in the content repo at all.
+function fmIsGen(form){ return !!form && form.kind==='gen'; }
 function fmForm(id){ return FM_FORMS.filter(f=>f.id===id)[0]||null; }
 
 const FM_TYPES = [
@@ -15843,6 +15851,402 @@ async function eoGenerate(){
   }catch(e){ await appAlert('The workbook could not be generated: '+e.message); }
 }
 
+/* ==================== CURRICULUM MAP -> SDI WORD DOCUMENT ====================
+   The curriculum map is SDI's own document, not an accreditor's, so there is no
+   template to fill -- this builds the whole .docx: an SDI page header carrying
+   the logo and the program name on EVERY page, the column headings repeated on
+   every page, and a page break that never lands in the middle of a course.
+   Portrait, because that is what compliance asked for; readable rather than
+   crammed onto one sheet, which measurement showed needs 4.5pt type on Letter. */
+const CM_LOGO   = 'SDI-logo-wide.png';
+const CM_LOGO_W = 1200, CM_LOGO_H = 566;   // px, for the aspect ratio
+const CM_RED    = 'C8102E';
+const CM_INK    = '101820';
+const CM_RULE   = 'D8D2CA';
+const CM_PAGE_W = 12240, CM_MARGIN = 720;  // Letter portrait, 0.5in sides
+const CM_BODY_W = CM_PAGE_W - 2*CM_MARGIN; // 10800 twips of usable width
+
+function cmEsc(s){
+  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,'');
+}
+// The map lives in whichever section holds a PLO matrix. Matching the section
+// NAME alone would miss a program that calls it something else, and match a
+// "Course Map" that is just a course list -- so the table decides.
+function cmSection(progId){
+  const prog=(programs||[]).filter(p=>p.id===progId)[0];
+  if(!prog) return null;
+  let named=null;
+  const phases=prog.phases||[];
+  for(const ph of phases){
+    for(const sec of (ph.sections||[])){
+      const html=(blockStore||{})[progId+':'+sec.id]||'';
+      if(!html) continue;
+      if(/>\s*PLO\s*\d/i.test(html) && html.indexOf('<table')>=0)
+        return { id:sec.id, name:sec.name, phase:ph.name };
+      if(!named && /curriculum\s*map/i.test(sec.name||'')) named={ id:sec.id, name:sec.name, phase:ph.name };
+    }
+  }
+  return named;
+}
+// "CUT-F -- Certificate in ..." is how a program is stored; the document wants
+// the name, not the code, which the file name and the footer carry anyway.
+function cmProgName(name){
+  const n=String(name||'').trim();
+  return n.replace(/^[A-Za-z0-9][A-Za-z0-9\-\/.]{0,14}\s*(?:--|\u2013|\u2014)\s*/,'').trim() || n;
+}
+function cmCellText(td){
+  let t=(td.textContent||'').replace(/[▲▼✕✚✖]/g,' ');
+  return t.replace(/\s+/g,' ').trim();
+}
+// Block-level structure becomes real line breaks; a detached DOM has no layout,
+// so innerText would silently collapse the whole block onto one line.
+function cmBlockText(el){
+  const BLOCK=/^(P|DIV|LI|TR|H1|H2|H3|H4|H5|H6|BLOCKQUOTE|SECTION)$/;
+  let out='';
+  (function walk(n){
+    for(const ch of n.childNodes){
+      if(ch.nodeType===3){ out+=ch.nodeValue.replace(/\s+/g,' '); continue; }
+      if(ch.nodeType!==1) continue;
+      if(ch.tagName==='BR'){ out+='\n'; continue; }
+      const isBlock=BLOCK.test(ch.tagName);
+      if(isBlock && out && !/\n$/.test(out)) out+='\n';
+      walk(ch);
+      if(isBlock && out && !/\n$/.test(out)) out+='\n';
+    }
+  })(el);
+  return out.split('\n').map(l=>l.trim()).filter(Boolean).join('\n');
+}
+// Pull the section apart into headings and tables, dropping the editing column.
+function cmParse(progId){
+  const sec=cmSection(progId);
+  if(!sec) return null;
+  const html=(blockStore||{})[progId+':'+sec.id]||'';
+  const doc=new DOMParser().parseFromString('<div id="cmr">'+html+'</div>','text/html');
+  const root=doc.getElementById('cmr');
+  root.querySelectorAll('.tbl-rowops,.tbl-row-del,.tbl-add-row,.tbl-gear,.tbl-toolbar,.bctrl,.block-tag,.add-block-area,button,input,select,style,script').forEach(e=>e.remove());
+  const parts=[];
+  function readTable(table){
+    const trs=Array.prototype.slice.call(table.querySelectorAll('tr'));
+    if(!trs.length) return;
+    let rows=trs.map(tr=>Array.prototype.slice.call(tr.querySelectorAll('td,th')).map(cmCellText));
+    const w=Math.max.apply(null,rows.map(r=>r.length));
+    rows=rows.map(r=>{ const c=r.slice(); while(c.length<w) c.push(''); return c; });
+    // the last column is the app's own row controls when it is empty throughout --
+    // but never strip it down to nothing, which produced a table Word drew blank
+    if(w>2 && rows.every(r=>!r[w-1])) rows=rows.map(r=>r.slice(0,w-1));
+    const head=rows.shift()||[];
+    const plo=head.filter(h=>/^PLO\s*\d/i.test(h)).length>=3;
+    if(rows.length && head.length) parts.push({kind:'table', head, rows, plo});
+  }
+  // Walk in document order. A block holding BOTH prose and a table used to lose
+  // the prose, because only the table was read.
+  (function walk(node){
+    Array.prototype.forEach.call(node.children,el=>{
+      if(el.tagName==='TABLE'){ readTable(el); return; }
+      if(el.querySelector && el.querySelector('table')){ walk(el); return; }
+      const txt=cmBlockText(el);
+      if(txt) parts.push({kind:'text', text:txt});
+    });
+  })(root);
+  return { section:sec, parts };
+}
+// A course owns every row until the next row that names a course.
+function cmGroups(rows){
+  const out=[];
+  rows.forEach(r=>{
+    const code=(r[0]||'').trim();
+    if(code || !out.length) out.push({code, rows:[r]});
+    else out[out.length-1].rows.push(r);
+  });
+  return out;
+}
+
+// The matrix names outcomes as "PLO 3" and nothing else, so the reader needs
+// the wording. It is already in the map -- as the first column of the alignment
+// table, or as prose -- so collect it rather than asking anyone to retype it.
+function cmPlos(parts){
+  const found={};
+  const take=str=>{
+    const m=/^PLO\s*(\d+)\s*[:.\u2013\u2014-]\s*(.+)$/i.exec(String(str||'').trim());
+    if(!m) return;
+    const n=Number(m[1]), text=m[2].trim();
+    if(!found[n] || text.length>found[n].length) found[n]=text;
+  };
+  parts.forEach(p=>{
+    if(p.kind==='table') p.rows.forEach(r=>take(r[0]));
+    else p.text.split('\n').forEach(take);
+  });
+  return Object.keys(found).map(Number).sort((a,b)=>a-b).map(n=>({n, text:found[n]}));
+}
+
+/* ---------- OOXML pieces ---------- */
+function cmRun(text,o){
+  o=o||{};
+  const rPr='<w:rPr>'+(o.b?'<w:b/>':'')+(o.i?'<w:i/>':'')+
+    '<w:color w:val="'+(o.color||CM_INK)+'"/>'+
+    '<w:sz w:val="'+(o.sz||16)+'"/><w:szCs w:val="'+(o.sz||16)+'"/></w:rPr>';
+  return String(text==null?'':text).split('\n').map((line,i)=>
+    '<w:r>'+rPr+(i?'<w:br/>':'')+'<w:t xml:space="preserve">'+cmEsc(line)+'</w:t></w:r>').join('');
+}
+function cmP(text,o){
+  o=o||{};
+  // w:pPr is an ordered sequence -- keepNext, pBdr, spacing, jc. Out of order,
+  // Word calls the file damaged and offers to repair it.
+  const pPr='<w:pPr>'+(o.keepNext?'<w:keepNext/>':'')+
+    (o.rule?'<w:pBdr><w:bottom w:val="single" w:sz="6" w:space="3" w:color="'+CM_RULE+'"/></w:pBdr>':'')+
+    '<w:spacing w:before="'+(o.before||0)+'" w:after="'+(o.after||0)+'" w:line="'+(o.line||220)+'" w:lineRule="auto"/>'+
+    (o.align?'<w:jc w:val="'+o.align+'"/>':'')+
+    '</w:pPr>';
+  return '<w:p>'+pPr+cmRun(text,o)+'</w:p>';
+}
+function cmCell(text,w,o){
+  o=o||{};
+  return '<w:tc><w:tcPr><w:tcW w:w="'+w+'" w:type="dxa"/>'+
+    (o.fill?'<w:shd w:val="clear" w:color="auto" w:fill="'+o.fill+'"/>':'')+
+    '<w:vAlign w:val="'+(o.vAlign||'top')+'"/></w:tcPr>'+
+    cmP(text,o)+'</w:tc>';
+}
+function cmTable(cols,headCells,bodyRows){
+  const grid=cols.map(w=>'<w:gridCol w:w="'+w+'"/>').join('');
+  const bd=['top','left','bottom','right','insideH','insideV']
+    .map(s=>'<w:'+s+' w:val="single" w:sz="4" w:space="0" w:color="'+CM_RULE+'"/>').join('');
+  let x='<w:tbl><w:tblPr><w:tblW w:w="'+CM_BODY_W+'" w:type="dxa"/>'+
+        '<w:tblBorders>'+bd+'</w:tblBorders><w:tblLayout w:type="fixed"/>'+
+        '<w:tblCellMar><w:top w:w="40" w:type="dxa"/><w:left w:w="70" w:type="dxa"/>'+
+        '<w:bottom w:w="40" w:type="dxa"/><w:right w:w="70" w:type="dxa"/></w:tblCellMar>'+
+        '</w:tblPr><w:tblGrid>'+grid+'</w:tblGrid>';
+  // tblHeader is what repeats the column headings on every page.
+  x+='<w:tr><w:trPr><w:cantSplit/><w:tblHeader/></w:trPr>'+
+     headCells.map((h,i)=>cmCell(h,cols[i],{b:true,color:'FFFFFF',fill:CM_RED,sz:15,
+       align:(i>=headCells.length-6&&/^PLO/i.test(h))?'center':'left'})).join('')+'</w:tr>';
+  bodyRows.forEach(r=>{
+    x+='<w:tr><w:trPr><w:cantSplit/></w:trPr>'+
+       r.cells.map((c,i)=>cmCell(c,cols[i],{keepNext:r.keepNext, sz:15,
+         align:r.center&&r.center.indexOf(i)>=0?'center':'left'})).join('')+'</w:tr>';
+  });
+  return x+'</w:tbl>';
+}
+function cmSpread(n){
+  const w=Math.floor(CM_BODY_W/n), cols=[];
+  for(let i=0;i<n;i++) cols.push(w);
+  cols[n-1]=CM_BODY_W-w*(n-1);
+  return cols;
+}
+
+/* ---------- the package ---------- */
+async function cmLogoBytes(){
+  try{
+    const r=await fetch(CM_LOGO,{cache:'force-cache'});
+    if(!r.ok) return null;
+    return new Uint8Array(await r.arrayBuffer());
+  }catch(e){ return null; }
+}
+function cmHeaderXml(progName,hasLogo){
+  const EMU=914400, wIn=1.85;
+  const cx=Math.round(wIn*EMU), cy=Math.round(cx*CM_LOGO_H/CM_LOGO_W);
+  const pic = hasLogo
+    ? '<w:p><w:pPr><w:spacing w:after="0"/></w:pPr><w:r><w:drawing>'+
+      '<wp:inline distT="0" distB="0" distL="0" distR="0">'+
+      '<wp:extent cx="'+cx+'" cy="'+cy+'"/><wp:effectExtent l="0" t="0" r="0" b="0"/>'+
+      '<wp:docPr id="1" name="Sonoran Desert Institute"/>'+
+      '<wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/></wp:cNvGraphicFramePr>'+
+      '<a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">'+
+      '<a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">'+
+      '<pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">'+
+      '<pic:nvPicPr><pic:cNvPr id="1" name="Sonoran Desert Institute"/><pic:cNvPicPr/></pic:nvPicPr>'+
+      '<pic:blipFill><a:blip r:embed="rId1"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>'+
+      '<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="'+cx+'" cy="'+cy+'"/></a:xfrm>'+
+      '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>'+
+      '</pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>'
+    : cmP('SONORAN DESERT INSTITUTE',{b:true,sz:20,color:CM_RED});
+  const cols=[3600, CM_BODY_W-3600];
+  const right=cmP(progName,{b:true,sz:20,align:'right',color:CM_INK})+
+              cmP('Curriculum Map',{sz:16,align:'right',color:'6B6560'});
+  const cell=(inner,w,align)=>'<w:tc><w:tcPr><w:tcW w:w="'+w+'" w:type="dxa"/><w:vAlign w:val="bottom"/></w:tcPr>'+inner+'</w:tc>';
+  return '<w:tbl><w:tblPr><w:tblW w:w="'+CM_BODY_W+'" w:type="dxa"/>'+
+    '<w:tblBorders><w:bottom w:val="single" w:sz="12" w:space="0" w:color="'+CM_RED+'"/></w:tblBorders>'+
+    '<w:tblLayout w:type="fixed"/>'+
+    '<w:tblCellMar><w:left w:w="0" w:type="dxa"/><w:right w:w="0" w:type="dxa"/>'+
+    '<w:bottom w:w="80" w:type="dxa"/></w:tblCellMar></w:tblPr>'+
+    '<w:tblGrid><w:gridCol w:w="'+cols[0]+'"/><w:gridCol w:w="'+cols[1]+'"/></w:tblGrid>'+
+    '<w:tr><w:trPr><w:cantSplit/></w:trPr>'+cell(pic,cols[0])+cell(right,cols[1])+'</w:tr></w:tbl>'+
+    '<w:p><w:pPr><w:spacing w:after="0" w:line="120" w:lineRule="auto"/></w:pPr></w:p>';
+}
+function cmFooterXml(progName){
+  const f=(instr)=>'<w:r><w:fldChar w:fldCharType="begin"/></w:r>'+
+    '<w:r><w:instrText xml:space="preserve"> '+instr+' </w:instrText></w:r>'+
+    '<w:r><w:fldChar w:fldCharType="separate"/></w:r>'+
+    '<w:r><w:rPr><w:sz w:val="15"/><w:color w:val="6B6560"/></w:rPr><w:t>1</w:t></w:r>'+
+    '<w:r><w:fldChar w:fldCharType="end"/></w:r>';
+  return '<w:p><w:pPr><w:spacing w:after="0"/><w:jc w:val="right"/>'+
+    '<w:pBdr><w:top w:val="single" w:sz="6" w:space="4" w:color="'+CM_RULE+'"/></w:pBdr></w:pPr>'+
+    cmRun(progName+'  ·  Curriculum Map  ·  Page ',{sz:15,color:'6B6560'})+
+    f('PAGE')+cmRun(' of ',{sz:15,color:'6B6560'})+f('NUMPAGES')+'</w:p>';
+}
+function cmBodyXml(parsed,progName){
+  let x=cmP(progName,{b:true,sz:34,color:CM_INK,after:40});
+  x+=cmP('Curriculum Map',{sz:22,color:CM_RED,after:60,rule:true});
+  x+=cmP('Sonoran Desert Institute  ·  generated '+
+         new Date().toLocaleDateString(undefined,{day:'numeric',month:'long',year:'numeric'}),
+         {sz:15,color:'6B6560',after:200});
+  const plos=cmPlos(parsed.parts);
+  if(plos.length){
+    x+=cmP('Program Learning Outcomes',{b:true,sz:22,color:CM_INK,before:80,after:100});
+    x+=cmTable([1100, CM_BODY_W-1100], ['Outcome','Description'],
+      plos.map(pl=>({cells:['PLO '+pl.n, pl.text], keepNext:false, center:[]})));
+    x+=cmP('',{after:160});
+  }
+  parsed.parts.forEach(part=>{
+    if(part.kind==='text'){
+      // a block's own lines stay separate lines instead of running together
+      part.text.split('\n').forEach((line,i)=>{
+        x+=cmP(line,{b:i===0,sz:i===0?20:16,color:i===0?CM_INK:'3A3A38',
+                     before:i===0?240:0,after:i===0?80:40});
+      });
+      return;
+    }
+    if(part.plo){
+      const n=part.head.length;
+      const ploCount=part.head.filter(h=>/^PLO\s*\d/i.test(h)).length;
+      const fixed=n-ploCount;                       // Code, Name, Objective
+      const ploW=Math.max(420,Math.floor(2900/Math.max(ploCount,1)));
+      const rest=CM_BODY_W-ploW*ploCount;
+      const cols=[];
+      if(fixed===3){ cols.push(880, 1620, rest-880-1620); }
+      else { const each=Math.floor(rest/fixed); for(let i=0;i<fixed;i++) cols.push(i===fixed-1?rest-each*(fixed-1):each); }
+      for(let i=0;i<ploCount;i++) cols.push(ploW);
+      const center=[]; for(let i=fixed;i<n;i++) center.push(i);
+      const body=[];
+      cmGroups(part.rows).forEach(g=>{
+        g.rows.forEach((r,i)=>{
+          const cells=r.slice(0,n); while(cells.length<n) cells.push('');
+          // every row of a course is kept with the next one, so Word moves the
+          // whole course to a fresh page rather than splitting it
+          body.push({cells, keepNext:i<g.rows.length-1, center});
+        });
+      });
+      x+=cmTable(cols,part.head.slice(0,n),body);
+    }else{
+      const n=part.head.length, cols=cmSpread(n);
+      const body=part.rows.map(r=>{
+        const cells=r.slice(0,n); while(cells.length<n) cells.push('');
+        return {cells, keepNext:false, center:[]};
+      });
+      x+=cmTable(cols,part.head,body);
+    }
+    x+=cmP('',{after:120});
+  });
+  return x;
+}
+async function cmBuildDocx(progId,rawName){
+  const parsed=cmParse(progId);
+  if(!parsed) return null;
+  const progName=cmProgName(rawName);
+  const logo=await cmLogoBytes();
+  const NS='xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" '+
+    'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" '+
+    'xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"';
+  const sectPr='<w:sectPr><w:headerReference w:type="default" r:id="rId10"/>'+
+    '<w:footerReference w:type="default" r:id="rId11"/>'+
+    '<w:pgSz w:w="'+CM_PAGE_W+'" w:h="15840"/>'+
+    '<w:pgMar w:top="2100" w:right="'+CM_MARGIN+'" w:bottom="1080" w:left="'+CM_MARGIN+
+    '" w:header="560" w:footer="480" w:gutter="0"/></w:sectPr>';
+  const documentXml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+    '<w:document '+NS+'><w:body>'+cmBodyXml(parsed,progName)+sectPr+'</w:body></w:document>';
+  const headerXml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+    '<w:hdr '+NS+'>'+cmHeaderXml(progName,!!logo)+'</w:hdr>';
+  const footerXml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+    '<w:ftr '+NS+'>'+cmFooterXml(progName)+'</w:ftr>';
+  const styles='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+    '<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'+
+    '<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/>'+
+    '<w:sz w:val="16"/><w:szCs w:val="16"/><w:color w:val="'+CM_INK+'"/></w:rPr></w:rPrDefault>'+
+    '<w:pPrDefault><w:pPr><w:spacing w:after="0" w:line="220" w:lineRule="auto"/></w:pPr></w:pPrDefault>'+
+    '</w:docDefaults><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style></w:styles>';
+  const files=[
+    {name:'[Content_Types].xml', data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+      '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'+
+      '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'+
+      '<Default Extension="xml" ContentType="application/xml"/>'+
+      (logo?'<Default Extension="png" ContentType="image/png"/>':'')+
+      '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>'+
+      '<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>'+
+      '<Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/>'+
+      '<Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>'+
+      '</Types>'},
+    {name:'_rels/.rels', data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
+      '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>'+
+      '</Relationships>'},
+    {name:'word/document.xml', data:documentXml},
+    {name:'word/_rels/document.xml.rels', data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
+      '<Relationship Id="rId9" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>'+
+      '<Relationship Id="rId10" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/>'+
+      '<Relationship Id="rId11" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/>'+
+      '</Relationships>'},
+    {name:'word/styles.xml', data:styles},
+    {name:'word/header1.xml', data:headerXml},
+    {name:'word/footer1.xml', data:footerXml},
+    {name:'word/_rels/header1.xml.rels', data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
+      (logo?'<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/logo.png"/>':'')+
+      '</Relationships>'}
+  ];
+  if(logo) files.push({name:'word/media/logo.png', data:logo});
+  return { blob:_zip(files), parsed };
+}
+
+/* ---------- the forms panel side ---------- */
+function cmStats(progId){
+  const p=cmParse(progId);
+  if(!p) return null;
+  const matrix=p.parts.filter(x=>x.kind==='table'&&x.plo)[0]||null;
+  const groups=matrix?cmGroups(matrix.rows):[];
+  return { section:p.section,
+           tables:p.parts.filter(x=>x.kind==='table').length,
+           courses:groups.filter(g=>g.code).length,
+           objectives:matrix?matrix.rows.length:0,
+           plos:matrix?matrix.head.filter(h=>/^PLO\s*\d/i.test(h)).length:0 };
+}
+function fmRenderCmapForm(){
+  const prog=(programs||[]).filter(p=>p.id===fmProgId)[0]||{};
+  const s=cmStats(fmProgId);
+  let h='<p class="fm-hint">SDI’s own document, built from this program’s curriculum map section — '+
+        'not an accreditor template. Portrait, with the SDI logo and the program name on every page.</p>';
+  if(!s){
+    h+='<p class="fm-note">No curriculum map found in this program. The generator looks for a section '+
+       'containing a table with PLO columns — build one and this fills itself.</p>';
+    return h;
+  }
+  h+='<p class="fm-q">What will be exported</p>';
+  h+='<div class="fm-courses">'+
+     '<div class="fm-crow fm-chead"><span>From</span><span>'+escapeHtml(s.section.phase+' → '+s.section.name)+'</span><span></span><span></span><span></span></div>'+
+     '<div class="fm-crow"><span>Courses</span><span>'+s.courses+'</span><span></span><span></span><span></span></div>'+
+     '<div class="fm-crow"><span>Objectives</span><span>'+s.objectives+'</span><span></span><span></span><span></span></div>'+
+     '<div class="fm-crow"><span>Outcomes</span><span>'+s.plos+' PLO columns</span><span></span><span></span><span></span></div>'+
+     '<div class="fm-crow"><span>Tables</span><span>'+s.tables+'</span><span></span><span></span><span></span></div>'+
+     '</div>';
+  h+='<p class="fm-q">How it lays out</p>'+
+     '<p class="fm-note">Portrait Letter. The column headings repeat at the top of every page, and a course is '+
+     'never split across a page break — if it will not fit, the whole course moves to the next page. '+
+     'Open it in Word and use Save as PDF for the copy you send.</p>';
+  return h;
+}
+async function cmGenerate(){
+  const prog=(programs||[]).filter(p=>p.id===fmProgId)[0]||{};
+  const name=String(prog.name||'Program');
+  const built=await cmBuildDocx(fmProgId,name);
+  if(!built){ await appAlert('No curriculum map was found in this program.'); return; }
+  const code=(name.match(/^\s*([A-Za-z0-9][A-Za-z0-9\-\/]{0,12})\s+(?:--|–|—)\s+/)||[])[1]||name;
+  const d=new Date(), pad=n=>String(n).padStart(2,'0');
+  const file='SDI-'+safeFileName(code)+'-Curriculum-Map-'+
+    d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'.docx';
+  downloadBlob(built.blob,file);
+  toast('Curriculum map downloaded ✓');
+}
+
 /* ---------- the panel ---------- */
 let fmPanelOpen=false, fmView='list', fmFormId='', fmStep=0, fmProgId='';
 // Only what the app can actually answer is a step. The affirmations are
@@ -15977,7 +16381,8 @@ function fmRenderList(){
     const when=ready?new Date(a.ready).toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'}):'';
     const pill=ready?'<span class="fm-chip ok">Form ready</span>'
                     :'<span class="fm-chip '+(viewerModeForced?'man':'need')+'">'+(viewerModeForced?'Preparing':'Draft')+'</span>';
-    const sub=f.agency+' · '+f.revision+(ready?' · marked ready '+when:'');
+    let sub=f.agency+' · '+f.revision+(ready?' · marked ready '+when:'');
+    if(fmIsGen(f)){ const cs=cmStats(fmProgId); sub=f.agency+' · '+(cs?cs.courses+' courses · '+cs.objectives+' objectives':'no curriculum map yet')+(ready?' · marked ready '+when:''); }
     if(viewerModeForced){
       h+='<div class="fm-row'+(ready?'':' fm-rowoff')+'">'+
          '<div style="flex:1;min-width:0"><div class="fm-rt">'+escapeHtml(f.title)+'</div>'+
@@ -15989,7 +16394,7 @@ function fmRenderList(){
       const st=_fmTpl[f.id];
       h+='<button class="fm-row" onclick="fmGo(\'form\',\''+f.id+'\')">'+
          '<div class="fm-rt">'+escapeHtml(f.title)+'</div>'+
-         '<div class="fm-rs">'+escapeHtml(sub+' · '+f.expect+' fields')+'</div>'+
+         '<div class="fm-rs">'+escapeHtml(sub+(fmIsGen(f)?'':' · '+f.expect+' fields'))+'</div>'+
          '<div class="fm-src">'+pill+
          (st?'<span class="fm-chip man">template loaded</span>':'')+
          (st&&st.unmatched?'<span class="fm-chip need">'+st.unmatched+' unmapped</span>':'')+
@@ -16056,6 +16461,7 @@ function fmRenderForm(){
   const form=fmForm(fmFormId), a=fmAns(fmProgId,fmFormId);
   // A spreadsheet form has no steps: every cell it needs is on one screen.
   if(fmIsSheet(form)) return fmRenderSheetForm();
+  if(fmIsGen(form)) return fmRenderCmapForm();
   if(fmIsNsc(form)) return fmRenderNscForm();
   let h=fmStepsBar();
   if(fmStep===0){
@@ -16129,6 +16535,12 @@ function fmRadio(what,opts,cur){
 
 function fmStatus(){
   const form=fmForm(fmFormId), t=_fmTpl[fmFormId], a=fmAns(fmProgId,fmFormId);
+  if(form&&fmIsGen(form)){
+    const s=cmStats(fmProgId);
+    return { total:0, need:s?0:1, ready:!!s,
+             msg: s ? (s.courses+' course'+(s.courses===1?'':'s')+' \u00b7 '+s.objectives+' objectives \u00b7 '+s.plos+' outcomes')
+                    : 'No curriculum map in this program' };
+  }
   if(!form||!t) return { total:0, need:0, ready:false, msg:'Template not loaded yet' };
   if(fmIsSheet(form)){
     const eo=eoTotals(fmProgId,a);
@@ -16173,7 +16585,8 @@ function fmRender(){
         (viewerModeForced?'<span class="fm-chip man">read-only</span>'
           :'<button class="fm-cta sec" onclick="fmToggleReady()"'+(s.ready?'':' disabled')+'>'+
             (a.ready?'Ready ✓':'Mark ready')+'</button>')+
-        '<button class="fm-cta" onclick="'+(fmIsSheet(fmForm(fmFormId))?'eoGenerate()':'fmGenerate()')+'"'+
+        '<button class="fm-cta" onclick="'+(fmIsGen(fmForm(fmFormId))?'cmGenerate()':
+          (fmIsSheet(fmForm(fmFormId))?'eoGenerate()':'fmGenerate()'))+'"'+
           (s.ready?'':' disabled')+'>Generate '+(fmIsSheet(fmForm(fmFormId))?'Excel':'Word')+' file</button>';
     }else{ foot.style.display='none'; foot.innerHTML=''; }
   }
@@ -16189,7 +16602,7 @@ function fmRetryTemplate(){
   fmEnsureTemplate();
 }
 async function fmEnsureTemplate(){
-  const form=fmForm(fmFormId); if(!form||_fmTpl[form.id]) return;
+  const form=fmForm(fmFormId); if(!form||fmIsGen(form)||_fmTpl[form.id]) return;
   const t=await fmTemplate(form,true);
   if(t){
     if(!fmIsSheet(form) && t.fields.length!==form.expect)
@@ -16211,6 +16624,7 @@ async function fmQuickGenerate(formId){
   fmFormId=formId;
   const foot=document.getElementById('forms-panel-foot');
   if(foot){ foot.style.display='flex'; foot.innerHTML='<div class="fm-bar"><div class="fm-bt">Building the document…</div></div>'; }
+  if(fmIsGen(form)){ await cmGenerate(); fmRender(); return; }
   const t=_fmTpl[form.id]||await fmTemplate(form);
   if(!t){ fmRender(); return; }
   if(fmIsSheet(form)) await eoGenerate(); else await fmGenerate();
