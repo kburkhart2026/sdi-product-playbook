@@ -16157,15 +16157,43 @@ function cmBodyXml(parsed,progName){
     }
     if(part.plo){
       const n=part.head.length;
-      const ploCount=part.head.filter(h=>/^PLO\s*\d/i.test(h)).length;
-      const fixed=n-ploCount;                       // Code, Name, Objective
-      const ploW=Math.max(420,Math.floor(2900/Math.max(ploCount,1)));
-      const rest=CM_BODY_W-ploW*ploCount;
-      const cols=[];
-      if(fixed===3){ cols.push(880, 1620, rest-880-1620); }
-      else { const each=Math.floor(rest/fixed); for(let i=0;i<fixed;i++) cols.push(i===fixed-1?rest-each*(fixed-1):each); }
-      for(let i=0;i<ploCount;i++) cols.push(ploW);
-      const center=[]; for(let i=fixed;i<n;i++) center.push(i);
+      // Which columns are outcomes is read from the headings, not assumed to be
+      // the last few -- a map may put them anywhere, and may add columns.
+      const ploIdx=[], textIdx=[];
+      part.head.forEach((h,i)=>{ (/^PLO\s*\d/i.test(h)?ploIdx:textIdx).push(i); });
+      const ploCount=ploIdx.length;
+      const ploW=Math.max(430,Math.min(640,Math.floor(3100/Math.max(ploCount,1))));
+      let rest=CM_BODY_W-ploW*ploCount;
+      // Width follows what a column HOLDS. Splitting the remainder equally gave
+      // "Course Code" as much room as "Course Learning Objective" the moment a
+      // Course Description column was added, which squeezed the prose to a
+      // sliver and stretched the codes.
+      const weight=h=>{
+        const t=String(h||'').toLowerCase();
+        if(/objective|outcome|competenc/.test(t)) return 4.2;
+        if(/description|summary|detail|note/.test(t)) return 2.8;
+        if(/name|title/.test(t)) return 1.8;
+        if(/code|number|\bno\b|#/.test(t)) return 1.0;
+        return 2.0;
+      };
+      const totalW=textIdx.reduce((a,i)=>a+weight(part.head[i]),0)||1;
+      const cols=new Array(n);
+      let used=0;
+      textIdx.forEach((i,k)=>{
+        let w;
+        if(k===textIdx.length-1) w=rest-used;
+        else { w=Math.round(rest*weight(part.head[i])/totalW); w=Math.max(620,w); }
+        cols[i]=w; used+=w;
+      });
+      // if the minimums overran, give the widest column whatever is left
+      if(cols[textIdx[textIdx.length-1]]<620 && textIdx.length>1){
+        const short=620-cols[textIdx[textIdx.length-1]];
+        let big=textIdx[0];
+        textIdx.forEach(i=>{ if(cols[i]>cols[big]) big=i; });
+        cols[big]-=short; cols[textIdx[textIdx.length-1]]=620;
+      }
+      ploIdx.forEach(i=>{ cols[i]=ploW; });
+      const center=ploIdx.slice();
       const body=[];
       cmGroups(part.rows).forEach(g=>{
         g.rows.forEach((r,i)=>{
