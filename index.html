@@ -1447,6 +1447,8 @@ body.view-mode .wysiwyg-bar{display:none!important;}
 .btool-copy:hover{background:#dbeafe;color:#1e40af;}
 /* ===== Added: hub utility (backup) buttons ===== */
 .hub-util-btn{background:rgba(255,255,255,0.12);color:#fff;border:none;padding:8px 14px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;transition:opacity 0.12s;margin-right:6px;}
+#hub-editor-actions .export-menu{color:var(--txt);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;text-transform:none;letter-spacing:normal;font-weight:400;text-align:left;width:236px;}
+#hub-editor-actions .export-opt{white-space:nowrap;}
 .hub-util-btn:hover{opacity:0.85;}
 /* ===== Added: copy-block modal ===== */
 .cb-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:10000;align-items:center;justify-content:center;}
@@ -1909,11 +1911,25 @@ table.mg2-table tr.clickable:hover{background:#FDF4F5;}
     <div class="hub-sync-status local" id="hub-sync-status">💾 Saving locally</div>
     <div id="hub-editor-actions" style="display:flex;align-items:center;gap:8px;">
       <button class="hub-util-btn" onclick="openPMDash()" title="Portfolio dashboard — PM roll-up across all programs">📊 Dashboard</button>
-      <button class="hub-util-btn" onclick="exportBackup()" title="Download a backup file of all programs and content">⬇ Backup</button>
-      <button class="hub-util-btn" onclick="triggerRestore()" title="Restore everything from a backup file">⬆ Restore</button>
+      <div class="export-wrap" style="margin-right:6px;">
+        <button class="hub-util-btn" id="hub-data-btn" style="margin-right:0;" onclick="toggleHubDataMenu(event)" title="Back up or restore the whole Playbook">⚙ Data ▾</button>
+        <div class="export-menu" id="hub-data-menu">
+          <div class="export-opt" onclick="closeHubMenus(); exportBackup();">💾 Backup all data (.json)</div>
+          <div class="export-opt" onclick="closeHubMenus(); backupToGithubNow();">⬆🐙 Back up to GitHub now</div>
+          <div class="export-opt" onclick="closeHubMenus(); triggerRestore();">⤴ Restore from backup…</div>
+          <div class="export-opt" onclick="closeHubMenus(); showVersionHistory();">🕓 Version history…</div>
+        </div>
+      </div>
       <input type="file" id="restore-file-input" accept="application/json,.json" style="display:none" onchange="handleRestoreFile(this)">
-      <button class="hub-new-btn" style="background:rgba(255,255,255,0.12);margin-right:6px;" onclick="showTemplateModal()">From Template</button>
-      <button class="hub-new-btn" onclick="newProgram()">+ New Program</button>
+      <input type="file" id="import-prog-input" accept="application/json,.json" style="display:none" onchange="handleImportProgramFile(this)">
+      <div class="export-wrap">
+        <button class="hub-new-btn" id="hub-new-btn" onclick="toggleHubNewMenu(event)" title="Add a program: blank, from a template, or from a file">+ Add Program ▾</button>
+        <div class="export-menu" id="hub-new-menu">
+          <div class="export-opt" onclick="closeHubMenus(); newProgram();">📄 Blank program</div>
+          <div class="export-opt" onclick="closeHubMenus(); showTemplateModal();">📋 From a template…</div>
+          <div class="export-opt" onclick="closeHubMenus(); triggerImportProgram();">📥 Import from a file…</div>
+        </div>
+      </div>
     </div>
   </div>
   <div class="hub-body">
@@ -4936,6 +4952,7 @@ async function doPersist(){
       'Nothing has been overwritten. Your unsaved changes are still in this window '+
       'and in the backup you take in step 1.');
   }
+  return ok;   // callers that must know whether GitHub actually has it
 }
 let _staleWarned = false;
 
@@ -7816,6 +7833,10 @@ document.addEventListener('click',e=>{
   if(em&&!em.contains(e.target)&&!e.target.closest('.export-btn')) em.classList.remove('show');
   const tm=document.getElementById('tools-menu');
   if(tm&&!tm.contains(e.target)&&!e.target.closest('#tools-btn')) tm.classList.remove('show');
+  const hd=document.getElementById('hub-data-menu');
+  if(hd&&!hd.contains(e.target)&&!e.target.closest('#hub-data-btn')) hd.classList.remove('show');
+  const hn=document.getElementById('hub-new-menu');
+  if(hn&&!hn.contains(e.target)&&!e.target.closest('#hub-new-btn')) hn.classList.remove('show');
 });
 // True for anything where the browser's own editing behaviour should win:
 // real form controls, and anything inside a docked tool panel. Content blocks
@@ -7866,6 +7887,21 @@ function toggleToolsMenu(e){
   e.stopPropagation();
   const em=document.getElementById('export-menu'); if(em) em.classList.remove('show');
   document.getElementById('tools-menu').classList.toggle('show');
+}
+// ---- Hub topbar menus. Same popover pattern as Export/Tools, but these live
+// on the portfolio screen, so they only ever hold whole-Playbook actions.
+function closeHubMenus(){
+  ['hub-data-menu','hub-new-menu'].forEach(id=>{ const m=document.getElementById(id); if(m) m.classList.remove('show'); });
+}
+function toggleHubDataMenu(e){
+  e.stopPropagation();
+  const n=document.getElementById('hub-new-menu'); if(n) n.classList.remove('show');
+  const m=document.getElementById('hub-data-menu'); if(m) m.classList.toggle('show');
+}
+function toggleHubNewMenu(e){
+  e.stopPropagation();
+  const d=document.getElementById('hub-data-menu'); if(d) d.classList.remove('show');
+  const m=document.getElementById('hub-new-menu'); if(m) m.classList.toggle('show');
 }
 function exportPDF(){
   document.getElementById('export-menu').classList.remove('show');
@@ -11578,6 +11614,74 @@ function updateBackupReminder(){
     pill.style.display=overdue?'':'none';
   }
 }
+// A restore writes the recovered state to THIS BROWSER only. Boot then reads
+// the manifest from GitHub and applyState()s it over the top, so the restore is
+// undone by its own reload and you are left believing you recovered something
+// you did not. The recovered state has to reach GitHub before the page reloads.
+//
+// Unlike the import, a restore REPLACES: saveSpace() has written the new state
+// to storage but the live globals still hold the old one, and doPersist() reads
+// the globals -- so the restored state is made live first, or GitHub would be
+// handed back exactly what we are trying to replace.
+async function pushRestoredStateToGithub(state){
+  if(githubMode()!=='editor') return { pushed:true, why:'' };
+  try{
+    renderedKey = null;          // stop saveCurrentBlocks writing the OLD section's DOM into the new store
+    applyState(state);
+    (state.programs||[]).forEach(pr=>{ if(pr&&pr.id){ dirtyPrograms.add(pr.id); loadedPrograms.add(pr.id); } });
+    Object.keys(state.blockStore||{}).forEach(k=>{
+      const i=k.indexOf(':'); if(i>0){ dirtyPrograms.add(k.slice(0,i)); loadedPrograms.add(k.slice(0,i)); }
+    });
+    const ok = !!(await doPersist());
+    return { pushed:ok, why: ok?'':ghLastErrorText() };
+  }catch(err){ return { pushed:false, why: err.message||String(err) }; }
+}
+function restoreOutcomeText(what, r){
+  return r.pushed
+    ? what+' restored, here and on GitHub.\n\nThe page will now reload.'
+    : what+' was restored in this browser but could NOT be saved to GitHub'+(r.why?' ('+r.why+')':'')+
+      '.\n\n\u26a0 Do NOT reload \u2014 reloading reads GitHub\'s older copy back over it and the '+
+      'restore is lost.\n\nBack up now (\u2699 Data & Backup \u2192 Backup all data), fix the connection, '+
+      'then press Ctrl/Cmd+S.';
+}
+function triggerImportProgram(){
+  if(viewerModeForced) return;
+  const inp=document.getElementById('import-prog-input'); if(inp){ inp.value=''; inp.click(); }
+}
+// Unlike Restore, this never replaces anything -- so it is safe to run against a
+// space that already holds work. It reports exactly what it would add first.
+async function handleImportProgramFile(input){
+  if(viewerModeForced) return;
+  const file=input.files&&input.files[0]; if(!file) return;
+  let data;
+  try{ data=JSON.parse(await file.text()); }
+  catch(err){ await appAlert('That file is not valid JSON.'); input.value=''; return; }
+  const snap=data&&(data.sdi_space||(Array.isArray(data.programs)?data:null));
+  if(!snap||!Array.isArray(snap.programs)){
+    await appAlert('That file does not contain any programs.\n\nIt should be an SDI backup file, or a file holding a "programs" list.');
+    input.value=''; return;
+  }
+  const incoming=snap.programs.map(pp=>({p:pp, exists:programs.some(x=>x.id===pp.id)}));
+  const fresh=incoming.filter(x=>!x.exists), already=incoming.filter(x=>x.exists);
+  const secs=fresh.reduce((n,x)=>n+(x.p.phases||[]).reduce((m,ph)=>m+(ph.sections||[]).length,0),0);
+  const blocks=Object.keys(snap.blockStore||{}).filter(k=>blockStore[k]===undefined).length;
+  if(!fresh.length && !blocks){
+    await appAlert('Nothing to add \u2014 every program in that file is already here, and so is its content.');
+    input.value=''; return;
+  }
+  const lines=[];
+  if(fresh.length) lines.push('NEW programs: '+fresh.map(x=>x.p.name||x.p.id).join(', '));
+  if(already.length) lines.push('Already here (left alone): '+already.map(x=>x.p.name||x.p.id).join(', '));
+  lines.push('Sections to add: '+secs);
+  lines.push('Sections of content to add: '+blocks);
+  if(!await appConfirm('Import from '+file.name+'?\n\n'+lines.join('\n')+
+      '\n\nThis ADDS only. Nothing already in this Playbook is replaced or overwritten.','Import','Cancel')){
+    input.value=''; return;
+  }
+  defangImportedBlockStore(snap.blockStore);
+  saveCurrentBlocks();
+  await applySnapshotMerge(snap, file.name);
+}
 function triggerRestore(){
   const em=document.getElementById('export-menu'); if(em) em.classList.remove('show');
   const inp=document.getElementById('restore-file-input'); if(inp){ inp.value=''; inp.click(); }
@@ -11634,8 +11738,9 @@ function handleRestoreFile(input){
       if(data.sdi_user_tags) localStorage.setItem('sdi_user_tags', JSON.stringify(data.sdi_user_tags));
     }catch(err){ await appAlert('Restore failed while writing to browser storage: '+err.message); input.value=''; return; }
     window.__skipPersist=true; // stop beforeunload from clobbering the restored data
-    await appAlert('Backup restored. The page will now reload.');
-    location.reload();
+    const r=await pushRestoredStateToGithub(data.sdi_space);
+    await appAlert(restoreOutcomeText('Backup', r));
+    if(r.pushed) location.reload();
   };
   reader.readAsText(file);
 }
@@ -11745,7 +11850,16 @@ async function mergeBundledSnapshot(banner){
     data=await r.json();
   }catch(e){ await appAlert('Could not read the bundled snapshot: '+e.message); if(btn){btn.disabled=false;btn.textContent='Restore missing content';} return; }
   if(!data||!data.sdi_space){ await appAlert('The bundled snapshot is not a valid backup.'); return; }
-  const snap=data.sdi_space;
+  return applySnapshotMerge(data.sdi_space,'the bundled snapshot');
+}
+
+// Merge a snapshot into what is already here WITHOUT replacing anything: a
+// program whose id is absent is added whole, missing phases and sections are
+// filled in, block content is written only where there is none, and every side
+// table gap-fills. Reached from the bundled snapshot and from "Import a program
+// from a file", which is how new programs arrive without retyping them.
+async function applySnapshotMerge(snap, label){
+  const addedFrom=label||'the file';
   // Same reasoning as handleRestoreFile: this file lives on disk next to the app and
   // could have been swapped/tampered with independently of the app itself.
   defangImportedBlockStore(snap.blockStore);
@@ -11851,10 +11965,26 @@ async function mergeBundledSnapshot(banner){
     await saveSpace({ programs, phases: clonePhases(PHASES), blockStore, sectionStatus, sectionLocks,
       sectionComments, sectionUpdated, blockTags, pmStore, marginStore, knowledgeStore, standardsStore, courseStore, shelfStore, changelogStore, formStore, v:2, ts: Date.now() });
   }catch(err){ await appAlert('Restore failed while writing to browser storage: '+err.message); return; }
+  // Writing to this browser is not enough. Boot reads the manifest from GitHub
+  // and applyState()s it over whatever is here, so a merge that never reached
+  // GitHub is silently undone by its own reload. Push it first.
+  let pushed=true, pushWhy='';
+  if(githubMode()==='editor'){
+    const touch=id=>{ if(!id) return; dirtyPrograms.add(id); loadedPrograms.add(id); };
+    (snap.programs||[]).forEach(p=>touch(p.id));
+    Object.keys(snap.blockStore||{}).forEach(k=>{ const i=k.indexOf(':'); if(i>0) touch(k.slice(0,i)); });
+    try{ pushed = !!(await doPersist()); }
+    catch(err){ pushed=false; pushWhy=err.message||String(err); }
+    if(!pushed && !pushWhy) pushWhy=ghLastErrorText();
+  }
   window.__skipPersist=true;
-  await appAlert('Restored '+addedBlocks+' section(s), '+addedSecs+' new section entr(ies) and '+addedProgs+
-    ' program(s) from the bundled snapshot.\n\nThe page will now reload.');
-  location.reload();
+  await appAlert('Added '+addedProgs+' program(s), '+addedSecs+' section entr(ies) and '+addedBlocks+
+    ' section(s) of content from '+addedFrom+'.\n\nNothing already here was replaced.'+
+    (pushed ? '\n\nThe page will now reload.'
+            : '\n\n\u26a0 It was saved in this browser but NOT to GitHub'+(pushWhy?' ('+pushWhy+')':'')+
+              '.\n\nDo NOT reload until it saves, or the import will be lost. Close this, fix the '+
+              'connection, and press Ctrl/Cmd+S.'));
+  if(pushed) location.reload();
 }
 
 // Roll back to the version saved before the most recent write (IDB 'prev' slot).
@@ -11869,7 +11999,9 @@ async function recoverPrevVersion(){
     '\nSections with content: '+nSec+'\n\nThis replaces what is currently in this browser. Download a backup first if unsure.')) return;
   window.__skipPersist=true;
   try{ await saveSpace(prev); }catch(err){ window.__skipPersist=false; await appAlert('Rollback failed: '+err.message); return; }
-  location.reload();
+  const r=await pushRestoredStateToGithub(prev);
+  await appAlert(restoreOutcomeText('That version', r));
+  if(r.pushed) location.reload();
 }
 
 // Rolling history browser: pick any retained version and roll back to it.
@@ -11907,7 +12039,9 @@ async function showVersionHistory(){
       if(!await appConfirm('Restore the version from '+new Date(rec.meta.ts).toLocaleString()+'?\n\nThis replaces what is currently in this browser.')) return;
       window.__skipPersist=true;
       try{ await saveSpace(rec.state); }catch(err){ window.__skipPersist=false; await appAlert('Restore failed: '+err.message); return; }
-      location.reload();
+      const r=await pushRestoredStateToGithub(rec.state);
+      await appAlert(restoreOutcomeText('That version', r));
+      if(r.pushed) location.reload();
     };
   });
 }
