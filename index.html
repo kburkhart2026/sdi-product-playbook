@@ -664,6 +664,7 @@ body.view-mode .crs-del,body.view-mode .crs-revert{display:none!important;}
 .block-table.tf-boldcol tr>*:first-child{font-weight:700;}
 .block-table th[contenteditable]{position:relative;}
 .block-table td.tf-sel,.block-table th.tf-sel{outline:2px solid var(--acc);outline-offset:-2px;box-shadow:inset 0 0 0 200px rgba(213,0,50,0.06);}
+.block-table td.tbl-col-hl,.block-table th.tbl-col-hl{box-shadow:inset 0 0 0 200px rgba(213,0,50,0.045);}
 .tbl-tb-btn.danger:hover{background:#fee2e2;border-color:#fca5a5;color:#dc2626;}
 .tbl-tb-sep{color:var(--bdr);font-size:14px;user-select:none;}
 .tbl-col-del-row{display:none;}
@@ -5068,6 +5069,7 @@ function saveCurrentBlocks(){
     // also corrupts onclick="...toggle('tools-open')" into toggle('').
     const clone = root.cloneNode(true);
     clone.querySelectorAll('.tf-sel').forEach(el=>el.classList.remove('tf-sel'));
+    clone.querySelectorAll('.tbl-col-hl').forEach(el=>el.classList.remove('tbl-col-hl'));
     clone.querySelectorAll('.tools-open').forEach(el=>el.classList.remove('tools-open'));
     const cur = clone.innerHTML;
     // Real edit detection: content changed vs. what was stored -> stamp the section
@@ -7057,6 +7059,54 @@ function removeTableRow(tr){
   if(tbody.closest&&tbody.closest('.block-table')) normalizeTableBody(tbody);
 }
 
+// Remove a whole column without breaking merged cells. The transpose of
+// removeTableRow above: for every distinct cell occupying that grid column, a
+// cell that spans more than one column shrinks by one and stays, and a plain
+// cell is removed once -- once, not per row, because a rowspan makes the same
+// cell occupy several grid rows. Reading cells positionally instead (what this
+// used to do) deletes the wrong cell the moment a table has a merge in it.
+function removeTableColumn(tbl, col){
+  const {grid}=tblGrid(tbl);
+  const done=new Set();
+  for(let r=0;r<grid.length;r++){
+    const cell=(grid[r]||[])[col];
+    if(!cell||done.has(cell)) continue;
+    done.add(cell);
+    const cs=cell.colSpan||1;
+    if(cs>2) cell.colSpan=cs-1;
+    else if(cs===2) cell.removeAttribute('colspan');   // drop it rather than leave colspan="1" behind
+    else cell.remove();
+  }
+}
+function tblColCount(tbl){
+  const {grid}=tblGrid(tbl);
+  return grid.reduce((n,row)=>Math.max(n,(row||[]).length),0);
+}
+// The grid column a cell starts in (its anchor), or -1.
+function tblColOf(tbl, cell){
+  const {grid}=tblGrid(tbl);
+  const r=cellRect(grid, cell);
+  return r.c1<0 ? -1 : r.c0;
+}
+function tblHeaderAt(tbl, col){
+  const {grid}=tblGrid(tbl);
+  const cell=(grid[0]||[])[col];
+  return cell ? (cell.textContent||'').trim() : '';
+}
+// Filled body cells that would be lost -- counted per distinct cell, so a
+// merged cell is not counted once per row it covers.
+function tblColFilled(tbl, col){
+  const {grid}=tblGrid(tbl);
+  const seen=new Set(); let n=0;
+  for(let r=1;r<grid.length;r++){
+    const cell=(grid[r]||[])[col];
+    if(!cell||seen.has(cell)) continue;
+    seen.add(cell);
+    if((cell.textContent||'').trim()) n++;
+  }
+  return n;
+}
+
 async function delTblRow(btn){
   const tr=btn.closest('tr');
   const tbody=tr.closest('tbody');
@@ -7086,19 +7136,30 @@ async function addTblCol(id){
 }
 
 async function delTblCol(id){
-  const tbl=document.getElementById(id);
-  const editableThs=tbl.querySelectorAll('thead th[contenteditable]');
-  if(editableThs.length<=1){await appAlert('Cannot delete the only column.');return;}
-  const lastTh=editableThs[editableThs.length-1];
-  const colIdx=Array.from(lastTh.parentElement.children).indexOf(lastTh);
-  const colName=lastTh.textContent.trim()||'this column';
-  if(!await appConfirm('Delete column "'+colName+'"? All cell data in this column will be lost.')) return;
-  lastTh.remove();
-  tbl.querySelectorAll('tbody tr').forEach(tr=>{
-    const cells=tr.querySelectorAll('td[contenteditable]');
-    if(cells[colIdx]) cells[colIdx].remove();
-  });
-  // The remaining columns' percentages no longer sum to 100% -- redistribute.
+  if(viewerModeForced) return;
+  const tbl=document.getElementById(id); if(!tbl) return;
+  // A real multi-cell selection wins; otherwise the cell last clicked. Never a
+  // silent fallback to the last column -- a destructive action must not guess.
+  let cells=[];
+  if(__tsel.cells.length && __tsel.cells[0].closest('table')===tbl) cells=__tsel.cells.slice();
+  else if(lastTableCell && tbl.contains(lastTableCell)) cells=[lastTableCell];
+  const cols=[...new Set(cells.map(c=>tblColOf(tbl,c)))].filter(c=>c>=0).sort((a,b)=>a-b);
+  if(!cols.length){ toast('Click a cell in the column you want to delete first.'); return; }
+  const width=tblColCount(tbl);
+  if(cols.length>=width){ await appAlert('That would delete every column. Keep at least one.'); return; }
+  const names=cols.map(c=>tblHeaderAt(tbl,c)||'(untitled)');
+  const filled=cols.reduce((n,c)=>n+tblColFilled(tbl,c),0);
+  const what = cols.length===1
+    ? 'Delete the column "'+names[0]+'"?'
+    : 'Delete these '+cols.length+' columns: '+names.map(n=>'"'+n+'"').join(', ')+'?';
+  const cost = filled
+    ? '\n\n'+filled+' filled cell'+(filled===1?'':'s')+' will be lost.'
+    : '\n\nNothing is filled in, so no content is lost.';
+  if(!await appConfirm(what+cost)) return;
+  cols.slice().reverse().forEach(c=>removeTableColumn(tbl,c));  // right to left, so the lower indices stay valid
+  tselClear(); tblClearColHighlight();
+  const tb=tbl.tBodies[0]; if(tb) try{ normalizeTableBody(tb); }catch(e){}
+  // The survivors' percentages no longer sum to 100% -- redistribute.
   try{ proportionTableCols(tbl); }catch(e){}
   scheduleSave();
 }
@@ -12063,7 +12124,7 @@ function tblToolbarHTML(id){
     `<button class="tbl-tb-btn" onclick="openTblFmt('${id}',event)" title="Format cells: alignment and fill color">\ud83c\udfa8 Format</button>`+
     `<button class="tbl-tb-btn" onclick="tableToCSV('${id}')" title="Download this table as a CSV file (opens in Excel)">\u2b07 CSV</button>`+
     `<button class="tbl-tb-btn" onclick="importTblFile('${id}')" title="Import an Excel (.xlsx) or CSV file into this table">\u2b06 Import</button>`+
-    `<button class="tbl-tb-btn danger" onclick="delTblCol('${id}')">- Last column</button>`;
+    `<button class="tbl-tb-btn danger" onclick="delTblCol('${id}')" title="Delete the selected cell's column">- Column</button>`;
 }
 // Patch blocks loaded from saved HTML so older content gets the new controls
 function upgradeBlocks(root){
@@ -12244,12 +12305,31 @@ function upgradeBlocks(root){
 
 // ==================== TABLE: MOVE ROWS / COLUMNS ====================
 let lastTableCell=null;
+function tblClearColHighlight(){
+  document.querySelectorAll('.block-table .tbl-col-hl').forEach(el=>el.classList.remove('tbl-col-hl'));
+}
+// Tint the column the caret is in. Clicking one cell sets no visible selection
+// otherwise, and "- Column" is destructive -- you should be able to see what it
+// is aimed at before you press it. Transient: stripped from the saved clone.
+function tblHighlightCol(cell){
+  tblClearColHighlight();
+  const tbl=cell&&cell.closest('.block-table'); if(!tbl) return;
+  const col=tblColOf(tbl,cell); if(col<0) return;
+  const {grid}=tblGrid(tbl);
+  const seen=new Set();
+  for(let r=0;r<grid.length;r++){
+    const c=(grid[r]||[])[col];
+    if(c&&!seen.has(c)){ seen.add(c); c.classList.add('tbl-col-hl'); }
+  }
+}
 document.addEventListener('focusin',e=>{
   const t=e.target;
-  if(t&&t.closest){
-    const cell=t.closest('.block-table td[contenteditable], .block-table th[contenteditable]');
-    if(cell) lastTableCell=cell;
-  }
+  if(!t||!t.closest) return;
+  const cell=t.closest('.block-table td[contenteditable], .block-table th[contenteditable]');
+  if(cell){ lastTableCell=cell; tblHighlightCol(cell); }
+  // Focus moving to a table's own toolbar must NOT clear the tint -- that is
+  // exactly the moment the tint is being relied on.
+  else if(!t.closest('.tbl-toolbar') && !t.closest('.tbl-gear')) tblClearColHighlight();
 });
 function swapCellContent(a,b){
   const ha=a.innerHTML, hb=b.innerHTML; a.innerHTML=hb; b.innerHTML=ha;
@@ -12628,18 +12708,28 @@ function insertTableRowAt(tbody,hi){
   }
 })();
 function moveTblCol(id,dir){
+  if(viewerModeForced) return;
   const tbl=document.getElementById(id); if(!tbl) return;
   const cell=(lastTableCell&&tbl.contains(lastTableCell))?lastTableCell:null;
   if(!cell){ toast('Click a cell in the column you want to move first.'); return; }
-  const rowCells=[...cell.parentElement.children].filter(c=>c.matches('[contenteditable]'));
-  const colIdx=rowCells.indexOf(cell);
-  if(colIdx<0) return;
-  const target=colIdx+dir;
-  if(target<0||target>=rowCells.length){ toast(dir<0?'Already the first column.':'Already the last column.'); return; }
-  [...tbl.querySelectorAll('thead tr, tbody tr')].forEach(tr=>{
-    const cells=[...tr.children].filter(c=>c.matches('[contenteditable]'));
-    const a=cells[colIdx], b=cells[target];
-    if(a&&b){ if(dir<0) tr.insertBefore(a,b); else tr.insertBefore(b,a); }
+  const {grid,rows}=tblGrid(tbl);
+  const col=tblColOf(tbl,cell);
+  if(col<0) return;
+  const width=tblColCount(tbl);
+  const target=col+dir;
+  if(target<0||target>=width){ toast(dir<0?'Already the first column.':'Already the last column.'); return; }
+  // Swapping two columns tears any cell that is merged across or down through
+  // them, so refuse rather than corrupt the table -- the same line moveRowRel
+  // already draws for rows.
+  for(let r=0;r<grid.length;r++){
+    const a=(grid[r]||[])[col], b=(grid[r]||[])[target];
+    const merged=x=>x&&((x.colSpan||1)>1||(x.rowSpan||1)>1);
+    if(merged(a)||merged(b)){ toast('Can\u2019t move a column through merged cells \u2014 split them first.'); return; }
+  }
+  rows.forEach((tr,ri)=>{
+    const a=(grid[ri]||[])[col], b=(grid[ri]||[])[target];
+    if(!a||!b||a===b) return;
+    if(dir<0) tr.insertBefore(a,b); else tr.insertBefore(b,a);
   });
   scheduleSave();
 }
