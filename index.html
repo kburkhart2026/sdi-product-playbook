@@ -751,6 +751,41 @@ body.view-mode .file-edit,body.locked .file-edit{display:none;}
 .img-ph .lbl strong{color:var(--acc);}
 .block-image img{width:100%;display:block;max-height:500px;object-fit:contain;background:#f8fafc;cursor:zoom-in;}
 
+/* image gallery: several pictures across, each with its own caption */
+.block-gallery{background:#fff;border:1px solid var(--bdr);border-radius:8px;padding:12px;}
+.gal-grid{display:grid;gap:12px;grid-template-columns:repeat(3,minmax(0,1fr));}
+.block-gallery[data-cols="2"] .gal-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+.block-gallery[data-cols="4"] .gal-grid{grid-template-columns:repeat(4,minmax(0,1fr));}
+.gal-item{display:flex;flex-direction:column;gap:6px;min-width:0;}
+.gal-pic{position:relative;}
+.gal-pic img{width:100%;display:block;height:150px;object-fit:contain;background:#f8fafc;border:1px solid var(--bdr);border-radius:4px;cursor:zoom-in;}
+/* fewer columns means a wider tile, so give it proportionally more height */
+.block-gallery[data-cols="2"] .gal-pic img{height:210px;}
+.block-gallery[data-cols="4"] .gal-pic img{height:118px;}
+.gal-cap{font-size:12px;line-height:1.45;color:var(--mut);outline:none;min-height:17px;}
+.gal-cap:empty:before{content:attr(data-ph);color:#9aa2ac;}
+.gal-del,.gal-swap{position:absolute;top:5px;width:22px;height:22px;border:none;border-radius:3px;color:#fff;font-size:12px;line-height:1;cursor:pointer;opacity:0;transition:opacity 0.12s;}
+.gal-grip{position:absolute;top:5px;left:5px;width:22px;height:22px;border-radius:3px;background:rgba(16,24,32,0.72);color:#fff;font-size:12px;line-height:22px;text-align:center;cursor:grab;opacity:0;transition:opacity 0.12s;user-select:none;}
+.gal-grip:active{cursor:grabbing;}
+.gal-item:hover .gal-grip{opacity:1;}
+.gal-item.gal-ghost{opacity:0.35;}
+.gal-item.gal-chosen .gal-grip{opacity:1;}
+.gal-del{right:5px;background:rgba(213,0,50,0.9);}
+.gal-swap{right:31px;background:rgba(16,24,32,0.72);}
+.gal-item:hover .gal-del,.gal-item:hover .gal-swap{opacity:1;}
+.gal-empty{grid-column:1/-1;padding:26px;text-align:center;cursor:pointer;border:2px dashed var(--bdr);border-radius:6px;background:#faf8f4;transition:border-color 0.15s;}
+.gal-empty:hover{border-color:var(--acc);}
+.gal-empty .ico{font-size:24px;margin-bottom:6px;}
+.gal-empty .lbl{font-size:13.5px;color:var(--mut);}
+.gal-empty .lbl strong{color:var(--acc);}
+.gal-bar{display:flex;align-items:center;gap:6px;margin-top:10px;padding-top:9px;border-top:1px solid var(--bone);}
+.gal-btn{font:600 12px/1 inherit;padding:5px 10px;border:1px solid var(--bdr);background:#fff;color:var(--mut);border-radius:3px;cursor:pointer;}
+.gal-btn:hover{background:var(--cbg);}
+.gal-btn.on{border:2px solid var(--acc);color:var(--acc);font-weight:700;padding:4px 9px;}
+.gal-lbl{font-family:var(--font-cond);text-transform:uppercase;letter-spacing:0.06em;font-weight:700;font-size:10.5px;color:var(--mut);margin-right:2px;}
+.gal-weight{margin-left:auto;font-size:11.5px;color:var(--mut);}
+.gal-weight.heavy{color:#B54708;font-weight:600;}
+
 /* full-screen image lightbox (minimal): wheel zooms at cursor, drag pans, Esc/backdrop closes */
 #imgLightbox{position:fixed;inset:0;z-index:12000;background:rgba(16,24,32,0.93);display:none;overflow:hidden;user-select:none;}
 #imgLightbox.on{display:block;}
@@ -958,6 +993,11 @@ body.view-mode .dsec,
 body.view-mode .sec-del,
 body.view-mode .ph-del,
 body.view-mode .vid-change-bar,
+body.view-mode .gal-bar,
+body.view-mode .gal-grip,
+body.view-mode .gal-del,
+body.view-mode .gal-swap,
+body.view-mode .gal-empty,
 body.view-mode .tl-add-btn,
 body.view-mode .tl-del,
 body.view-mode .tl-date-clear,
@@ -1207,6 +1247,7 @@ body.is-staging::before{content:'';position:fixed;top:0;left:0;right:0;height:3p
 .locked-banner{background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:600;margin-bottom:16px;display:none;}
 .section-locked .locked-banner{display:block;}
 .section-locked .add-block-area{display:none!important;}
+.section-locked .gal-grip,.section-locked .gal-bar,.section-locked .gal-del,.section-locked .gal-swap,.section-locked .gal-empty,
 .section-locked .bctrl,.section-locked .swot-add,.section-locked .tbl-toolbar,.section-locked .tbl-gear,.section-locked .tbl-rowops,.section-locked .tbl-row-del,.section-locked .tl-add-btn,.section-locked .tl-del,.section-locked .tl-date-clear,.section-locked .tbl-add-row,.section-locked .dl-add,.section-locked .ap-add{display:none!important;}
 .section-locked #page-title{pointer-events:none;}
 
@@ -1396,6 +1437,7 @@ body.view-mode .pc2-rev{display:none!important;}
   .tbl-gear,.tbl-toolbar,.tbl-rowops,.tbl-row-del,.tbl-add-row,.tl-add-btn,.tl-del,.tl-date-clear,.dl-add,.ap-add,
   .tl-date-month,.tl-date-year,
   .vid-change-bar,.block-tag,.wysiwyg-bar,.btool-tag,.btool-copy,.bdel,.bdrag,
+  .gal-bar,.gal-grip,.gal-del,.gal-swap,.gal-empty,
   .cost-add,.cost-clear,.cost-foot-bar,.cost-rowdrag,
   .tbl-rowops,
   .ap-btn[onclick],.locked-banner,#clog-post-btn,.claude-panel,.link-pop,#tbl-fmt-pop,.export-menu,#databackup-modal,#shortcuts-modal{display:none!important;}
@@ -1407,6 +1449,7 @@ body.view-mode .pc2-rev{display:none!important;}
   /* collapse the empty row-delete column so it leaves no sliver */
   .block-table td:last-child:empty,.block-table th:last-child:empty{display:none!important;}
   .block-text,.block-callout,.block-table-wrap,.block-timeline,.block-decision,.block-approval,.block-image,.block-video,.block-embed{page-break-inside:avoid;}
+  .block-gallery,.gal-item{page-break-inside:avoid;}
   .swot-q{page-break-inside:avoid;}
   a{color:#0563C1;}
 }
@@ -2310,6 +2353,7 @@ table.mg2-table tr.clickable:hover{background:#FDF4F5;}
   <div class="pk-item" onclick="addBlock('decision')"><div class="pk-ico">🗂️</div><div><div class="pk-lbl">Decision Log</div><div class="pk-desc">Track decisions and rationale</div></div></div>
   <div class="pk-item" onclick="addBlock('approval')"><div class="pk-ico">✅</div><div><div class="pk-lbl">Approval Tracker</div><div class="pk-desc">Sign-off status by stakeholder</div></div></div>
   <div class="pk-item" onclick="addBlock('image')"><div class="pk-ico">🖼️</div><div><div class="pk-lbl">Image</div><div class="pk-desc">Upload or link an image</div></div></div>
+  <div class="pk-item" onclick="addBlock('gallery')"><div class="pk-ico">🖼</div><div><div class="pk-lbl">Image Gallery</div><div class="pk-desc">Several images across, each with its own caption</div></div></div>
   <div class="pk-item" onclick="addBlock('video')"><div class="pk-ico">▶️</div><div><div class="pk-lbl">Video</div><div class="pk-desc">YouTube or Vimeo embed</div></div></div>
   <div class="pk-item" onclick="addBlock('drawing')"><div class="pk-ico">✏️</div><div><div class="pk-lbl">Drawing / Diagram</div><div class="pk-desc">Sketch shapes, arrows, and labels</div></div></div>
   <div class="pk-item" onclick="addBlock('file')"><div class="pk-ico">📎</div><div><div class="pk-lbl">File / Link</div><div class="pk-desc">Attach a doc, deck, or link</div></div></div>
@@ -5071,6 +5115,7 @@ function saveCurrentBlocks(){
     clone.querySelectorAll('.tf-sel').forEach(el=>el.classList.remove('tf-sel'));
     clone.querySelectorAll('.tbl-col-hl').forEach(el=>el.classList.remove('tbl-col-hl'));
     clone.querySelectorAll('.tools-open').forEach(el=>el.classList.remove('tools-open'));
+    clone.querySelectorAll('.gal-bar').forEach(el=>el.remove());   // rebuilt by galSyncBar on load; never stored, so no export can leak it
     const cur = clone.innerHTML;
     // Real edit detection: content changed vs. what was stored -> stamp the section
     if(blockStore[renderedKey] !== cur){
@@ -5387,7 +5432,7 @@ function clogBaseSet(key, snap){
 
 const CLOG_BLOCK_LABELS = [['block-margin-scenario','Margin scenario'],['block-course-table','Course table'],
   ['block-text','Text'],['block-table','Table'],['block-callout','Callout'],['block-timeline','Timeline'],
-  ['block-decision','Decision log'],['block-approval','Approval tracker'],['block-image','Image'],
+  ['block-decision','Decision log'],['block-approval','Approval tracker'],['block-image','Image'],['block-gallery','Image gallery'],
   ['block-video','Video'],['block-file','File'],['block-embed','Embed'],['block-costtable','Cost table'],
   ['block-swot','SWOT'],['block-overview','Overview'],['block-margin','Margin'],['block-drawing','Drawing']];
 // textContent runs adjacent cells together -- 'Major' and 'UAS' in two table
@@ -6466,6 +6511,7 @@ async function loadContent(sid){
   attachAutoSave();
   applyLockState();
   upgradeImageBlocks(root);
+  upgradeGalleryBlocks(root);
   upgradeFileBlocks(root);
   upgradeBlocks(root);
   // Run synchronously, not just via the MutationObserver below -- that fires
@@ -6524,6 +6570,25 @@ function stripWordJunk(root){
   });
 }
 
+function upgradeGalleryBlocks(root){
+  root.querySelectorAll('.block-gallery').forEach(g=>{
+    if(!g.querySelector('.gal-grid')){
+      const grid=document.createElement('div'); grid.className='gal-grid';
+      grid.innerHTML=galEmptyHTML(); g.insertBefore(grid, g.firstChild);
+    }
+    // Galleries saved before the grip existed get one, so they become draggable
+    // without being rebuilt.
+    g.querySelectorAll('.gal-item .gal-pic').forEach(pic=>{
+      if(!pic.querySelector('.gal-grip')){
+        const d=document.createElement('div');
+        d.className='gal-grip'; d.title='Drag to reorder'; d.textContent='\u283f';
+        pic.appendChild(d);
+      }
+    });
+    galSyncBar(g);
+    galInitSort(g.querySelector('.gal-grid'));
+  });
+}
 // Patch old image blocks that lack the "Change image" bar
 function upgradeImageBlocks(root){
   root.querySelectorAll('.block-image').forEach(img=>{
@@ -6652,6 +6717,14 @@ function makeBlock(data){
     case 'image':
       wrap.innerHTML=ctrl+`<div class="block-image"><div class="img-ph" onclick="setImage(this)"><div class="ico">🖼️</div><div class="lbl"><strong>Click to add image</strong> (URL or upload)</div></div></div>`;
       break;
+    case 'gallery':{
+      const cols=Math.min(4,Math.max(2,+(data.cols||3)));
+      const items=(data.items||[]).map(it=>galItemHTML(it&&it.cap)).join('');
+      wrap.innerHTML=ctrl+`<div class="block-gallery" data-cols="${cols}"><div class="gal-grid">${items||galEmptyHTML()}</div></div>`;
+      const g=wrap.querySelector('.block-gallery');
+      (data.items||[]).forEach((it,n)=>{ const im=g.querySelectorAll('.gal-item img')[n]; if(im&&it&&it.src) im.src=it.src; });
+      galSyncBar(g);
+      break;}
     case 'video':
       wrap.innerHTML=ctrl+`<div class="block-video"><div class="vid-ph" onclick="setVideo(this)"><div class="ico">▶️</div><div class="lbl"><strong>Click to embed video</strong><br><span style="font-size:11px;color:#888">YouTube, Vimeo, Loom, direct .mp4/.webm, or paste any embed code</span></div></div></div>`;
       break;
@@ -7273,11 +7346,12 @@ function imgHasAlpha(canvas){
 }
 // Returns { src, before, after, w, h, ow, oh, changed }. Never returns
 // something larger than what it was given.
-async function imgShrinkDataURL(src, srcType){
+async function imgShrinkDataURL(src, srcType, maxEdge){
   const before = src.length;
   const im = await imgLoad(src);
   const ow = im.naturalWidth, oh = im.naturalHeight;
-  const scale = Math.min(1, IMG_MAX_EDGE/Math.max(ow,oh));
+  const edge = maxEdge || IMG_MAX_EDGE;
+  const scale = Math.min(1, edge/Math.max(ow,oh));
   if(scale === 1 && before <= IMG_SKIP_BELOW)
     return { src, before, after:before, w:ow, h:oh, ow, oh, changed:false };
   const w = Math.max(1, Math.round(ow*scale)), h = Math.max(1, Math.round(oh*scale));
@@ -7306,11 +7380,11 @@ function imgSavingNote(r){
   return 'Image stored at '+mb(r.after)+', down from '+mb(r.before)+dims;
 }
 // The single path every picked or dropped image goes through.
-async function imgPrepareFile(file){
+async function imgPrepareFile(file, maxEdge, quiet){
   const raw = await imgReadFile(file);
   try{
-    const r = await imgShrinkDataURL(raw, file.type);
-    if(r.changed) toast(imgSavingNote(r));
+    const r = await imgShrinkDataURL(raw, file.type, maxEdge);
+    if(r.changed && !quiet) toast(imgSavingNote(r));
     return r.src;
   }catch(e){
     console.warn('image resize skipped:', e.message);
@@ -7409,6 +7483,147 @@ function showImage(wrap,src){
       `<button class="vid-change-btn" onclick="annotateImage(this)">\u270f Annotate</button>`+
     `</div>`;
   scheduleSave();
+}
+
+// ==================== IMAGE GALLERY ====================
+// Several pictures across, each with its own caption. Tiles render a couple of
+// hundred pixels wide, so a gallery image is stored smaller than a full-width
+// one -- and a gallery is the fastest way to reach the program-file size
+// ceiling that fails silently, so the block states its own weight.
+const GAL_MAX_EDGE = 1200;
+const GAL_HEAVY_BYTES = 700000;
+
+function galEmptyHTML(){
+  return '<div class="gal-empty" onclick="galAdd(this)"><div class="ico">\uD83D\uDDBC</div>'+
+         '<div class="lbl"><strong>Click to add images</strong> \u2014 pick several at once</div></div>';
+}
+function galItemHTML(cap){
+  return '<div class="gal-item"><div class="gal-pic"><img alt="">'+
+    '<div class="gal-grip" title="Drag to reorder">\u283f</div>'+
+    '<button class="gal-swap" title="Replace this image" onclick="galChangeImage(this)">\u21c4</button>'+
+    '<button class="gal-del" title="Remove this image" onclick="galRemove(this)">\u2715</button>'+
+    '</div><div class="gal-cap" contenteditable="true" spellcheck="false" data-ph="Caption\u2026">'+(cap||'')+'</div></div>';
+}
+// Never build a tile by interpolating the src into HTML: a URL may carry a quote.
+// A multi-file pick arrives in the browser's own order -- directory order, not
+// the order they were clicked, which the file dialog never reports. Sort by name
+// so the result is at least predictable (Figure_02 before Figure_10).
+function galSortFiles(files){
+  const coll = (typeof Intl!=='undefined' && Intl.Collator)
+    ? new Intl.Collator(undefined,{numeric:true,sensitivity:'base'})
+    : null;
+  return files.slice().sort((a,b)=> coll ? coll.compare(a.name||'', b.name||'')
+                                         : String(a.name||'').localeCompare(String(b.name||'')));
+}
+// Tiles reorder by dragging the grip. The grip is the handle rather than the
+// picture, so a drag can never be mistaken for the click that opens the
+// lightbox, and the caption stays ordinarily editable.
+function galInitSort(grid){
+  if(!grid || grid.__galSortWired || typeof Sortable==='undefined') return;
+  if(typeof viewerModeForced!=='undefined' && viewerModeForced) return;
+  grid.__galSortWired=true;
+  new Sortable(grid,{
+    animation:150, handle:'.gal-grip', draggable:'.gal-item',
+    ghostClass:'gal-ghost', chosenClass:'gal-chosen',
+    onEnd(){ scheduleSave(); }
+  });
+}
+function galAppend(grid, src){
+  const d=document.createElement('div');
+  d.innerHTML=galItemHTML('');
+  const item=d.firstElementChild;
+  item.querySelector('img').src=src;
+  grid.appendChild(item);
+  return item;
+}
+function galBytes(wrap){
+  let n=0;
+  wrap.querySelectorAll('.gal-item img').forEach(im=>{
+    const src=im.getAttribute('src')||'';
+    if(src.slice(0,5)==='data:') n+=Math.round(src.length*0.75);   // base64 -> bytes
+  });
+  return n;
+}
+function galFmtBytes(n){
+  return n>=1048576 ? (n/1048576).toFixed(2)+' MB' : Math.max(1,Math.round(n/1024))+' KB';
+}
+// Rebuilt on every load, like the table toolbar, so a saved gallery picks up
+// whatever the bar looks like today.
+function galSyncBar(wrap){
+  if(!wrap) return;
+  const cols=Math.min(4,Math.max(2,parseInt(wrap.getAttribute('data-cols'),10)||3));
+  wrap.setAttribute('data-cols',String(cols));
+  let bar=wrap.querySelector(':scope > .gal-bar');
+  if(!bar){ bar=document.createElement('div'); bar.className='gal-bar'; }
+  if(bar!==wrap.lastElementChild) wrap.appendChild(bar);
+  const count=wrap.querySelectorAll('.gal-item').length;
+  const bytes=galBytes(wrap);
+  bar.innerHTML='<span class="gal-lbl">Across</span>'+
+    [2,3,4].map(n=>'<button class="gal-btn'+(n===cols?' on':'')+'" onclick="galSetCols(this,'+n+')">'+n+'</button>').join('')+
+    '<button class="gal-btn" onclick="galAdd(this)">+ Add images</button>'+
+    '<span class="gal-weight'+(bytes>GAL_HEAVY_BYTES?' heavy':'')+'">'+
+      count+' image'+(count===1?'':'s')+(count?' \u00b7 '+galFmtBytes(bytes):'')+'</span>';
+}
+function galAdd(el){
+  if(viewerModeForced) return;
+  const wrap=el.closest('.block-gallery'); if(!wrap) return;
+  const inp=document.createElement('input');
+  inp.type='file'; inp.accept='image/*'; inp.multiple=true;
+  inp.onchange=async e=>{
+    const files=galSortFiles([...(e.target.files||[])]);
+    if(!files.length) return;
+    const grid=wrap.querySelector('.gal-grid'); if(!grid) return;
+    const ph=grid.querySelector('.gal-empty'); if(ph) ph.remove();
+    let added=0, before=0;
+    for(const f of files){
+      try{
+        before+=f.size||0;
+        galAppend(grid, await imgPrepareFile(f, GAL_MAX_EDGE, true));   // one toast at the end, not one per file
+        added++;
+      }catch(err){ console.warn('gallery image skipped:', err.message); }
+    }
+    galSyncBar(wrap);
+    galInitSort(grid);
+    if(added) toast(added+' image'+(added===1?'':'s')+' added \u00b7 stored at '+galFmtBytes(galBytes(wrap)));
+    scheduleSave();
+  };
+  inp.click();
+}
+async function galRemove(btn){
+  if(viewerModeForced) return;
+  const item=btn.closest('.gal-item'), wrap=btn.closest('.block-gallery');
+  if(!item||!wrap) return;
+  if(!await appConfirm('Remove this image from the gallery?')) return;
+  item.remove();
+  const grid=wrap.querySelector('.gal-grid');
+  if(grid && !grid.querySelector('.gal-item')) grid.innerHTML=galEmptyHTML();
+  galSyncBar(wrap); scheduleSave();
+}
+function galSetCols(btn,n){
+  if(viewerModeForced) return;
+  const wrap=btn.closest('.block-gallery'); if(!wrap) return;
+  wrap.setAttribute('data-cols',String(Math.min(4,Math.max(2,n))));
+  galSyncBar(wrap); scheduleSave();
+}
+async function galChangeImage(btn){
+  if(viewerModeForced) return;
+  const item=btn.closest('.gal-item'); if(!item) return;
+  const wrap=item.closest('.block-gallery');
+  const choice=await appConfirm('How would you like to replace this image?','Enter URL','Upload file');
+  if(choice){
+    const url=await appPrompt('Image URL:');
+    if(url){ item.querySelector('img').src=url; galSyncBar(wrap); scheduleSave(); }
+    return;
+  }
+  const inp=document.createElement('input');
+  inp.type='file'; inp.accept='image/*';
+  inp.onchange=async e=>{
+    const f=e.target.files&&e.target.files[0]; if(!f) return;
+    try{ item.querySelector('img').src=await imgPrepareFile(f, GAL_MAX_EDGE); }
+    catch(err){ await appAlert('Could not read that image: '+err.message); return; }
+    galSyncBar(wrap); scheduleSave();
+  };
+  inp.click();
 }
 
 async function changeImage(btn){
@@ -7878,7 +8093,7 @@ function showPicker(e){
 }
 function addBlock(type){
   document.getElementById('block-picker').classList.remove('show');
-  const map={text:{t:'text'},callout:{t:'callout',icon:'💡',txt:''},table:{t:'table'},timeline:{t:'timeline',lbl:'Timeline',items:[{m:'Milestone',d:'Date'}]},decision:{t:'decision',items:[{dec:'',date:'',by:'',rat:'',status:'Open'}]},approval:{t:'approval',items:[{name:'Approval required',desc:'',status:'Pending'}]},image:{t:'image'},video:{t:'video'},file:{t:'file'},embed:{t:'embed'},costtable:{t:'costtable'},swot:{t:'swot'},divider:{t:'divider'},overview:{t:'overview'}};
+  const map={text:{t:'text'},callout:{t:'callout',icon:'💡',txt:''},table:{t:'table'},timeline:{t:'timeline',lbl:'Timeline',items:[{m:'Milestone',d:'Date'}]},decision:{t:'decision',items:[{dec:'',date:'',by:'',rat:'',status:'Open'}]},approval:{t:'approval',items:[{name:'Approval required',desc:'',status:'Pending'}]},image:{t:'image'},gallery:{t:'gallery'},video:{t:'video'},file:{t:'file'},embed:{t:'embed'},costtable:{t:'costtable'},swot:{t:'swot'},divider:{t:'divider'},overview:{t:'overview'}};
   if(type==='drawing'){ initDrawCanvas(); openDrawModal(null,null); return; }
   const el=makeBlock(map[type]||{t:'text'});
   document.getElementById('blocks-root').appendChild(el);
@@ -8009,16 +8224,17 @@ function _runXml(text,f){
   const p=rpr.length?'<w:rPr>'+rpr.join('')+'</w:rPr>':'';
   return String(text).split('\n').map((s,i)=>'<w:r>'+p+(i>0?'<w:br/>':'')+'<w:t xml:space="preserve">'+_xe(s)+'</w:t></w:r>').join('');
 }
-function _imgXml(img,ctx){
+function _imgXml(img,ctx,maxW){
   const m=/^data:image\/(png|jpe?g|gif);base64,(.+)$/i.exec(img.getAttribute('src')||'');
   if(!m) return '';
   const ext=/jpe?g/i.test(m[1])?'jpeg':m[1].toLowerCase();
   ctx.media.push({name:'word/media/image'+(ctx.media.length+1)+'.'+ext,data:_b64(m[2])});
   const rid=ctx.addRel('image','media/image'+ctx.media.length+'.'+ext);
   let nw=img.naturalWidth||img.width||600, nh=img.naturalHeight||img.height||400;
-  if(nw>600){ nh=Math.round(nh*600/nw); nw=600; }
+  const cap=maxW||600;
+  if(nw>cap){ nh=Math.round(nh*cap/nw); nw=cap; }
   const cx=nw*9525, cy=nh*9525, did=(ctx.did=(ctx.did||0)+1);
-  return '<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="'+cx+'" cy="'+cy+'"/><wp:docPr id="'+did+'" name="Picture '+did+'"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="'+did+'" name="Picture '+did+'"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="'+rid+'"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="'+cx+'" cy="'+cy+'"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>';
+  return '<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="'+cx+'" cy="'+cy+'"/><wp:docPr id="'+did+'" name="Picture '+did+'"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="'+did+'" name="Picture '+did+'"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="'+rid+'"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="'+cx+'" cy="'+cy+'"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:ln w="9525"><a:solidFill><a:srgbClr val="DAD5C9"/></a:solidFill></a:ln></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>';
 }
 function _inline(node,f,ctx){
   let out='';
@@ -8079,6 +8295,36 @@ function _calloutXml(el,ctx){
   if(!inner) inner='<w:p/>';
   return '<w:tbl><w:tblPr><w:tblW w:w="9360" w:type="dxa"/><w:tblLook w:val="04A0"/></w:tblPr><w:tblGrid><w:gridCol w:w="9360"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:w="9360" w:type="dxa"/><w:tcBorders><w:left w:val="single" w:sz="24" w:space="0" w:color="D50032"/></w:tcBorders><w:shd w:val="clear" w:color="auto" w:fill="FAF6ED"/></w:tcPr>'+inner+'</w:tc></w:tr></w:tbl><w:p/>';
 }
+function _galleryXml(el,ctx){
+  const items=[...el.querySelectorAll('.gal-item')];
+  if(!items.length) return '';
+  const cols=Math.min(4,Math.max(2,parseInt(el.getAttribute('data-cols'),10)||3));
+  const colW=Math.floor(9360/cols);
+  // 9360 twips of content is 6.5in; leave a little air between the columns.
+  const pxW=Math.max(90,Math.floor(600/cols)-8);
+  const grid='<w:tblGrid>'+Array.from({length:cols},()=>'<w:gridCol w:w="'+colW+'"/>').join('')+'</w:tblGrid>';
+  const pr='<w:tblPr><w:tblW w:w="9360" w:type="dxa"/><w:tblLook w:val="04A0"/></w:tblPr>';
+  let rows='';
+  for(let i=0;i<items.length;i+=cols){
+    let tcs='';
+    for(let c=0;c<cols;c++){
+      const it=items[i+c];
+      let inner='';
+      if(it){
+        const img=it.querySelector('img');
+        const x=img?_imgXml(img,ctx,pxW):'';
+        if(x) inner+=_para(x);
+        const cap=it.querySelector('.gal-cap');
+        const ct=cap?(cap.textContent||'').trim():'';
+        if(ct) inner+=_para(_runXml(ct,{i:true}));
+      }
+      if(!inner) inner='<w:p/>';
+      tcs+='<w:tc><w:tcPr><w:tcW w:w="'+colW+'" w:type="dxa"/><w:vAlign w:val="top"/></w:tcPr>'+inner+'</w:tc>';
+    }
+    rows+='<w:tr><w:trPr><w:cantSplit/></w:trPr>'+tcs+'</w:tr>';
+  }
+  return '<w:tbl>'+pr+grid+rows+'</w:tbl><w:p/>';
+}
 function _walkDocx(container,ctx){
   container.childNodes.forEach(ch=>{
     if(ch.nodeType===3){ if(ch.textContent.trim()) ctx.out.push(_para(_runXml(ch.textContent,{}))); return; }
@@ -8091,6 +8337,7 @@ function _walkDocx(container,ctx){
     if(t==='IMG'){ const x=_imgXml(ch,ctx); if(x) ctx.out.push(_para(x)); return; }
     if(t==='DIV'||t==='SECTION'||t==='ARTICLE'||t==='HEADER'){
       if(ch.classList.contains('block-callout')){ ctx.out.push(_calloutXml(ch,ctx)); return; }
+      if(ch.classList.contains('block-gallery')){ const g=_galleryXml(ch,ctx); if(g){ ctx.out.push(g); return; } }
       if(_hasBlock(ch)){ _walkDocx(ch,ctx); return; }
       const inner=_inline(ch,{},ctx); if(inner) ctx.out.push(_para(inner)); return;
     }
@@ -8159,6 +8406,11 @@ table{border-collapse:collapse;width:100%;margin-bottom:12pt;}
 td,th{border:1px solid #ccc;padding:6pt 8pt;font-size:10pt;text-align:left;}
 th{background:#f0f0f0;font-weight:bold;font-size:9pt;text-transform:uppercase;}
 .block,.block-text,.block-callout,.block-timeline,.block-decision,.block-approval,.block-image,.block-file{margin-bottom:12pt;page-break-inside:avoid;}
+.block-gallery{border:1pt solid #ddd;border-radius:3pt;padding:6pt;page-break-inside:avoid;}
+.gal-grid{display:grid;gap:6pt;}
+.gal-item{page-break-inside:avoid;}
+.gal-pic img{max-height:2in;border:1pt solid #ddd;}
+.gal-bar,.gal-grip,.gal-del,.gal-swap,.gal-empty{display:none!important;}
 .block-callout{background:#eff6ff;border-left:4px solid #3b82f6;padding:10pt 14pt;border-radius:4pt;}
 .dl-status,.ap-btn,.prog-status{display:inline-block;padding:2pt 8pt;border-radius:10pt;font-size:9pt;}
 ul{list-style:disc outside;padding-left:22pt;margin:6pt 0;}
@@ -13044,6 +13296,7 @@ function sanitizePasteInto(srcNode, out){
 const SAFE_ONCLICK_FNS = new Set(['addApItem','addCostRow','addDlRow','addMilestone','addSwotItem',
   'addTblCol','addTblRow','annotateImage','changeEmbed','changeImage','clearCostTable',
   'copyBlockToProgram','cycleApStatus','cycleDlStatus','delBlock','delCostRow','delTblCol',
+  'galAdd','galRemove','galSetCols','galChangeImage',
   'delTblRow','editFileLink','importTblFile','moveTblCol','moveTblRow','openTblFmt','pickTag',
   'setEmbedHeight','tableToCSV','tblRowOp','toggleCogsLink','refreshMarginScenario','openMarginCalc','crsRefreshTable','crsRefreshCard']);
 const SAFE_ONCLICK_ARG='(?:\'[^\'<>]*\'|"[^"<>]*"|-?\\d+(?:\\.\\d+)?|this|event)';
@@ -13455,7 +13708,7 @@ function initImageLightbox(){
 
   // Delegated: any image inside an image block opens the lightbox
   document.addEventListener('click',e=>{
-    const im=e.target.closest?e.target.closest('.block-image img'):null;
+    const im=e.target.closest?e.target.closest('.block-image img, .block-gallery .gal-pic img'):null;
     if(!im||!im.src) return;
     e.preventDefault(); e.stopPropagation();
     openLightbox(im.src);
@@ -15373,7 +15626,7 @@ function fmClean(t){
 const FM_KIND={ 'block-text':'prose','block-callout':'prose','block-table-wrap':'table','block-table':'table',
   'block-swot':'structured','block-decision':'structured','block-approval':'structured','block-costtable':'structured',
   'block-timeline':'structured','block-margin':'structured','block-margin-scenario':'structured','block-course-card':'structured',
-  'block-image':'media','block-video':'media','block-file':'media','block-embed':'media','block-divider':'media' };
+  'block-image':'media','block-gallery':'media','block-video':'media','block-file':'media','block-embed':'media','block-divider':'media' };
 function fmTableLines(el){
   const rows=[...el.querySelectorAll('tr')];
   if(!rows.length) return '';
