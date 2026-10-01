@@ -1962,6 +1962,7 @@ table.mg2-table tr.clickable:hover{background:#FDF4F5;}
           <div class="export-opt" onclick="closeHubMenus(); backupToGithubNow();">⬆🐙 Back up to GitHub now</div>
           <div class="export-opt" onclick="closeHubMenus(); triggerRestore();">⤴ Restore from backup…</div>
           <div class="export-opt" onclick="closeHubMenus(); showVersionHistory();">🕓 Version history…</div>
+          <div class="export-opt" onclick="closeHubMenus(); connectGithubEditor();">🐙 Connect to GitHub…</div>
         </div>
       </div>
       <input type="file" id="restore-file-input" accept="application/json,.json" style="display:none" onchange="handleRestoreFile(this)">
@@ -2763,6 +2764,8 @@ function ghLastErrorText(){
   const e = _ghLastError;
   if(e.kind === 'stale') return 'another tab or device has saved '+e.path+' since this one loaded, so this save was stopped rather than overwrite it';
   if(e.kind === 'network') return 'no network response (offline, or the request was blocked)';
+  if(e.kind === 'notoken') return 'this browser is not connected to GitHub (no editor token saved)';
+  if(e.kind === 'retries') return 'the save was retried and still did not land — check the connection, then press Ctrl/Cmd+S';
   if(e.status === 401) return 'your GitHub token is expired or was revoked (401)';
   if(e.status === 403) return 'permission denied or rate-limited (403) — wait a minute, then retry';
   if(e.status === 404) return 'this token cannot see '+GITHUB_CONTENT_REPO+' (404) — check the token still lists that repo';
@@ -2887,12 +2890,14 @@ async function githubCommitFile(path, jsonObj, message){
         const remote = await githubReadFile(path);
         if(remote && remote.json && typeof remote.json.ts === 'number' && remote.json.ts >= jsonObj.ts){
           console.warn('githubCommitFile: not overwriting '+path+' -- remote is already as new or newer.');
+          _ghLastError={kind:'stale',status:0,path:path};
           return false;
         }
       }
       await new Promise(r=>setTimeout(r, RETRY_DELAY_MS));
       // loop back: re-read ref + tree fresh, rebuild tree/commit on the new base
     }
+    if(!_ghLastError) _ghLastError={kind:'retries',status:0,path:path};
     return false;
   }catch(e){
     // A thrown exception (not a completed HTTP response) -- likely a dropped
@@ -2903,6 +2908,9 @@ async function githubCommitFile(path, jsonObj, message){
     continue;
   }
   }
+  // Falling out of the retry loops is still a failure, and a failure with no
+  // recorded reason shows the user a warning that explains nothing.
+  if(!_ghLastError) _ghLastError={kind:'retries',status:0,path:path};
   return false;
 }
 
@@ -3062,6 +3070,11 @@ async function migrateContentToPerProgramFiles(){
 
 async function connectGithubEditor(){
   const cur = githubEditorToken();
+  if(dirtyPrograms && dirtyPrograms.size &&
+     !await appConfirm('Connecting reloads the page, and this window has '+dirtyPrograms.size+
+       ' program(s) with changes that have not reached GitHub. The reload will replace them with '+
+       'GitHub\u2019s copy.\n\nBack them up first (\u2699 Data \u2192 \uD83D\uDCBE Backup all data), then come back.',
+       'Connect anyway', 'Cancel')) return;
   const v = await appPrompt('Paste your GitHub editor personal access token (fine-grained, scoped to the content repo, Contents: Read and write). Stored only in this browser -- leave blank and confirm to disconnect:', cur);
   if(v === null) return; // cancelled
   try{
@@ -11963,6 +11976,16 @@ function triggerImportProgram(){
 }
 // Unlike Restore, this never replaces anything -- so it is safe to run against a
 // space that already holds work. It reports exactly what it would add first.
+// An import that cannot reach GitHub is lost the moment the page reloads, and
+// the one action that fixes a connection -- connectGithubEditor() -- reloads.
+// So the connection is checked BEFORE anything is merged, not after.
+async function ghPreflight(){
+  if(githubMode()!=='editor')
+    return { ok:false, why:'This browser is not connected to GitHub, so an import could not be saved.' };
+  const r = await githubReadFileStatus(GITHUB_MANIFEST_PATH);
+  if(r.status==='ok' || r.status==='not_found') return { ok:true, why:'' };
+  return { ok:false, why:'GitHub did not answer'+(ghLastErrorText()?' \u2014 '+ghLastErrorText():'')+'.' };
+}
 async function handleImportProgramFile(input){
   if(viewerModeForced) return;
   const file=input.files&&input.files[0]; if(!file) return;
@@ -11987,6 +12010,13 @@ async function handleImportProgramFile(input){
   if(already.length) lines.push('Already here (left alone): '+already.map(x=>x.p.name||x.p.id).join(', '));
   lines.push('Sections to add: '+secs);
   lines.push('Sections of content to add: '+blocks);
+  const pre = await ghPreflight();
+  if(!pre.ok){
+    await appAlert('Not importing yet.\n\n'+pre.why+'\n\nAn import is only safe once this browser can write to '+
+      GITHUB_CONTENT_REPO+', because a reload replaces whatever is in the browser with GitHub\u2019s copy.\n\n'+
+      'Open \u2699 Data \u2192 \uD83D\uDC19 Connect to GitHub\u2026, reconnect (the page reloads), then import again.');
+    input.value=''; return;
+  }
   if(!await appConfirm('Import from '+file.name+'?\n\n'+lines.join('\n')+
       '\n\nThis ADDS only. Nothing already in this Playbook is replaced or overwritten.','Import','Cancel')){
     input.value=''; return;
@@ -12290,13 +12320,23 @@ async function applySnapshotMerge(snap, label){
     catch(err){ pushed=false; pushWhy=err.message||String(err); }
     if(!pushed && !pushWhy) pushWhy=ghLastErrorText();
   }
+  // Telling someone not to reload is not a safety net -- reconnecting to GitHub
+  // reloads, so the only route out of this message used to destroy the import.
+  // Put it on disk instead, while it still exists.
+  let rescued=false;
+  if(!pushed){ try{ rescued=!!downloadBackup(); }catch(_){} }
   window.__skipPersist=true;
   await appAlert('Added '+addedProgs+' program(s), '+addedSecs+' section entr(ies) and '+addedBlocks+
     ' section(s) of content from '+addedFrom+'.\n\nNothing already here was replaced.'+
     (pushed ? '\n\nThe page will now reload.'
-            : '\n\n\u26a0 It was saved in this browser but NOT to GitHub'+(pushWhy?' ('+pushWhy+')':'')+
-              '.\n\nDo NOT reload until it saves, or the import will be lost. Close this, fix the '+
-              'connection, and press Ctrl/Cmd+S.'));
+            : '\n\n\u26a0 It was saved in this browser but NOT to GitHub'+(pushWhy?' ('+pushWhy+')':'')+'.'+
+              (rescued
+                ? '\n\nA backup of everything, including this import, has just been downloaded to your '+
+                  'Downloads folder. Nothing is at risk now.\n\nReconnect (\u2699 Data \u2192 \uD83D\uDC19 Connect to '+
+                  'GitHub\u2026, which reloads the page), then use \u2699 Data \u2192 \u2934 Restore from backup\u2026 '+
+                  'on that file.'
+                : '\n\nThe rescue backup could not be written either. Do NOT reload \u2014 press Ctrl/Cmd+S, '+
+                  'or \u2699 Data \u2192 \uD83D\uDCBE Backup all data, before anything else.')));
   if(pushed) location.reload();
 }
 
