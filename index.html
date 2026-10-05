@@ -1971,6 +1971,10 @@ body.view-mode .mg2-libchip{pointer-events:none;}
 .mscn-prop{font-family:var(--font-cond);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;
   color:#8A5A00;background:#FFF4DC;border:1px solid #E8C98A;border-radius:3px;padding:0 4px;}
 body.view-mode .mg2-prop-in{pointer-events:none;}
+/* A figure the course record supplies. Shown, not editable -- editing it here
+   would write a value nothing reads. */
+.mg2-derived{display:inline-block;padding:3px 7px;border:1px dashed var(--bdr);border-radius:3px;
+  font-variant-numeric:tabular-nums;color:var(--txt);background:var(--cbg);cursor:help;}
 .mscn-course-row{display:flex;justify-content:space-between;font-size:12px;padding:3px 0;color:var(--txt);}
 .mscn-course-row .cost{font-variant-numeric:tabular-nums;color:var(--mut);}
 .mscn-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:0;background:#fafafa;}
@@ -9396,7 +9400,7 @@ function ccRunChecks(){
     if(r.credits === null) return;
     const lib = (marginStore.courses||[]).find(c=>ccNormCode(c.code)===r.code);
     if(!lib) return;
-    const libCr = ccNum(lib.creditHours);
+    const libCr = ccNum(marginCreditHours(lib));   // compare prose against the AUTHORITATIVE figure
     if(libCr === null || libCr === r.credits) return;
     push({
       key:'credits:'+r.code+':'+r.progId+':'+r.sectionId, type:'Credit hours', sev:'hi',
@@ -9857,7 +9861,7 @@ function buildGroundedContext(progId, opts){
       courses.forEach(c=>{
         const cost = (typeof marginCourseTotalCost==='function') ? marginCourseTotalCost(c) : null;
         const isCore = pm && (pm.coreCourseIds||[]).includes(c.id);
-        lines.push('- '+(c.code||c.id)+' ('+(isCore?'core':'elective')+', '+(c.creditHours||0)+' cr'
+        lines.push('- '+(c.code||c.id)+' ('+(isCore?'core':'elective')+', '+(marginCreditHours(c)||0)+' cr'
           + (cost!=null ? ', material cost $'+Number(cost).toFixed(2) : '') + ')');
       });
       counts.courses = courses.length;
@@ -18358,6 +18362,44 @@ function programMargin(p){
   return p.margin;
 }
 function marginCourse(id){ return marginStore.courses.find(c=>c.id===id); }
+// ---- STEP 2: read the course record, not the costing entry's copy ----------
+// `code`, `creditHours` and `school` are stored on BOTH the course record and
+// the costing entry. These resolvers make the course record the one everything
+// COMPUTES from, while both copies still exist -- so every figure is checkable
+// against the old behaviour before step 3 deletes the duplicate.
+//
+// The fallback is permanent, not transitional. A costing entry with no linked
+// course (UAS 204/206/210) keeps its own values forever; that state is legal.
+//
+// Deliveries that DISAGREE with each other fall back too: the app has no basis
+// for choosing between a 5-week record saying 3 and an 8-week record saying 4,
+// and the conflict report already reports that case rather than guessing.
+//
+// NOT used by crsCreditConflicts(), crsLinkAuto() or the resolve actions. Those
+// exist to COMPARE the two stored copies, so they must see the raw values --
+// routing them through a resolver would make the two sides agree by definition
+// and the conflict report would report nothing, forever.
+function _marginLinkedField(m, key){
+  if(!m || typeof crsCoursesForMarginEntry !== 'function') return undefined;
+  let linked;
+  try{ linked = crsCoursesForMarginEntry(m.id); }catch(_){ return undefined; }
+  if(!linked || !linked.length) return undefined;
+  const vals = [...new Set(linked.map(c=>c[key]).filter(v=>v!==null && v!==undefined && v!==''))];
+  return vals.length === 1 ? vals[0] : undefined;
+}
+function marginCreditHours(m){
+  const v = _marginLinkedField(m, 'credits');
+  return v === undefined ? (m ? m.creditHours : 0) : Number(v);
+}
+function marginSchoolOf(m){
+  const v = _marginLinkedField(m, 'school');
+  return v === undefined ? (m ? m.school : '') : v;
+}
+// True when the course record is supplying the figure, so the UI can show the
+// costing entry's own field as derived rather than as something to type into.
+function marginFieldSource(m, key){
+  return _marginLinkedField(m, key) === undefined ? 'entry' : 'course';
+}
 function marginCourseTotalCost(c){ return (c.costItems||[]).reduce((s,ci)=>s+(Number(ci.amount)||0),0); }
 function marginCourseStatus(pm, courseId){
   if(pm.coreCourseIds.includes(courseId)) return 'core';
@@ -18432,7 +18474,7 @@ function marginEffectiveCredits(scenario, c, creditOverride){
   const prop = marginCreditProposal(scenario, c.id);
   if(prop !== null && !isNaN(prop)) return prop;
   if(creditOverride && creditOverride.has(c.id)) return creditOverride.get(c.id);
-  return c.creditHours;
+  return marginCreditHours(c);
 }
 function marginSetCreditProposal(progId, scenarioId, courseId, value, commit){
   if(viewerModeForced) return;
@@ -18476,7 +18518,7 @@ const MARGIN_SCHOOLS = {
 function marginAllSchools(){
   const out = ['SUT','SFT'];
   const add = v=>{ v=String(v||'').trim(); if(v && v!=='Geneds' && out.indexOf(v)<0) out.push(v); };
-  (marginStore.courses||[]).forEach(c=>add(c.school));
+  (marginStore.courses||[]).forEach(c=>add(marginSchoolOf(c)));
   if(typeof crsAll==='function') crsAll().forEach(c=>add(c.school));
   return out.slice(0,2).concat(out.slice(2).sort());
 }
@@ -18728,7 +18770,9 @@ function marginCourseRowHtml(c){
     <tr>
       <td style="min-width:120px;"><input type="text" class="mg2-field-input" value="${escapeHtml(c.code)}" oninput="marginLibCourseField('${c.id}','code', this.value)"></td>
       <td style="min-width:190px;"><input type="text" class="mg2-field-input" placeholder="Standard title…" value="${escapeHtml(ccStandardTitle(c.code))}" oninput="ccSetTitleFromLibrary('${c.id}', this.value)"></td>
-      <td style="width:90px;"><input type="number" step="1" class="mg2-field-input" value="${c.creditHours}" oninput="marginLibCourseField('${c.id}','creditHours', this.value)"></td>
+      <td style="width:90px;">${marginFieldSource(c,'credits')==='course'
+        ? `<span class="mg2-derived" title="From the Course Database record this entry is linked to. Change it there.">${marginCreditHours(c)}</span>`
+        : `<input type="number" step="1" class="mg2-field-input" value="${c.creditHours}" oninput="marginLibCourseField('${c.id}','creditHours', this.value)">`}</td>
       <td style="min-width:260px;">${items}<button class="mg2-btn mg2-add-costitem-btn" onclick="marginAddCostItem('${c.id}')">+ Add cost item</button></td>
       <td id="mg2-libtotal-${c.id}"><b>${_costUSD(marginCourseTotalCost(c))}</b></td>
       <td><button class="mscn-btn mg2-del-course-btn" onclick="marginRemoveCourse('${c.id}')">Delete</button></td>
@@ -18748,7 +18792,9 @@ function marginCourseRowHtmlCompact(c){
       <div class="mg2-course-compact-row1">
         <input type="text" class="mg2-field-input" value="${escapeHtml(c.code)}" oninput="marginLibCourseField('${c.id}','code', this.value)">
         <input type="text" class="mg2-field-input" placeholder="Standard title…" value="${escapeHtml(ccStandardTitle(c.code))}" oninput="ccSetTitleFromLibrary('${c.id}', this.value)">
-        <input type="number" step="1" class="mg2-field-input" value="${c.creditHours}" oninput="marginLibCourseField('${c.id}','creditHours', this.value)">
+        ${marginFieldSource(c,'credits')==='course'
+          ? `<span class="mg2-derived" title="From the linked Course Database record.">${marginCreditHours(c)}</span>`
+          : `<input type="number" step="1" class="mg2-field-input" value="${c.creditHours}" oninput="marginLibCourseField('${c.id}','creditHours', this.value)">`}
         <button class="mscn-btn mg2-del-course-btn" onclick="marginRemoveCourse('${c.id}')">Delete</button>
       </div>
       ${items}
@@ -18761,7 +18807,7 @@ function renderMarginLibrary(){
   const schools = marginAllSchools().concat(['Geneds']);
   const compact = marginPanelWidthNow() < 650;
   const sections = schools.map(sch=>{
-    const courses = marginStore.courses.filter(c=>c.school===sch);
+    const courses = marginStore.courses.filter(c=>marginSchoolOf(c)===sch);
     const expanded = !!marginLibExpanded[sch];
     let body = '';
     if(expanded){
@@ -18857,7 +18903,7 @@ function marginLibCostItemField(courseId, itemId, field, value){
 // ---------- program view: membership ----------
 function marginMembershipTableHtml(p, schoolFilter){
   const pm = programMargin(p);
-  const courses = marginStore.courses.filter(c=>c.school===schoolFilter);
+  const courses = marginStore.courses.filter(c=>marginSchoolOf(c)===schoolFilter);
   const withStatus = courses.map(c=>({c, status:marginCourseStatus(pm, c.id)}));
   withStatus.sort((a,b)=>(a.status==='none'?1:0)-(b.status==='none'?1:0));
   let dividerInserted=false;
@@ -18866,7 +18912,7 @@ function marginMembershipTableHtml(p, schoolFilter){
     if(status==='none' && !dividerInserted){ dividerInserted=true; dividerRow=`<tr class="mg2-divider-row"><td colspan="4">Not included</td></tr>`; }
     return dividerRow+`
       <tr class="mg2-membership-row ${status==='none'?'excluded':''}">
-        <td>${escapeHtml(c.code)}</td><td>${c.creditHours}</td><td>${_costUSD(marginCourseTotalCost(c))}</td>
+        <td>${escapeHtml(c.code)}</td><td>${marginCreditHours(c)}</td><td>${_costUSD(marginCourseTotalCost(c))}</td>
         <td><select class="mg2-field-input" style="width:auto;" onchange="marginSetCourseMembership('${p.id}','${c.id}', this.value)">
           <option value="none" ${status==='none'?'selected':''}>Not included</option>
           <option value="core" ${status==='core'?'selected':''}>Core</option>
@@ -18878,7 +18924,7 @@ function marginMembershipTableHtml(p, schoolFilter){
 }
 function marginGenedsMembershipTableHtml(p){
   const pm = programMargin(p);
-  const courses = marginStore.courses.filter(c=>c.school==='Geneds');
+  const courses = marginStore.courses.filter(c=>marginSchoolOf(c)==='Geneds');
   const withIncluded = courses.map(c=>({c, included:pm.electiveCourseIds.includes(c.id)}));
   withIncluded.sort((a,b)=>(a.included?0:1)-(b.included?0:1));
   let dividerInserted=false;
@@ -18887,8 +18933,8 @@ function marginGenedsMembershipTableHtml(p){
     if(!included && !dividerInserted){ dividerInserted=true; dividerRow=`<tr class="mg2-divider-row"><td colspan="4">Not included</td></tr>`; }
     return dividerRow+`
       <tr class="mg2-membership-row ${included?'':'excluded'}">
-        <td>${escapeHtml(c.code)}</td><td>${c.creditHours}</td><td>${_costUSD(marginCourseTotalCost(c))}</td>
-        <td><label class="mg2-gened-check" style="display:flex;align-items:center;gap:8px;"><input type="checkbox" ${included?'checked':''} onchange="marginToggleGened('${p.id}','${c.id}', this.checked)"><span class="mg2-badge" style="color:${included?'#2F6F4E':'#6B7280'};background:${included?'#E6F2EA':'#F1F2F4'};">${included?'Included':'Not included'}</span></label></td>
+        <td>${escapeHtml(c.code)}</td><td>${marginCreditHours(c)}</td><td>${_costUSD(marginCourseTotalCost(c))}</td>
+        <td><label class="mg2-gened-check" style="display:flex;align-items:center;gap:8px;"><input type="checkbox" ${included?'checked':''} aria-label="Include ${escapeHtml(c.code)} in this program" onchange="marginToggleGened('${p.id}','${c.id}', this.checked)"></label></td>
       </tr>`;
   }).join('');
   return `<table class="mg2-table"><thead><tr><th>Course</th><th>Credits</th><th>Cost</th><th>Include (selectable per scenario)</th></tr></thead><tbody>${rows||'<tr><td colspan="4" style="color:var(--mut);">No Geneds courses yet.</td></tr>'}</tbody></table>`;
@@ -18944,7 +18990,7 @@ function marginToggleLibrary(progId, school){
     const dropped = pm.libraries.splice(i,1)[0];
     // Courses from a library that is no longer selected would otherwise keep
     // counting toward the totals while being invisible, so release them.
-    const ids = new Set((marginStore.courses||[]).filter(c=>c.school===dropped).map(c=>c.id));
+    const ids = new Set((marginStore.courses||[]).filter(c=>marginSchoolOf(c)===dropped).map(c=>c.id));
     pm.coreCourseIds = pm.coreCourseIds.filter(id=>!ids.has(id));
     pm.electiveCourseIds = pm.electiveCourseIds.filter(id=>!ids.has(id));
     (marginStore.scenariosByProgram[p.id]||[]).forEach(sc=>{
@@ -19077,8 +19123,11 @@ function marginScenarioCardHtml(p, savedScenario){
   // library picker excludes it by design. Without this they were costed but
   // absent from "Courses in this scenario", so the list contradicted the credit
   // total above it and a gen-ed could not be given a credit proposal.
-  const pool = (marginStore.courses||[]).filter(c=>
-    libs.indexOf(c.school)>=0 || (pm.includesGeneds && c.school==='Geneds'));
+  const inScenario = new Set(marginScenarioActiveCourseIds(pm, s));
+  const pool = (marginStore.courses||[]).filter(c=>{
+    const sch = marginSchoolOf(c);
+    return inScenario.has(c.id) || libs.indexOf(sch)>=0 || (pm.includesGeneds && sch==='Geneds');
+  });
   const electivesHtml = pool.map(c=>{
     const st = marginScenarioStatus(s, c.id);
     const prop = marginCreditProposal(s, c.id);
@@ -19092,10 +19141,10 @@ function marginScenarioCardHtml(p, savedScenario){
         <option value="elective" ${st==='elective'?'selected':''}>${isGened?'Included':'Elective'}</option>
       </select>
       <span${st==='none'?' style="color:var(--mut);"':''}>${escapeHtml(c.code)}</span>
-      <span style="color:var(--mut);">(${c.creditHours} cr, ${_costUSD(marginCourseTotalCost(c))})</span>
+      <span style="color:var(--mut);">(${marginCreditHours(c)} cr, ${_costUSD(marginCourseTotalCost(c))})</span>
       ${st==='none' ? '' : `<span class="mg2-prop${prop!==null?' on':''}" title="Propose different credit hours for THIS scenario only. The course record is not changed.">
         <em>model at</em>
-        <input type="number" min="0" step="1" class="mg2-prop-in" placeholder="${c.creditHours}" value="${prop!==null?prop:''}"
+        <input type="number" min="0" step="1" class="mg2-prop-in" placeholder="${marginCreditHours(c)}" value="${prop!==null?prop:''}"
           oninput="marginSetCreditProposal('${p.id}','${savedScenario.id}','${c.id}', this.value, false)"
           onchange="marginSetCreditProposal('${p.id}','${savedScenario.id}','${c.id}', this.value, true)">
         <em>cr</em>${prop!==null?'<b>proposed</b>':''}</span>`}</label>`;
@@ -19282,7 +19331,7 @@ async function marginInsertScenarioIntoSection(progId, scenarioId, targetSection
 function marginScenarioBlockInnerHtml(p, pm, scenario, t, savedAt){
   const courseRows = t.courses.map(c=>{
     const _p = marginCreditProposal(scenario, c.id);
-    return `<div class="mscn-course-row"><span>${escapeHtml(c.code)}${_p!==null?' <span class="mscn-prop">proposed</span>':''}</span><span class="cost">${_p!==null?_p:c.creditHours} cr &middot; ${_costUSD(marginCourseTotalCost(c))}</span></div>`;
+    return `<div class="mscn-course-row"><span>${escapeHtml(c.code)}${_p!==null?' <span class="mscn-prop">proposed</span>':''}</span><span class="cost">${_p!==null?_p:marginCreditHours(c)} cr &middot; ${_costUSD(marginCourseTotalCost(c))}</span></div>`;
   }).join('');
   const dateLabel = new Date(savedAt).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});
   return `<div class="block-margin-scenario" data-margin-program="${p.id}" data-margin-scenario="${scenario.id}" data-margin-saved="${savedAt}">`+
