@@ -3798,7 +3798,11 @@ function crsCreateMarginEntriesFor(plan){
   groups.forEach(cs=>{
     const lead = cs[0];
     const m = { id:marginUid('mc'), code:lead.code, school:lead.school||'Unassigned',
-                creditHours: (lead.credits==null?4:Number(lead.credits)),
+                // Never invent a credit figure. A course with no credits set gets 0,
+                // which reads as obviously unset; a made-up 4 would quietly add
+                // 4 x tuition of revenue AND would never be reported as a conflict,
+                // because there is no catalog figure to disagree with.
+                creditHours: (lead.credits==null ? 0 : Number(lead.credits)),
                 costItems:[{ id:marginUid('mci'), label:'Course materials', amount:0 }],
                 courseIds:cs.map(c=>c.id) };
     marginStore.courses.push(m);
@@ -3812,6 +3816,7 @@ async function crsCreateMarginEntries(){
   const plan = crsMissingCostingPlan();
   if(!plan.length){ await appAlert('Nothing to add \u2014 every course already has a costing entry.'); return; }
   const noSchool = plan.filter(c=>!c.school).length;
+  const noCredits = plan.filter(c=>c.credits==null).length;
   const bySchool = {};
   plan.forEach(c=>{ const k=c.school||'Unassigned'; bySchool[k]=(bySchool[k]||0)+1; });
   const summary = Object.keys(bySchool).sort().map(k=>'  '+k+': '+bySchool[k]).join('\n');
@@ -3820,7 +3825,9 @@ async function crsCreateMarginEntries(){
       ' in the Margin Calculator, covering '+plan.length+' course record'+(plan.length===1?'':'s')+'?\n\n'+summary+
       '\n\nEach one carries the course code, credit hours and school, with a single '+
       '$0 materials line to fill in. Nothing already in the costing library is changed.'+
-      (noSchool?'\n\n'+noSchool+' course(s) have no school set and will go in as Unassigned.':''),
+      (noSchool?'\n\n'+noSchool+' course(s) have no school set and will go in as Unassigned.':'')+
+      (noCredits?'\n\n'+noCredits+' course(s) have no credit hours set and will go in as 0 \u2014 set them before costing, '
+        +'rather than have a made-up figure feed revenue.':''),
       'Create entries', 'Cancel')) return;
   crsCreateMarginEntriesFor(plan);
   crsRender();
@@ -9636,7 +9643,7 @@ function ccAddCourse(code, title, credits){
   if(viewerModeForced) return;
   marginStore.courses = marginStore.courses || [];
   marginStore.courses.push({ id: marginUid('mc'), code: code, school: ccSchoolForCode(code) || 'SUT',
-    creditHours: credits || 4, costItems: [{ id: marginUid('mci'), label: 'Course materials', amount: 0 }] });
+    creditHours: (credits==null||credits==='' ? 0 : Number(credits)), costItems: [{ id: marginUid('mci'), label: 'Course materials', amount: 0 }] });
   if(title) standardsStore.courseTitles[code] = { title: title, confirmed: true, ts: Date.now() };
   scheduleSave(); ccRefresh();
   toast(code+' added to the course library ✓ — set its cost in the Margin Calculator.');
@@ -18775,7 +18782,7 @@ function renderMarginLibrary(){
 }
 function marginAddCourse(school){
   if(viewerModeForced) return;
-  marginStore.courses.push({ id:marginUid('mc'), code:'New Course', school, creditHours:4, costItems:[{id:marginUid('mci'), label:'Course materials', amount:0}] });
+  marginStore.courses.push({ id:marginUid('mc'), code:'New Course', school, creditHours:0, costItems:[{id:marginUid('mci'), label:'Course materials', amount:0}] });
   scheduleSave(); renderMarginLibrary();
 }
 async function marginRemoveCourse(courseId){
@@ -18881,7 +18888,7 @@ function marginGenedsMembershipTableHtml(p){
     return dividerRow+`
       <tr class="mg2-membership-row ${included?'':'excluded'}">
         <td>${escapeHtml(c.code)}</td><td>${c.creditHours}</td><td>${_costUSD(marginCourseTotalCost(c))}</td>
-        <td><label class="mg2-gened-check" style="display:flex;align-items:center;gap:8px;"><input type="checkbox" ${included?'checked':''} onchange="marginToggleGened('${p.id}','${c.id}', this.checked)">${marginStatusBadge(included?'elective':'none')}</label></td>
+        <td><label class="mg2-gened-check" style="display:flex;align-items:center;gap:8px;"><input type="checkbox" ${included?'checked':''} onchange="marginToggleGened('${p.id}','${c.id}', this.checked)"><span class="mg2-badge" style="color:${included?'#2F6F4E':'#6B7280'};background:${included?'#E6F2EA':'#F1F2F4'};">${included?'Included':'Not included'}</span></label></td>
       </tr>`;
   }).join('');
   return `<table class="mg2-table"><thead><tr><th>Course</th><th>Credits</th><th>Cost</th><th>Include (selectable per scenario)</th></tr></thead><tbody>${rows||'<tr><td colspan="4" style="color:var(--mut);">No Geneds courses yet.</td></tr>'}</tbody></table>`;
@@ -19065,15 +19072,24 @@ function marginScenarioCardHtml(p, savedScenario){
   // Every course from the libraries this program draws on, so a scenario can
   // be built up or pared back without touching any other scenario.
   const libs = pm.libraries || [pm.school];
-  const pool = (marginStore.courses||[]).filter(c=>libs.indexOf(c.school)>=0);
+  // Gen-eds are in the scenario (they reach it through includesGeneds -> the
+  // program's elective list) but 'Geneds' is never one of `libraries` -- the
+  // library picker excludes it by design. Without this they were costed but
+  // absent from "Courses in this scenario", so the list contradicted the credit
+  // total above it and a gen-ed could not be given a credit proposal.
+  const pool = (marginStore.courses||[]).filter(c=>
+    libs.indexOf(c.school)>=0 || (pm.includesGeneds && c.school==='Geneds'));
   const electivesHtml = pool.map(c=>{
     const st = marginScenarioStatus(s, c.id);
     const prop = marginCreditProposal(s, c.id);
+    // A gen-ed rides in electiveCourseIds as a storage detail; it is a REQUIRED
+    // course, so it must never be labelled "Elective" on screen.
+    const isGened = c.school === 'Geneds';
     return `<label class="mg2-course-row" style="display:flex;align-items:center;gap:8px;">
       <select class="mg2-field-input" style="width:auto;" onchange="marginSetScenarioMembership('${p.id}','${savedScenario.id}','${c.id}', this.value)">
         <option value="none" ${st==='none'?'selected':''}>Out</option>
         <option value="core" ${st==='core'?'selected':''}>Core</option>
-        <option value="elective" ${st==='elective'?'selected':''}>Elective</option>
+        <option value="elective" ${st==='elective'?'selected':''}>${isGened?'Included':'Elective'}</option>
       </select>
       <span${st==='none'?' style="color:var(--mut);"':''}>${escapeHtml(c.code)}</span>
       <span style="color:var(--mut);">(${c.creditHours} cr, ${_costUSD(marginCourseTotalCost(c))})</span>
