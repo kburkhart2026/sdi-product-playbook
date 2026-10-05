@@ -506,6 +506,37 @@ body.view-mode .crs-tbl-refresh,.section-locked .crs-tbl-refresh{display:none!im
 .crs-empty p{max-width:44ch;margin:0 auto 14px;line-height:1.55;}
 .crs-detail-head{display:flex;align-items:center;gap:7px;flex-wrap:wrap;
   padding-bottom:8px;border-bottom:1px solid var(--bdr);}
+/* Credit-hour conflict review. Amber is the app's existing "needs attention"
+   tint; red is reserved for a figure that actually falls. */
+.crsx-btn{color:#8A5A00!important;border-color:#E8C98A!important;background:#FFF4DC!important;}
+.crsx-sum{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  background:var(--cbg);border:1px solid var(--bdr);border-radius:5px;padding:10px 12px;margin-bottom:8px;font-size:13px;}
+.crsx-all{white-space:nowrap;}
+.crsx-note{margin:0 0 14px;font-size:12px;color:var(--mut);line-height:1.55;max-width:70ch;}
+.crsx-card{border:1px solid var(--bdr);border-radius:5px;padding:12px;margin-bottom:12px;}
+.crsx-head{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:9px;}
+.crsx-title{font-weight:700;font-size:13px;}
+.crsx-figs{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
+.crsx-fig{display:inline-flex;align-items:baseline;gap:6px;border:1px solid var(--bdr);
+  border-radius:4px;padding:4px 9px;background:#fff;}
+.crsx-fig em{font-style:normal;font-size:10.5px;letter-spacing:.07em;color:var(--mut);
+  font-family:var(--font-cond);text-transform:uppercase;}
+.crsx-fig b{font-size:14px;font-variant-numeric:tabular-nums;}
+.crsx-arrow{color:var(--mut);}
+.crsx-warn{background:#FFF4DC;border:1px solid #E8C98A;color:#6B4600;border-radius:4px;
+  padding:8px 10px;font-size:12px;line-height:1.5;}
+.crsx-none{font-size:12px;color:var(--mut);padding:2px 0 4px;}
+.crsx-tbl{width:100%;border-collapse:collapse;font-size:12px;}
+.crsx-tbl th{text-align:left;font-family:var(--font-cond);font-size:10.5px;letter-spacing:.08em;
+  color:var(--mut);text-transform:uppercase;padding:5px 8px;background:var(--cbg);border-bottom:1px solid var(--bdr);}
+.crsx-tbl td{padding:6px 8px;border-bottom:1px solid var(--bone);}
+.crsx-tbl td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+.crsx-down{color:#A50029;font-weight:700;}
+.crsx-up{color:#0B5B3A;font-weight:700;}
+.crsx-flat{color:var(--mut);}
+.crsx-acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:11px;}
+.crsx-primary{border-color:var(--acc)!important;color:var(--acc)!important;font-weight:700;}
+body.view-mode .crsx-acts,body.view-mode .crsx-all{display:none!important;}
 .crs-back{border:1px solid var(--bdr);background:#fff;border-radius:4px;padding:3px 8px;
   font-size:12px;cursor:pointer;color:var(--mut);font-family:inherit;}
 .crs-back:hover{border-color:var(--acc);color:var(--acc);}
@@ -1926,6 +1957,20 @@ body.view-mode .mg2-libchip{pointer-events:none;}
 .mscn-title{font-family:var(--font-cond);text-transform:uppercase;letter-spacing:0.03em;font-weight:800;font-size:13px;color:var(--acc);}
 .mscn-meta{font-size:11px;color:var(--mut);}
 .mscn-courses{padding:12px 16px;border-bottom:1px solid var(--bdr);}
+/* A credit proposal: a what-if scoped to one scenario, always visibly marked. */
+.mg2-prop{display:inline-flex;align-items:center;gap:4px;margin-left:auto;padding:2px 6px;
+  border:1px dashed var(--bdr);border-radius:4px;white-space:nowrap;}
+.mg2-prop.on{border-style:solid;border-color:#E8C98A;background:#FFF4DC;}
+.mg2-prop em{font-style:normal;font-family:var(--font-cond);font-size:10px;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--mut);}
+.mg2-prop.on em{color:#8A5A00;}
+.mg2-prop b{font-family:var(--font-cond);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;
+  color:#8A5A00;margin-left:2px;}
+.mg2-prop-in{width:46px;border:1px solid var(--bdr);border-radius:3px;padding:1px 4px;font:inherit;
+  font-size:12px;text-align:right;font-variant-numeric:tabular-nums;background:#fff;color:var(--txt);}
+.mscn-prop{font-family:var(--font-cond);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;
+  color:#8A5A00;background:#FFF4DC;border:1px solid #E8C98A;border-radius:3px;padding:0 4px;}
+body.view-mode .mg2-prop-in{pointer-events:none;}
 .mscn-course-row{display:flex;justify-content:space-between;font-size:12px;padding:3px 0;color:var(--txt);}
 .mscn-course-row .cost{font-variant-numeric:tabular-nums;color:var(--mut);}
 .mscn-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:0;background:#fafafa;}
@@ -2170,6 +2215,7 @@ body.view-mode .mg2-libchip{pointer-events:none;}
             <button class="pmp-dashbtn" onclick="crsAddPrompt()" title="Add a course">&#43; Course</button>
             <button class="pmp-dashbtn" onclick="crsLinkMarginAction()" title="Match costing lines to courses">&#128279; Link</button>
             <button class="pmp-dashbtn" onclick="crsCreateMarginEntries()" title="Create costing entries for courses that have none">&#128178; Costing</button>
+            <button class="pmp-dashbtn crsx-btn" id="crs-conf-btn" onclick="crsOpenConflicts()" title="Credit hours that disagree with the catalog" style="display:none"></button>
             <button class="pmp-dashbtn" onclick="crsExportDialog()" title="Export the database">&#8681;</button>
             <button class="pmp-iconbtn" onclick="crsPanelFullScreen()" title="Open full screen">&#8599;</button>
             <button class="pmp-iconbtn" onclick="crsPanelClose()" title="Close panel">&#10005;</button>
@@ -2296,6 +2342,7 @@ body.view-mode .mg2-libchip{pointer-events:none;}
         <button class="mg2-btn" onclick="crsLinkMarginAction()">&#128279; Link to Margin Calculator</button>
         <button class="mg2-btn" onclick="crsFillSchoolsFromMargin()">&#127979; Fill schools</button>
         <button class="mg2-btn" onclick="crsCreateMarginEntries()">&#128178; Add to costing library</button>
+        <button class="mg2-btn crsx-btn" id="crs-conf-btn-fs" onclick="crsOpenConflicts()" style="display:none"></button>
         <button class="mg2-btn" onclick="crsExportDialog()">&#8681; Export…</button>
       </div>
     </div>
@@ -3662,6 +3709,72 @@ function crsCreditConflicts(){
                  catalog:cat, courseIds:linked.map(c=>c.id) });
   });
   return out;
+}
+// ---- credit-hour conflicts: what resolving one would actually DO ----------
+// crsCreditConflicts() has always named the disagreements. This answers the
+// question that decides them: which saved scenarios move, and by how much.
+// It writes NOTHING -- the "after" figures come from marginScenarioTotals()
+// run with an override map, never from changing a stored value.
+//
+// A conflict whose catalog side holds MORE THAN ONE value (two deliveries that
+// disagree with each other) gets no override and no one-click resolve: the app
+// has no basis for choosing between them, so it reports and stops.
+function crsConflictOverrides(conflicts){
+  const ov = new Map();
+  (conflicts||[]).forEach(x=>{ if(x.catalog.length===1) ov.set(x.marginId, Number(x.catalog[0])); });
+  return ov;
+}
+function crsConflictImpact(){
+  const conflicts = crsCreditConflicts();
+  if(!conflicts.length) return { conflicts:[], scenarios:[], movedCount:0 };
+  const ov  = crsConflictOverrides(conflicts);
+  const ids = new Set(conflicts.map(x=>x.marginId));
+  const scenarios = [];
+  programs.forEach(p=>{
+    const pm = programMargin(p);
+    (marginScenariosFor(p.id)||[]).forEach(sc=>{
+      const active = marginScenarioActiveCourseIds(pm, sc);
+      const hit = active.filter(id=>ids.has(id));
+      if(!hit.length) return;
+      const before = marginScenarioTotals(p, sc);
+      const after  = marginScenarioTotals(p, sc, ov);
+      // A course this scenario has deliberately modelled at a different figure
+      // is unaffected by resolving the base one -- the report says so rather
+      // than reporting a move that will not happen.
+      const proposed = hit.filter(id=>marginCreditProposal(sc, id)!==null)
+                          .map(id=>({ id, cr: marginCreditProposal(sc, id) }));
+      scenarios.push({ progId:p.id, progName:p.name, scenarioId:sc.id,
+        scenarioName: sc.name || 'Untitled', isPrimary: !!sc.isPrimary,
+        entryIds: hit, proposed,
+        before, after,
+        deltaMargin: after.grossMargin - before.grossMargin,
+        deltaRevenue: after.totalProgramRevenue - before.totalProgramRevenue,
+        moves: Math.abs(after.totalProgramRevenue - before.totalProgramRevenue) > 0.005
+            || Math.abs(after.grossMargin - before.grossMargin) > 0.00005 });
+    });
+  });
+  return { conflicts, scenarios, movedCount: scenarios.filter(x=>x.moves).length };
+}
+// Resolve ONE conflict. The catalog is the default winner -- it is the published
+// figure and the one compliance is held to -- but the costing figure is what
+// every saved scenario was built on, so both directions are offered per row.
+function crsResolveConflict(marginId, winner){
+  if(viewerModeForced) return false;
+  const m = (marginStore.courses||[]).find(x=>x.id===marginId); if(!m) return false;
+  const linked = crsCoursesForMarginEntry(marginId);
+  if(!linked.length) return false;
+  if(winner === 'catalog'){
+    const cat = [...new Set(linked.map(c=>c.credits).filter(v=>v!=null))];
+    if(cat.length !== 1) return false;   // deliveries disagree -- refuse to guess
+    m.creditHours = Number(cat[0]);
+  } else {
+    // The costing figure wins: it is written onto every linked course record,
+    // which flips those fields from catalog-owned to Playbook-owned. crsSetField
+    // keeps catalogValue, so the difference stays visible and revertible.
+    linked.forEach(c=>crsSetField(c.id, 'credits', Number(m.creditHours)));
+  }
+  scheduleSave();
+  return true;
 }
 // Fill School from the costing library, where all 37 entries already carry one.
 // The Course Database and the costing library are separate stores, and an
@@ -14641,9 +14754,22 @@ function crsFiltered(){
     return (c.code+' '+c.title+' '+(c.category||'')+' '+(c.description||'')).toLowerCase().indexOf(q) >= 0;
   }).sort((a,b)=> a.code===b.code ? (a.weeks||0)-(b.weeks||0) : (a.code<b.code?-1:1));
 }
+// Both Course Database toolbars carry the conflicts button; it appears only
+// when there is something to resolve, so a clean database shows no nag.
+function crsSyncConflictBtn(){
+  let n = 0;
+  try{ n = (typeof crsCreditConflicts==='function') ? crsCreditConflicts().length : 0; }catch(_){ n = 0; }
+  ['crs-conf-btn','crs-conf-btn-fs'].forEach(id=>{
+    const b = document.getElementById(id); if(!b) return;
+    b.style.display = (n && !viewerModeForced) ? '' : 'none';
+    b.innerHTML = '\u2696 ' + n + ' credit conflict' + (n===1?'':'s');
+  });
+}
 function crsRender(){
+  crsSyncConflictBtn();
   const root = crsBodyRoot(); if(!root) return;
-  root.innerHTML = (crsView==='detail' && crsById(crsSelectedId))
+  root.innerHTML = crsView==='conflicts' ? crsConflictsHTML()
+    : (crsView==='detail' && crsById(crsSelectedId))
     ? crsDetailHTML(crsById(crsSelectedId)) : crsListHTML();
 }
 function crsListHTML(){
@@ -14762,6 +14888,107 @@ async function crsInsertPicked(){
   const n = ids.length;
   crsPicked.clear(); crsRender();
   toast('Inserted '+n+' course'+(n===1?'':'s')+' — edit it like any table');
+}
+function crsOpenConflicts(){ crsView='conflicts'; crsSelectedId=null; crsRender(); }
+// The review screen. Reports first, resolves only on an explicit click, and
+// always shows what each choice does to a saved scenario before it is made.
+function crsConflictsHTML(){
+  const rep = crsConflictImpact();
+  let h = '<div class="crs-wrap">'
+    + '<div class="crs-detail-head">'
+    + '<button class="crs-back" onclick="crsBackToList()">&#8592; All courses</button>'
+    + '<span class="crs-code crs-code-lg">Credit-hour conflicts</span></div>';
+  if(!rep.conflicts.length){
+    h += '<div class="crs-empty"><div class="crs-empty-t">Nothing to resolve</div>'
+      +  '<p>Every costing entry agrees with the course record it is linked to.</p></div></div>';
+    return h;
+  }
+  const auto = rep.conflicts.filter(x=>x.catalog.length===1).length;
+  h += '<div class="crsx-sum"><div><b>'+rep.conflicts.length+'</b> conflict'+(rep.conflicts.length===1?'':'s')
+    +  ' &middot; <b>'+rep.movedCount+'</b> saved scenario'+(rep.movedCount===1?'':'s')+' would move</div>'
+    +  (auto ? '<button class="mg2-btn crsx-all" onclick="crsResolveAllCatalog()">Use the catalog figure for all '+auto+'</button>' : '')
+    +  '</div>'
+    +  '<p class="crsx-note">Revenue is calculated from the costing figure today. '
+    +  'Choosing the catalog figure changes the scenarios listed under each conflict by the amounts shown.</p>';
+
+  rep.conflicts.forEach(x=>{
+    const title = (crsById((x.courseIds||[])[0])||{}).title || '';
+    const ambiguous = x.catalog.length !== 1;
+    const xMarginId = x.marginId;
+    const scns = rep.scenarios.filter(sc=>sc.entryIds.indexOf(x.marginId)>=0);
+    h += '<div class="crsx-card">'
+      +  '<div class="crsx-head"><span class="crs-code">'+escapeHtml(x.code||'')+'</span>'
+      +  (title?'<span class="crsx-title">'+escapeHtml(title)+'</span>':'')+'</div>'
+      +  '<div class="crsx-figs">'
+      +  '<span class="crsx-fig"><em>Costing</em><b>'+x.margin+' cr</b></span>'
+      +  '<span class="crsx-arrow">&rarr;</span>'
+      +  '<span class="crsx-fig"><em>Catalog</em><b>'+x.catalog.join(' or ')+' cr</b></span>'
+      +  '</div>';
+    if(ambiguous){
+      h += '<div class="crsx-warn">The deliveries of this course disagree with each other ('
+        +  x.catalog.join(' and ')+' credits). Fix the course records first &mdash; '
+        +  'there is no basis here for choosing between them.</div>';
+    } else if(!scns.length){
+      h += '<div class="crsx-none">No saved scenario uses this course. Resolving it moves no number.</div>';
+    } else {
+      h += '<table class="crsx-tbl"><thead><tr><th>Scenario</th><th>Margin now</th><th>After</th><th>Change</th></tr></thead><tbody>';
+      scns.forEach(sc=>{
+        const d = sc.deltaMargin;
+        const cls = !sc.moves ? 'flat' : (d<0 ? 'down' : 'up');
+        const prop = (sc.proposed||[]).find(x=>x.id===xMarginId);
+        const why = (!sc.moves && prop) ? 'models '+prop.cr+' cr' : (sc.moves?((d>=0?'+':'')+(d*100).toFixed(1)+' pts'):'no change');
+        h += '<tr><td>'+escapeHtml(sc.progName)+' &mdash; '+escapeHtml(sc.scenarioName)
+          +  (sc.isPrimary?' <span class="mg2-badge mg2-primary-badge">&#9733;</span>':'')+'</td>'
+          +  '<td class="num">'+marginPct(sc.before.grossMargin)+'</td>'
+          +  '<td class="num">'+marginPct(sc.after.grossMargin)+'</td>'
+          +  '<td class="num crsx-'+cls+'">'+why+'</td></tr>';
+      });
+      h += '</tbody></table>';
+    }
+    if(!ambiguous){
+      h += '<div class="crsx-acts">'
+        +  '<button class="mg2-btn crsx-primary" onclick="crsResolveOne(\''+x.marginId+'\',\'catalog\')">Use catalog &mdash; '+x.catalog[0]+' cr</button>'
+        +  '<button class="mg2-btn" onclick="crsResolveOne(\''+x.marginId+'\',\'costing\')">Use costing &mdash; '+x.margin+' cr</button>'
+        +  '</div>';
+    }
+    h += '</div>';
+  });
+  return h + '</div>';
+}
+async function crsResolveOne(marginId, winner){
+  if(viewerModeForced) return;
+  const m = (marginStore.courses||[]).find(x=>x.id===marginId); if(!m) return;
+  const linked = crsCoursesForMarginEntry(marginId);
+  const cat = [...new Set(linked.map(c=>c.credits).filter(v=>v!=null))];
+  const to  = winner==='catalog' ? cat[0] : m.creditHours;
+  const rep = crsConflictImpact();
+  const scns = rep.scenarios.filter(sc=>sc.entryIds.indexOf(marginId)>=0 && sc.moves);
+  const detail = winner==='catalog'
+    ? 'The costing entry moves to '+to+' credit hours.'
+    : 'Every linked course record moves to '+to+' credit hours, and those fields become Playbook-owned (the catalog value is kept and can be reverted).';
+  const moves = scns.length
+    ? '\n\n'+scns.length+' saved scenario'+(scns.length===1?'':'s')+' will change:\n'
+      + scns.map(sc=>'  '+sc.progName+' — '+sc.scenarioName+': '
+          + marginPct(sc.before.grossMargin)+' → '+marginPct(sc.after.grossMargin)).join('\n')
+    : '\n\nNo saved scenario changes.';
+  if(!await appConfirm(escapeHtml(m.code||'')+' — set credit hours to '+to+'?\n\n'+detail+moves, 'Resolve', 'Cancel')) return;
+  if(crsResolveConflict(marginId, winner)){ crsRender(); toast('Resolved — '+(m.code||'')+' now reads '+to+' cr'); }
+}
+async function crsResolveAllCatalog(){
+  if(viewerModeForced) return;
+  const rep = crsConflictImpact();
+  const doable = rep.conflicts.filter(x=>x.catalog.length===1);
+  if(!doable.length) return;
+  const moved = rep.scenarios.filter(sc=>sc.moves);
+  const lines = moved.map(sc=>'  '+sc.progName+' — '+sc.scenarioName+': '
+      + marginPct(sc.before.grossMargin)+' → '+marginPct(sc.after.grossMargin)).join('\n');
+  if(!await appConfirm('Set '+doable.length+' costing entr'+(doable.length===1?'y':'ies')
+      +' to the catalog credit hours?\n\n'
+      + doable.map(x=>'  '+x.code+': '+x.margin+' → '+x.catalog[0]+' cr').join('\n')
+      + (moved.length ? '\n\n'+moved.length+' saved scenario'+(moved.length===1?'':'s')+' will change:\n'+lines
+                      : '\n\nNo saved scenario changes.'), 'Resolve all', 'Cancel')) return;
+  let n=0; doable.forEach(x=>{ if(crsResolveConflict(x.marginId,'catalog')) n++; });
+  crsRender(); toast(n+' conflict'+(n===1?'':'s')+' resolved ✓');
 }
 function crsOpenDetail(id){ crsSelectedId=id; crsView='detail'; crsRender(); }
 function crsBackToList(){ crsView='list'; crsSelectedId=null; crsRender(); }
@@ -18147,6 +18374,13 @@ function marginPrimaryScenario(progId){
 // always said it was.
 function marginScenarioEnsure(pm, scenario){
   if(!scenario) return scenario;
+  // A credit PROPOSAL is a what-if scoped to this scenario: "model this course
+  // at 4 credits". It is deliberately NOT a change to the course record, so the
+  // catalog, the DEAC sheet and every other scenario keep reading the
+  // implemented figure. Empty by default; rides along in the scenario, so it
+  // persists, duplicates and merges with no new wiring.
+  if(!scenario.creditProposals || typeof scenario.creditProposals !== 'object'
+     || Array.isArray(scenario.creditProposals)) scenario.creditProposals = {};
   if(!Array.isArray(scenario.coreCourseIds) || !Array.isArray(scenario.electiveCourseIds)){
     // A scenario saved before this existed inherits what it was actually being
     // costed with, so no saved number moves.
@@ -18177,11 +18411,40 @@ function marginSetScenarioMembership(progId, scenarioId, courseId, status){
   draft.selectedElectiveCourseIds = [...draft.electiveCourseIds];   // kept in step for older readers
   renderMarginProgram();
 }
-function marginScenarioTotals(program, scenario){
+// What this scenario actually costs this course at. A PROPOSAL wins over
+// everything, including the conflict report's override -- a scenario that has
+// deliberately modelled a different figure is not affected by resolving the
+// base one, and the report must say so rather than predicting a move.
+function marginCreditProposal(scenario, courseId){
+  const m = scenario && scenario.creditProposals;
+  const v = m && m[courseId];
+  return (v===null || v===undefined || v==='') ? null : Number(v);
+}
+function marginEffectiveCredits(scenario, c, creditOverride){
+  if(!c) return 0;
+  const prop = marginCreditProposal(scenario, c.id);
+  if(prop !== null && !isNaN(prop)) return prop;
+  if(creditOverride && creditOverride.has(c.id)) return creditOverride.get(c.id);
+  return c.creditHours;
+}
+function marginSetCreditProposal(progId, scenarioId, courseId, value, commit){
+  if(viewerModeForced) return;
+  const p = programs.find(x=>x.id===progId); if(!p) return;
+  const draft = marginGetDraft(progId, scenarioId); if(!draft) return;
+  marginScenarioEnsure(programMargin(p), draft);
+  const v = String(value==null?'':value).trim();
+  if(v==='' || isNaN(Number(v)) || Number(v) < 0) delete draft.creditProposals[courseId];
+  else draft.creditProposals[courseId] = Number(v);
+  if(commit) renderMarginProgram(); else marginUpdateScenarioSummaryDOM(progId, scenarioId);
+}
+// `creditOverride` is an optional Map of costing-entry id -> credit hours, used by
+// the conflict report to answer "what would this scenario read if the catalog
+// figure won?" WITHOUT writing anything. Omitted, every number is unchanged.
+function marginScenarioTotals(program, scenario, creditOverride){
   const pm = programMargin(program);
   const activeIds = marginScenarioActiveCourseIds(pm, scenario);
   const courses = activeIds.map(id=>marginCourse(id)).filter(Boolean);
-  const totalCreditHours = courses.reduce((s,c)=>s+(Number(c.creditHours)||0),0);
+  const totalCreditHours = courses.reduce((s,c)=>s+(Number(marginEffectiveCredits(scenario,c,creditOverride))||0),0);
   const cogs = courses.reduce((s,c)=>s+marginCourseTotalCost(c),0);
   const tuitionRate = (scenario.overrides.tuitionRate ?? pm.tuitionRate) || 0;
   const erf = (scenario.overrides.erf ?? pm.erf) || 0;
@@ -18795,7 +19058,7 @@ function marginScenarioCardHtml(p, savedScenario){
   const pm = programMargin(p);
   marginScenarioEnsure(pm, s);
   const inCourses = marginScenarioActiveCourseIds(pm, s).map(id=>marginCourse(id)).filter(Boolean);
-  const inCredits = inCourses.reduce((sum,c)=>sum+(Number(c.creditHours)||0),0);
+  const inCredits = inCourses.reduce((sum,c)=>sum+(Number(marginEffectiveCredits(s,c))||0),0);
   const coreLine = inCourses.length
     ? `<div style="margin-bottom:10px;">${marginStatusBadge('core')} <span style="color:var(--mut);font-size:12px;">${inCourses.length} course${inCourses.length===1?'':'s'}, ${inCredits} credits in this scenario</span></div>`
     : '<div style="margin-bottom:10px;color:var(--mut);font-size:12px;">No courses in this scenario yet &mdash; add them below.</div>';
@@ -18805,6 +19068,7 @@ function marginScenarioCardHtml(p, savedScenario){
   const pool = (marginStore.courses||[]).filter(c=>libs.indexOf(c.school)>=0);
   const electivesHtml = pool.map(c=>{
     const st = marginScenarioStatus(s, c.id);
+    const prop = marginCreditProposal(s, c.id);
     return `<label class="mg2-course-row" style="display:flex;align-items:center;gap:8px;">
       <select class="mg2-field-input" style="width:auto;" onchange="marginSetScenarioMembership('${p.id}','${savedScenario.id}','${c.id}', this.value)">
         <option value="none" ${st==='none'?'selected':''}>Out</option>
@@ -18812,7 +19076,13 @@ function marginScenarioCardHtml(p, savedScenario){
         <option value="elective" ${st==='elective'?'selected':''}>Elective</option>
       </select>
       <span${st==='none'?' style="color:var(--mut);"':''}>${escapeHtml(c.code)}</span>
-      <span style="color:var(--mut);">(${c.creditHours} cr, ${_costUSD(marginCourseTotalCost(c))})</span></label>`;
+      <span style="color:var(--mut);">(${c.creditHours} cr, ${_costUSD(marginCourseTotalCost(c))})</span>
+      ${st==='none' ? '' : `<span class="mg2-prop${prop!==null?' on':''}" title="Propose different credit hours for THIS scenario only. The course record is not changed.">
+        <em>model at</em>
+        <input type="number" min="0" step="1" class="mg2-prop-in" placeholder="${c.creditHours}" value="${prop!==null?prop:''}"
+          oninput="marginSetCreditProposal('${p.id}','${savedScenario.id}','${c.id}', this.value, false)"
+          onchange="marginSetCreditProposal('${p.id}','${savedScenario.id}','${c.id}', this.value, true)">
+        <em>cr</em>${prop!==null?'<b>proposed</b>':''}</span>`}</label>`;
   }).join('');
   return `
     <div class="mg2-scenario-card ${savedScenario.isPrimary?'primary':''}" id="mg2-scenario-${savedScenario.id}">
@@ -18994,7 +19264,10 @@ async function marginInsertScenarioIntoSection(progId, scenarioId, targetSection
 
 // ---------- the saved-scenario block itself (lives in blockStore, survives reload) ----------
 function marginScenarioBlockInnerHtml(p, pm, scenario, t, savedAt){
-  const courseRows = t.courses.map(c=>`<div class="mscn-course-row"><span>${escapeHtml(c.code)}</span><span class="cost">${c.creditHours} cr &middot; ${_costUSD(marginCourseTotalCost(c))}</span></div>`).join('');
+  const courseRows = t.courses.map(c=>{
+    const _p = marginCreditProposal(scenario, c.id);
+    return `<div class="mscn-course-row"><span>${escapeHtml(c.code)}${_p!==null?' <span class="mscn-prop">proposed</span>':''}</span><span class="cost">${_p!==null?_p:c.creditHours} cr &middot; ${_costUSD(marginCourseTotalCost(c))}</span></div>`;
+  }).join('');
   const dateLabel = new Date(savedAt).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});
   return `<div class="block-margin-scenario" data-margin-program="${p.id}" data-margin-scenario="${scenario.id}" data-margin-saved="${savedAt}">`+
     `<div class="mscn-head"><div class="mscn-head-left">${marginSchoolBadge(pm.school)}<span class="mscn-title">${escapeHtml(p.name)} — ${escapeHtml(scenario.name)}</span>${scenario.isPrimary?'<span class="mg2-badge mg2-primary-badge">★ Primary</span>':''}</div><div class="mscn-meta">Saved ${dateLabel}</div></div>`+
