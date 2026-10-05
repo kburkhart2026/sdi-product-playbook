@@ -2344,6 +2344,7 @@ body.view-mode .mg2-prop-in{pointer-events:none;}
         <button class="mg2-btn" onclick="crsAddPrompt()">&#43; Add course</button>
         <button class="mg2-btn" onclick="crsImportFromRepo()">&#8681; Import catalog edition</button>
         <button class="mg2-btn" onclick="crsLinkMarginAction()">&#128279; Link to Margin Calculator</button>
+        <button class="mg2-btn" onclick="crsRelinkAll()" title="Discard every link and rebuild from course codes">&#8635; Rebuild links</button>
         <button class="mg2-btn" onclick="crsFillSchoolsFromMargin()">&#127979; Fill schools</button>
         <button class="mg2-btn" onclick="crsCreateMarginEntries()">&#128178; Add to costing library</button>
         <button class="mg2-btn crsx-btn" id="crs-conf-btn-fs" onclick="crsOpenConflicts()" style="display:none"></button>
@@ -3660,17 +3661,34 @@ function crsScenariosUsing(courseId){
 // Exact normalised-code matching only. The costing variants
 // ("FTE 217 (opt AR15)") and the four costed-but-unpublished courses are
 // deliberately LEFT for review rather than guessed at.
-function crsLinkAuto(){
+// STEP 3: a link, once made, is DURABLE. This used to wipe every link
+// (`c.marginCourseIds = []`, `m.courseIds = []`) and rebuild them all from code
+// text, which had two bad consequences now that the link carries real meaning:
+//   - renaming a course code orphaned its costing entry on the next click, and
+//   - the FTE 217 variant links, confirmed by hand via crsLinkVariants(), were
+//     destroyed every time anyone pressed Link.
+// So it now only FILLS IN entries that have no link. crsRelinkAll() is the
+// explicit way to start over.
+function crsLinkAuto(opts){
+  const rebuild = !!(opts && opts.rebuild);
   const byCode = {};
   crsAll().forEach(c=>{ (byCode[ccNormCode(c.code)] = byCode[ccNormCode(c.code)] || []).push(c); });
-  const rep = { linked:[], variants:[], unmatched:[], alreadyLinked:0 };
-  crsAll().forEach(c=>{ c.marginCourseIds = []; });
+  const rep = { linked:[], variants:[], unmatched:[], alreadyLinked:0, kept:0 };
+  if(rebuild) crsAll().forEach(c=>{ c.marginCourseIds = []; });
   (marginStore.courses||[]).forEach(m=>{
+    if(!rebuild && (m.courseIds||[]).length){
+      // Already linked -- leave it exactly as it is, whatever the code says now.
+      rep.alreadyLinked++; rep.kept++;
+      return;
+    }
     m.courseIds = [];
     const n = ccNormCode(m.code||'');
     const hit = byCode[n];
     if(hit && hit.length){
-      hit.forEach(c=>{ c.marginCourseIds.push(m.id); m.courseIds.push(c.id); });
+      hit.forEach(c=>{
+        if(!(c.marginCourseIds||[]).includes(m.id)) (c.marginCourseIds = c.marginCourseIds||[]).push(m.id);
+        m.courseIds.push(c.id);
+      });
       rep.linked.push({ margin:m.code, courses:hit.map(c=>c.id) });
       return;
     }
@@ -3681,6 +3699,21 @@ function crsLinkAuto(){
   });
   scheduleSave();
   return rep;
+}
+// Deliberately discard every existing link and rebuild from code. The only
+// route to the old behaviour, and it asks first because hand-confirmed links
+// (the FTE 217 variants) are exactly what it throws away.
+async function crsRelinkAll(){
+  if(viewerModeForced) return;
+  const linked = (marginStore.courses||[]).filter(m=>(m.courseIds||[]).length).length;
+  if(!await appConfirm('Rebuild every link from course codes?\n\n'
+      + linked + ' costing entr' + (linked===1?'y is':'ies are') + ' linked today. Any link that was '
+      + 'confirmed by hand \u2014 the FTE 217 kit variants, for instance \u2014 will be discarded and '
+      + 'only re-made if the codes happen to match.\n\nUse this only if the links are genuinely wrong.',
+      'Rebuild links', 'Cancel')) return;
+  const rep = crsLinkAuto({rebuild:true});
+  crsRender();
+  toast(rep.linked.length+' link'+(rep.linked.length===1?'':'s')+' rebuilt from codes');
 }
 // Confirm the costing variants belong to their base course.
 function crsLinkVariants(){
@@ -3860,6 +3893,8 @@ async function crsLinkMarginAction(){
   const rep = crsLinkAuto();
   const conflicts = crsCreditConflicts();
   let msg = 'Linked the Course Database to the Margin Calculator.\n\n'
+    + (rep.alreadyLinked ? rep.alreadyLinked+' costing line'+(rep.alreadyLinked===1?' was':'s were')
+        +' already linked and left untouched\n' : '')
     + rep.linked.length+' costing line'+(rep.linked.length===1?'':'s')+' matched a course by code\n'
     + rep.variants.length+' look like costing variants of a course\n'
     + rep.unmatched.length+' matched nothing\n';
@@ -18391,6 +18426,10 @@ function marginCreditHours(m){
   const v = _marginLinkedField(m, 'credits');
   return v === undefined ? (m ? m.creditHours : 0) : Number(v);
 }
+function marginCodeOf(m){
+  const v = _marginLinkedField(m, 'code');
+  return v === undefined ? (m ? m.code : '') : v;
+}
 function marginSchoolOf(m){
   const v = _marginLinkedField(m, 'school');
   return v === undefined ? (m ? m.school : '') : v;
@@ -18768,7 +18807,9 @@ function marginCourseRowHtml(c){
     </div>`).join('');
   return `
     <tr>
-      <td style="min-width:120px;"><input type="text" class="mg2-field-input" value="${escapeHtml(c.code)}" oninput="marginLibCourseField('${c.id}','code', this.value)"></td>
+      <td style="min-width:120px;">${(c.courseIds||[]).length
+        ? `<span class="mg2-derived" title="From the linked Course Database record. Rename it there and this follows.">${escapeHtml(marginCodeOf(c))}</span>`
+        : `<input type="text" class="mg2-field-input" value="${escapeHtml(c.code)}" oninput="marginLibCourseField('${c.id}','code', this.value)">`}</td>
       <td style="min-width:190px;"><input type="text" class="mg2-field-input" placeholder="Standard title…" value="${escapeHtml(ccStandardTitle(c.code))}" oninput="ccSetTitleFromLibrary('${c.id}', this.value)"></td>
       <td style="width:90px;">${marginFieldSource(c,'credits')==='course'
         ? `<span class="mg2-derived" title="From the Course Database record this entry is linked to. Change it there.">${marginCreditHours(c)}</span>`
@@ -18826,10 +18867,39 @@ function renderMarginLibrary(){
   }).join('');
   marginBodyRoot().innerHTML = `<div class="mg2-header"><div class="mg2-title">Tools Library<span class="sub">Per-course tool and material costs, shared across every program</span></div></div>${sections}`;
 }
-function marginAddCourse(school){
+// STEP 3: a cost set starts from a COURSE, not from a blank row. The old version
+// minted an entry literally named "New Course" with no catalog existence -- one
+// is still sitting in the real library, which is what that design produces.
+// Now: name the course first. If the Course Database knows it, the entry is
+// created already linked; if not, the course record is offered first, so a
+// costing line can no longer exist for something that is not a course.
+async function marginAddCourse(school){
   if(viewerModeForced) return;
-  marginStore.courses.push({ id:marginUid('mc'), code:'New Course', school, creditHours:0, costItems:[{id:marginUid('mci'), label:'Course materials', amount:0}] });
+  const raw = await appPrompt('Course code for this cost set \u2014 e.g. AMT 201', '');
+  const code = String(raw||'').trim();
+  if(!code) return;
+  let hits = (typeof crsByCode==='function') ? crsByCode(code) : [];
+  if(!hits.length){
+    if(!await appConfirm('\u201c'+code+'\u201d is not in the Course Database.\n\n'
+        + 'Add it as a draft course record and link this cost set to it? That keeps every '
+        + 'costing line attached to a real course.', 'Add the course too', 'Cancel')) return;
+    const made = (typeof crsAdd==='function')
+      ? crsAdd({ code: code, school: school==='Geneds' ? 'Geneds' : school, status:'draft' })
+      : null;
+    if(made) hits = [made];
+  }
+  const lead = hits[0] || null;
+  const m = { id:marginUid('mc'), code: lead ? lead.code : code,
+              school: (lead && lead.school) || school,
+              // The entry's own figures are a FALLBACK SNAPSHOT from here on --
+              // nothing reads them while the link holds (see the step 2 resolvers).
+              creditHours: (lead && lead.credits!=null) ? Number(lead.credits) : 0,
+              costItems:[{id:marginUid('mci'), label:'Course materials', amount:0}],
+              courseIds: hits.map(c=>c.id) };
+  marginStore.courses.push(m);
+  hits.forEach(c=>{ if(!(c.marginCourseIds||[]).includes(m.id)) (c.marginCourseIds = c.marginCourseIds||[]).push(m.id); });
   scheduleSave(); renderMarginLibrary();
+  toast(m.code + ' added' + (hits.length ? ' \u2014 linked to the Course Database \u2713' : ''));
 }
 async function marginRemoveCourse(courseId){
   if(viewerModeForced) return;
@@ -18912,7 +18982,7 @@ function marginMembershipTableHtml(p, schoolFilter){
     if(status==='none' && !dividerInserted){ dividerInserted=true; dividerRow=`<tr class="mg2-divider-row"><td colspan="4">Not included</td></tr>`; }
     return dividerRow+`
       <tr class="mg2-membership-row ${status==='none'?'excluded':''}">
-        <td>${escapeHtml(c.code)}</td><td>${marginCreditHours(c)}</td><td>${_costUSD(marginCourseTotalCost(c))}</td>
+        <td>${escapeHtml(marginCodeOf(c))}</td><td>${marginCreditHours(c)}</td><td>${_costUSD(marginCourseTotalCost(c))}</td>
         <td><select class="mg2-field-input" style="width:auto;" onchange="marginSetCourseMembership('${p.id}','${c.id}', this.value)">
           <option value="none" ${status==='none'?'selected':''}>Not included</option>
           <option value="core" ${status==='core'?'selected':''}>Core</option>
@@ -18933,7 +19003,7 @@ function marginGenedsMembershipTableHtml(p){
     if(!included && !dividerInserted){ dividerInserted=true; dividerRow=`<tr class="mg2-divider-row"><td colspan="4">Not included</td></tr>`; }
     return dividerRow+`
       <tr class="mg2-membership-row ${included?'':'excluded'}">
-        <td>${escapeHtml(c.code)}</td><td>${marginCreditHours(c)}</td><td>${_costUSD(marginCourseTotalCost(c))}</td>
+        <td>${escapeHtml(marginCodeOf(c))}</td><td>${marginCreditHours(c)}</td><td>${_costUSD(marginCourseTotalCost(c))}</td>
         <td><label class="mg2-gened-check" style="display:flex;align-items:center;gap:8px;"><input type="checkbox" ${included?'checked':''} aria-label="Include ${escapeHtml(c.code)} in this program" onchange="marginToggleGened('${p.id}','${c.id}', this.checked)"></label></td>
       </tr>`;
   }).join('');
@@ -19140,7 +19210,7 @@ function marginScenarioCardHtml(p, savedScenario){
         <option value="core" ${st==='core'?'selected':''}>Core</option>
         <option value="elective" ${st==='elective'?'selected':''}>${isGened?'Included':'Elective'}</option>
       </select>
-      <span${st==='none'?' style="color:var(--mut);"':''}>${escapeHtml(c.code)}</span>
+      <span${st==='none'?' style="color:var(--mut);"':''}>${escapeHtml(marginCodeOf(c))}</span>
       <span style="color:var(--mut);">(${marginCreditHours(c)} cr, ${_costUSD(marginCourseTotalCost(c))})</span>
       ${st==='none' ? '' : `<span class="mg2-prop${prop!==null?' on':''}" title="Propose different credit hours for THIS scenario only. The course record is not changed.">
         <em>model at</em>
